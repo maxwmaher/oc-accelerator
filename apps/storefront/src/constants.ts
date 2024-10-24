@@ -32,7 +32,7 @@ const IS_AUTO_APPLY = Boolean(IS_AUTO_APPLY_STRING === "true");
 // Dashboard configs
 const DASHBOARD_HERO_TAGLINE =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_HERO_TAGLINE ||
-  `Welcome to ${APP_NAME} storefront app`;
+  `Welcome to UNICEF`;
 const DASHBOARD_HERO_IMAGE = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_HERO_IMAGE;
 const DASHBOARD_HERO_CTA_TEXT =

@@ -7,6 +7,7 @@ import {
   Container,
   Heading,
   HStack,
+  Input,
   SimpleGrid,
   Spinner,
   Text,
@@ -58,6 +59,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const [quantity, setQuantity] = useState(
     product?.PriceSchedule?.MinQuantity ?? 1
   );
+  const [donationAmount, setDonationAmount] = useState(0.0);
   const outOfStock = useMemo(
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable]
@@ -127,7 +129,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         });
       }
     }
-  }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate]);
+  }, [
+    product,
+    activeRecordId,
+    productId,
+    toast,
+    addCartLineItem,
+    quantity,
+    navigate,
+  ]);
 
   return loading ? (
     <Center h="50vh">
@@ -153,9 +163,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             {product.ID}
           </Text>
           <Text maxW="prose">{product.Description}</Text>
-          <Text fontSize="3xl" fontWeight="medium">
-            {formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}
-          </Text>
+          {product?.xp?.Type !== "Donation" && (
+            <Text fontSize="3xl" fontWeight="medium">
+              {formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}
+            </Text>
+          )}
           <HStack alignItems="center" gap={4} my={3}>
             <Button
               colorScheme="primary"
@@ -165,12 +177,23 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             >
               {outOfStock ? "Out of stock" : "Add To Cart"}
             </Button>
-            <OcQuantityInput
-              controlId="addToCart"
-              priceSchedule={product.PriceSchedule}
-              quantity={quantity}
-              onChange={setQuantity}
-            />
+
+            {product?.xp?.Type !== "Donation" ? (
+              <OcQuantityInput
+                controlId="addToCart"
+                priceSchedule={product.PriceSchedule}
+                quantity={quantity}
+                onChange={setQuantity}
+              />
+            ) : (
+              <Input
+                placeholder="Enter donation amount"
+                type="number"
+                min={1}
+                value={donationAmount}
+                onChange={(e) => setDonationAmount(e.target.value)}
+              />
+            )}
           </HStack>
           {!outOfStock && IS_MULTI_LOCATION_INVENTORY && (
             <>
