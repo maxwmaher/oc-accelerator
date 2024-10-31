@@ -88,9 +88,11 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
       >
         <Image
           w="full"
-          maxH="75vh"
+          maxH="25vh"
           objectFit="contain"
-          src={images[selectedIndex]?.ThumbnailUrl || images[selectedIndex]?.Url}
+          src={
+            images[selectedIndex]?.ThumbnailUrl || images[selectedIndex]?.Url
+          }
           onError={() => setError(true)}
         />
       </Flex>

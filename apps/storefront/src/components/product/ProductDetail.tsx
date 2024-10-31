@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Card,
   CardBody,
@@ -8,6 +9,9 @@ import {
   Heading,
   HStack,
   Input,
+  InputGroup,
+  InputLeftElement,
+  Progress,
   SimpleGrid,
   Spinner,
   Text,
@@ -59,7 +63,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const [quantity, setQuantity] = useState(
     product?.PriceSchedule?.MinQuantity ?? 1
   );
-  const [donationAmount, setDonationAmount] = useState(0.0);
+  const [donationAmount, setDonationAmount] = useState("0.00");
   const outOfStock = useMemo(
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable]
@@ -92,11 +96,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     }
 
     try {
+      // Convert the donation amount to a float safely
+      const unitPrice = parseFloat(donationAmount) || 0.0;
+      console.log("unit price", unitPrice); // Check if it logs correctly
+
       setAddingToCart(true);
       await addCartLineItem({
         ProductID: productId,
         Quantity: quantity,
         InventoryRecordID: activeRecordId,
+        UnitPrice: unitPrice,
       });
       setAddingToCart(false);
       toast({
@@ -137,6 +146,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     addCartLineItem,
     quantity,
     navigate,
+    donationAmount, // Add this dependency
   ]);
 
   return loading ? (
@@ -168,16 +178,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               {formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}
             </Text>
           )}
-          <HStack alignItems="center" gap={4} my={3}>
-            <Button
-              colorScheme="primary"
-              type="button"
-              onClick={handleAddToCart}
-              isDisabled={addingToCart || outOfStock}
-            >
-              {outOfStock ? "Out of stock" : "Add To Cart"}
-            </Button>
-
+          <HStack alignItems="center" gap={4} my={3} justify="space-between">
             {product?.xp?.Type !== "Donation" ? (
               <OcQuantityInput
                 controlId="addToCart"
@@ -186,15 +187,53 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                 onChange={setQuantity}
               />
             ) : (
-              <Input
-                placeholder="Enter donation amount"
-                type="number"
-                min={1}
-                value={donationAmount}
-                onChange={(e) => setDonationAmount(e.target.value)}
-              />
+              <InputGroup>
+                <InputLeftElement pointerEvents="none" color="gray.500">
+                  ฿
+                </InputLeftElement>
+                <Input
+                  placeholder="Enter donation amount"
+                  type="text" // Use text to allow decimals
+                  value={donationAmount}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Only set the value if it’s a valid decimal
+                    if (/^\d*\.?\d*$/.test(value)) {
+                      console.log("value at first?", value);
+                      setDonationAmount(value);
+                    }
+                  }}
+                />
+              </InputGroup>
             )}
+
+            <Button
+              colorScheme="primary"
+              type="button"
+              onClick={handleAddToCart}
+              isDisabled={addingToCart || outOfStock}
+            >
+              {outOfStock ? "Out of stock" : "Donate Now"}
+            </Button>
           </HStack>
+          {!product?.xp?.Subscription && (
+            <Box width="600px" margin="auto" textAlign="center">
+              <Text fontSize="lg" fontWeight="bold" mb={2}>
+                Campaign Progress
+              </Text>
+              <Progress
+                value={
+                  (product?.xp?.CampaignProgress / product?.xp?.CampaignGoal) *
+                  100
+                }
+                colorScheme="yellow"
+              />
+              <Text mt={2}>
+                {formatPrice(product?.xp?.CampaignProgress)} /{" "}
+                {formatPrice(product?.xp?.CampaignGoal)}
+              </Text>
+            </Box>
+          )}
           {!outOfStock && IS_MULTI_LOCATION_INVENTORY && (
             <>
               <Heading size="sm" color="chakra-subtle-text">

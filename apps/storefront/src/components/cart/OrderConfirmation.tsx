@@ -94,6 +94,7 @@ const OrderConfirmation = (): JSX.Element => {
       h="100vh"
       justifyItems="stretch"
       flex="1"
+      bgColor="blue.500"
     >
       <GridItem alignSelf="flex-end" h="full">
         <Container maxW="container.lg" mx="0" ml="auto" p={{ base: 6, lg: 12 }}>
@@ -106,7 +107,9 @@ const OrderConfirmation = (): JSX.Element => {
                 as={TbCheckbox}
               />
               <VStack alignItems="flex-start" gap="0">
-                <Heading size="xl">Order confirmed</Heading>
+                <Heading size="xl">
+                  Thank you for your donation of ฿{lineItems[0]?.UnitPrice}!
+                </Heading>
                 <Text color="chakra-subtle-text">Order ID: {order.ID}</Text>
               </VStack>
             </HStack>
@@ -135,14 +138,14 @@ const OrderConfirmation = (): JSX.Element => {
                 </VStack>
               </HStack>
             </VStack>
-            <Divider my="3" />
+            {/* <Divider my="3" />
             <Text>
               Shipping Method:{" "}
               {order.ShippingCost > 0 ? "Standard Shipping" : "Free Shipping"}
             </Text>
             <Text>
               Payment Method: {order.xp?.PaymentMethod || "Not specified"}
-            </Text>
+            </Text> */}
           </VStack>
         </Container>
       </GridItem>

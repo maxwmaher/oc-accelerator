@@ -6,6 +6,7 @@ import {
   Heading,
   HStack,
   Icon,
+  Image,
   Menu,
   MenuButton,
   MenuItem,
@@ -26,6 +27,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { DEFAULT_BRAND } from "../assets/DEFAULT_BRAND";
 import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "./MegaMenu";
+import unicefLogo from "../assets/default_images/unicef-logo.jpg";
 
 interface MainMenuProps {
   loginDisclosure: UseDisclosureProps;
@@ -98,8 +100,9 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
           as={RouterLink}
           to={`/shop/${catalogs[0].ID}/products`}
           variant="ghost"
+          color="white"
         >
-          Shop All Products
+          Donate
         </Button>
       );
     }
@@ -114,7 +117,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
       w="full"
       top="0"
       zIndex={2}
-      bgColor="whiteAlpha.600"
+      bgColor="blue.400"
       borderBottom="1px solid"
       borderColor="whiteAlpha.900"
       px="8"
@@ -125,22 +128,32 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
       <Container h="100%" maxW="full">
         <HStack h="100%" justify="flex-start" alignItems="center">
           <RouterLink to="/">
-            <DEFAULT_BRAND h="10" />
+            {/* <DEFAULT_BRAND h="10" /> */}
+            <Image
+              // h="75dvh"
+              // w="full"
+              // objectFit="cover"
+              // objectPosition="center center"
+              h="50px"
+              fit="contain"
+              src={unicefLogo}
+              alt="homepage hero"
+            />
           </RouterLink>
           <HStack as="nav" flexGrow="1" ml={3}>
-            <Button
+            {/* <Button
               isActive={megaMenuDisclosure.isOpen}
               size="sm"
               variant="ghost"
               onClick={megaMenuDisclosure.onToggle}
             >
               Categories
-            </Button>
+            </Button> */}
             {renderCatalogMenu()}
           </HStack>
           <HStack>
             {isLoggedIn && (
-              <Heading size="sm">
+              <Heading size="sm" color="white">
                 {`Welcome, ${user?.FirstName} ${user?.LastName}`}
               </Heading>
             )}
@@ -182,6 +195,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                 ) : undefined
               }
               aria-label={`Link to cart`}
+              color="white"
             >
               Cart
             </Button>

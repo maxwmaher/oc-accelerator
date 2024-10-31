@@ -108,8 +108,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         onChange={handleLineItemChange}
         editable={false}
       />
-      <Divider />
-      <form id="APPLY_PROMO" onSubmit={handleApplyPromotion}>
+      {/* <Divider /> */}
+      {/* <form id="APPLY_PROMO" onSubmit={handleApplyPromotion}>
         <Flex justify="space-between">
           <FormControl isRequired mb={3}>
             <InputGroup>
@@ -126,7 +126,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
             Apply
           </Button>
         </Flex>
-      </form>
+      </form> */}
       {promotions?.map((p) => (
         <Flex justify="space-between">
           <Text alignContent="center">{p.Code?.toLocaleUpperCase()}</Text>
@@ -142,7 +142,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
       <Stack spacing={3}>
         <Flex justify="space-between">
           <Text>Subtotal</Text>
-          <Text>${order.Subtotal?.toFixed(2)}</Text>
+          <Text>฿{order.Subtotal?.toFixed(2)}</Text>
         </Flex>
         {order.PromotionDiscount && order.PromotionDiscount > 0 && (
           <Flex justify="space-between">
@@ -150,7 +150,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
             <Text>- ${order.PromotionDiscount?.toFixed(2)}</Text>
           </Flex>
         )}
-        <Flex justify="space-between">
+        {/* <Flex justify="space-between">
           <Text>Shipping</Text>
           {tabIndex !== TABS.SHIPPING ||
             (tabIndex !== TABS.INFORMATION && <Text></Text>)}
@@ -159,10 +159,10 @@ const CartSummary: React.FC<CartSummaryProps> = ({
               ? "FREE SHIPPING"
               : "$" + order.ShippingCost}
           </Text>
-        </Flex>
+        </Flex> */}
         <Flex justify="space-between" fontWeight="bold" fontSize="lg">
           <Text>Total</Text>
-          <Text>${order.Total?.toFixed(2)}</Text>
+          <Text>฿{order.Total?.toFixed(2)}</Text>
         </Flex>
       </Stack>
     </VStack>

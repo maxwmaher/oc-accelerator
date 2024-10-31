@@ -21,44 +21,49 @@ interface ILoginForm {
 
 //Placeholder interface for creating custom login error messages
 interface ILoginError {
-  Message: string
+  Message: string;
 }
 
 //Placeholder interface for creating custom login error messages
 interface ILoginErrors {
-  errors: ILoginError[]
+  errors: ILoginError[];
 }
 
 const isBuyerUser = (token: AccessToken) => {
   if (!token || !token.access_token) return false;
   const parsedToken = parseToken(token.access_token);
-  return parsedToken.usrtype === 'buyer';
-}
+  return parsedToken.usrtype === "buyer";
+};
 
 const LoginForm: FC<ILoginForm> = ({ initialFocusRef, onSuccess }) => {
   const { login, logout } = useOrderCloudContext();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState<OrderCloudError | ILoginErrors | undefined>();
+  const [error, setError] = useState<
+    OrderCloudError | ILoginErrors | undefined
+  >();
   const [loading, setLoading] = useState(false);
 
   const handleLogin = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
       setLoading(true);
-      let authResponse
+      let authResponse;
       try {
-        authResponse = await login(username, password, rememberMe)
+        authResponse = await login(username, password, rememberMe);
+        console.log("auth response", authResponse);
         setError(undefined);
         if (!isBuyerUser(authResponse)) {
           //The Sitecore Commerce team does not recommend using this application with non-seller users.
-          logout()
+          logout();
           setError({
-            errors: [{ Message: 'Seller users should not login to this application.' }],
-          })
+            errors: [
+              { Message: "Seller users should not login to this application." },
+            ],
+          });
         } else if (onSuccess) {
-          onSuccess()
+          onSuccess();
         }
       } catch (ex) {
         setError(ex as OrderCloudError);

@@ -90,13 +90,13 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                   {product.ID}
                 </Text>
                 <Heading size="lg">{product.Name}</Heading>
-                {product.PriceSchedule?.PriceBreaks && (
+                {/* {product.PriceSchedule?.PriceBreaks && (
                   <Text fontSize="md" fontWeight="normal">
                     {formatPrice(
                       product?.PriceSchedule?.PriceBreaks[0].Price ?? 0
                     )}
                   </Text>
-                )}
+                )} */}
               </VStack>
             </CardBody>
           </Card>

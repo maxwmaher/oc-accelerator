@@ -9,9 +9,11 @@ const CLIENT_ID = import.meta.env.VITE_APP_ORDERCLOUD_CLIENT_ID;
 const SCOPE_STRING = import.meta.env.VITE_APP_ORDERCLOUD_SCOPE;
 const CUSTOM_SCOPE_STRING = import.meta.env.VITE_APP_ORDERCLOUD_CUSTOM_SCOPE;
 
-const SCOPE: ApiRole[] = SCOPE_STRING?.length
-  ? (SCOPE_STRING.split(",") as ApiRole[])
-  : [];
+// const SCOPE: ApiRole[] = SCOPE_STRING?.length
+//   ? (SCOPE_STRING.split(",") as ApiRole[])
+//   : [];
+  const SCOPE = ['Shopper MeAdmin OverrideUnitPrice ProductAdmin MeSubscriptionAdmin OrderAdmin UnsubmittedOrderReader']
+  console.log('SCOPE', SCOPE);
 const CUSTOM_SCOPE: string[] = CUSTOM_SCOPE_STRING?.length
   ? CUSTOM_SCOPE_STRING.split(",")
   : [];
@@ -32,7 +34,7 @@ const IS_AUTO_APPLY = Boolean(IS_AUTO_APPLY_STRING === "true");
 // Dashboard configs
 const DASHBOARD_HERO_TAGLINE =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_HERO_TAGLINE ||
-  `Welcome to UNICEF`;
+  `JOIN UNICEF`;
 const DASHBOARD_HERO_IMAGE = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_HERO_IMAGE;
 const DASHBOARD_HERO_CTA_TEXT =

@@ -32,6 +32,13 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
 import { useShopper } from "@rwatt451/ordercloud-react";
+import {
+  Products,
+  Subscriptions,
+  SubscriptionInterval,
+  SubscriptionItems,
+  Me,
+} from "ordercloud-javascript-sdk";
 
 export const TABS = {
   INFORMATION: 0,
@@ -43,7 +50,8 @@ export const ShoppingCart = (): JSX.Element => {
   const [submitting, setSubmitting] = useState(false);
   const [tabIndex, setTabIndex] = useState(TABS.INFORMATION);
 
-  const { orderWorksheet, worksheetLoading, deleteCart, submitCart } = useShopper();
+  const { orderWorksheet, worksheetLoading, deleteCart, submitCart } =
+    useShopper();
 
   const navigate = useNavigate();
   const toast = useToast();
@@ -53,6 +61,37 @@ export const ShoppingCart = (): JSX.Element => {
     if (!orderWorksheet?.Order?.ID) return;
     try {
       await submitCart();
+      console.log("ORDER WORKSHEET?", orderWorksheet);
+      const updatedCampaignProgress =
+        orderWorksheet?.LineItems[0]?.Product?.xp?.CampaignProgress +
+        orderWorksheet?.Order?.Total;
+      Products.Patch(orderWorksheet?.LineItems[0]?.ProductID, {
+        xp: { CampaignProgress: updatedCampaignProgress },
+      });
+      if (orderWorksheet?.LineItems[0]?.Product?.xp?.Subscription) {
+        // Create a subscription
+        const subscriptionRequest = {
+          Interval: "Months" as SubscriptionInterval,
+          Frequency: 1,
+          NextOrderDate: "2024-12-01+00:00",
+          LastOrderDate: "2024-10-15+00:00",
+          FromCompanyID: "workshop_buyer1",
+          FromUserID: "thaidonor",
+          ToCompanyID: "unicef-sandbox",
+        };
+        const subscription = await Me.CreateSubscription(subscriptionRequest);
+
+        // Create a subscription item
+        const subscriptionItemRequest = {
+          ProductID: "recurring-donation",
+          Quantity: 1,
+          UnitPrice: orderWorksheet?.LineItems[0]?.UnitPrice,
+        };
+        const subscriptionItem = await Me.CreateSubscriptionItem(
+          subscription.ID,
+          subscriptionItemRequest
+        );
+      }
       setSubmitting(false);
       navigate(`/order-confirmation?orderID=${orderWorksheet.Order.ID}`);
     } catch (err) {
@@ -67,7 +106,6 @@ export const ShoppingCart = (): JSX.Element => {
         isClosable: true,
       });
     }
-
   }, [navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
 
   const deleteOrder = useCallback(async () => {
@@ -144,7 +182,7 @@ export const ShoppingCart = (): JSX.Element => {
                     >
                       <TabList>
                         <Tab>Information</Tab>
-                        <Tab>Shipping</Tab>
+                        {/* <Tab>Shipping</Tab> */}
                         <Tab>Payment</Tab>
                       </TabList>
 
@@ -153,37 +191,55 @@ export const ShoppingCart = (): JSX.Element => {
                           <Stack direction={["column", "row"]} spacing={6}>
                             <FormControl>
                               <FormLabel>Email</FormLabel>
-                              <Input placeholder="Email" />
+                              <Input
+                                placeholder="Email"
+                                value="maxmaher@sampleemail.com"
+                              />
                             </FormControl>
                             <FormControl flexBasis="75%">
                               <FormLabel>Phone</FormLabel>
-                              <Input placeholder="Phone" />
+                              <Input placeholder="Phone" value="651-555-4896" />
                             </FormControl>
                           </Stack>
                           <Heading size="md" my={6}>
-                            Shipping address
+                            Billing address
                           </Heading>
                           <Stack direction={["column", "row"]} spacing={6}>
                             <FormControl>
                               <FormLabel>First Name</FormLabel>
-                              <Input placeholder="Enter first name" />
+                              <Input
+                                placeholder="Enter first name"
+                                value="Max"
+                              />
                             </FormControl>
                             <FormControl>
                               <FormLabel>Last Name</FormLabel>
-                              <Input placeholder="Enter last name" />
+                              <Input
+                                placeholder="Enter last name"
+                                value="Maher"
+                              />
                             </FormControl>
                           </Stack>
                           <FormControl>
                             <FormLabel>Company (optional)</FormLabel>
-                            <Input placeholder="Enter company name" />
+                            <Input
+                              placeholder="Enter company name"
+                              value="Sitecore"
+                            />
                           </FormControl>
                           <FormControl>
                             <FormLabel>Address</FormLabel>
-                            <Input placeholder="Enter address" />
+                            <Input
+                              placeholder="Enter address"
+                              value="323 N Washington Ave #360"
+                            />
                           </FormControl>
                           <FormControl>
                             <FormLabel>Suburb</FormLabel>
-                            <Input placeholder="Enter suburb" />
+                            <Input
+                              placeholder="Enter suburb"
+                              value="Minneapolis"
+                            />
                           </FormControl>
                           <Stack direction={["column", "row"]} spacing={6}>
                             <FormControl>
@@ -194,7 +250,10 @@ export const ShoppingCart = (): JSX.Element => {
                             </FormControl>
                             <FormControl>
                               <FormLabel>Postcode</FormLabel>
-                              <Input placeholder="Enter postcode" />
+                              <Input
+                                placeholder="Enter postcode"
+                                value="55401"
+                              />
                             </FormControl>
                           </Stack>
                           <Button
@@ -202,7 +261,7 @@ export const ShoppingCart = (): JSX.Element => {
                             onClick={handleNextTab}
                             mt={6}
                           >
-                            Continue to shipping
+                            Continue
                           </Button>
                         </TabPanel>
 
@@ -224,7 +283,7 @@ export const ShoppingCart = (): JSX.Element => {
                                 >
                                   Contact
                                 </Text>
-                                <Text>[EMAIL]</Text>
+                                <Text>maxmaher@sampleemail.com</Text>
                                 <Button
                                   onClick={handlePrevTab}
                                   size="xs"
@@ -240,9 +299,12 @@ export const ShoppingCart = (): JSX.Element => {
                                   color="chakra-subtle-text"
                                   fontWeight="bold"
                                 >
-                                  Ships to
+                                  Bills to
                                 </Text>
-                                <Text>[SHIPPING_ADDRESS]</Text>
+                                <Text>
+                                  323 N Washington Ave #360, Minneapolis, MN
+                                  55401
+                                </Text>
                                 <Button
                                   onClick={handlePrevTab}
                                   size="xs"
@@ -254,7 +316,7 @@ export const ShoppingCart = (): JSX.Element => {
                               </HStack>
                             </CardBody>
                           </Card>
-                          <Heading as="h3" size="sm" my={6}>
+                          {/* <Heading as="h3" size="sm" my={6}>
                             Shipping method
                           </Heading>
                           <Card
@@ -328,7 +390,7 @@ export const ShoppingCart = (): JSX.Element => {
                                 </Stack>
                               </RadioGroup>
                             </CardBody>
-                          </Card>
+                          </Card> */}
                           <Button
                             alignSelf="flex-end"
                             onClick={handleNextTab}

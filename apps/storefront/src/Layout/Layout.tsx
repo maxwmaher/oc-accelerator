@@ -35,9 +35,10 @@ const Layout: FC = () => {
         minH="100dvh"
         gap={0}
         sx={{ "&>*": { width: "full" } }}
-        bgColor="chakra-subtle-bg"
+        bgColor="blue.500"
       >
-        <Container id="outletWrapper"
+        <Container
+          id="outletWrapper"
           display="flex"
           flexFlow="column nowrap"
           maxW={
