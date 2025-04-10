@@ -12,7 +12,7 @@ import { useShopper } from "@ordercloud/react-sdk";
 import {
   Address,
   OrderShipMethodSelection,
-  ShipMethod
+  ShipMethod,
 } from "ordercloud-javascript-sdk";
 import React, { useState } from "react";
 

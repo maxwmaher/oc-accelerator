@@ -17,7 +17,7 @@ import { US_STATES } from "../../../constants";
 
 type CartInformationPanelProps = {
   shippingAddress: Address;
-  setShippingAddress: Dispatch<SetStateAction<Address>>;
+  setShippingAddress: Dispatch<SetStateAction<Address | null>>;
   handleSaveShippingAddress: () => void;
 };
 
@@ -199,6 +199,24 @@ export const CartInformationPanel = ({
         </FormControl>
 
         <FormControl isRequired isInvalid={formErrors.State}>
+          <FormLabel>City</FormLabel>
+          <Input
+            name="State"
+            placeholder="Enter state"
+            value={shippingAddress?.State || ""}
+            onChange={(e) =>
+              setShippingAddress({
+                ...shippingAddress,
+                State: e.target.value,
+              })
+            }
+          />
+          {formErrors.State && (
+            <FormErrorMessage>State is required.</FormErrorMessage>
+          )}
+        </FormControl>
+
+        {/* <FormControl isRequired isInvalid={formErrors.State}>
           <FormLabel>State</FormLabel>
           <Select
             name="State"
@@ -220,7 +238,7 @@ export const CartInformationPanel = ({
           {formErrors.State && (
             <FormErrorMessage>State is required.</FormErrorMessage>
           )}
-        </FormControl>
+        </FormControl> */}
 
         <FormControl flexBasis="50%" isRequired isInvalid={formErrors.Zip}>
           <FormLabel>Zip</FormLabel>

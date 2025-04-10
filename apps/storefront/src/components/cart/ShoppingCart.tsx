@@ -17,7 +17,7 @@ import {
 } from "@chakra-ui/react";
 import { useShopper } from "@ordercloud/react-sdk";
 import { Address } from "ordercloud-javascript-sdk";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { CartInformationPanel } from "./cart-panels/CartInformationPanel";
 import { CartPaymentPanel } from "./cart-panels/CartPaymentPanel";
@@ -43,18 +43,44 @@ export const ShoppingCart = (): JSX.Element => {
     estimateShipping,
   } = useShopper();
 
-  const [shippingAddress, setShippingAddress] = useState<Address>({
-    FirstName: "",
-    LastName: "",
-    CompanyName: "",
-    Street1: "",
+  const [shippingAddress, setShippingAddress] = useState<Address | null>(null);
+
+  useEffect(() => {
+    if (!orderWorksheet?.Order?.FromCompanyID) return;
+
+    const companyID = orderWorksheet.Order.FromCompanyID.toLowerCase();
+    if (companyID === "india") {
+      setShippingAddress(addressIndia);
+    } else if (companyID === "france") {
+      setShippingAddress(addressFrance);
+    }
+  }, [orderWorksheet?.Order?.FromCompanyID]);
+
+  const addressIndia: Address = {
+    FirstName: "Raj",
+    LastName: "Kumar",
+    CompanyName: "Acme India",
+    Street1: "123 MG Road",
+    Street2: "Koramangala",
+    City: "Bangalore",
+    State: "KA",
+    Zip: "560034",
+    Country: "IN",
+    Phone: "9123456789",
+  };
+
+  const addressFrance: Address = {
+    FirstName: "Marie",
+    LastName: "Dubois",
+    CompanyName: "Acme France",
+    Street1: "10 Rue de Rivoli",
     Street2: "",
-    City: "",
-    State: "",
-    Zip: "",
-    Country: "US",
-    Phone: "",
-  });
+    City: "Paris",
+    State: "Île-de-France",
+    Zip: "75001",
+    Country: "FR",
+    Phone: "0140203040",
+  };
 
   const navigate = useNavigate();
   const toast = useToast();
@@ -157,45 +183,48 @@ export const ShoppingCart = (): JSX.Element => {
                     p={{ base: 6, lg: 12 }}
                   >
                     <Heading mb={6}>Checkout</Heading>
+                    {shippingAddress ? (
+                      <Tabs
+                        size="sm"
+                        index={tabIndex}
+                        onChange={handleTabChange}
+                        variant="soft-rounded"
+                      >
+                        <TabList>
+                          <Tab>Information</Tab>
+                          <Tab>Shipping</Tab>
+                          <Tab>Payment</Tab>
+                        </TabList>
 
-                    <Tabs
-                      size="sm"
-                      index={tabIndex}
-                      onChange={handleTabChange}
-                      variant="soft-rounded"
-                    >
-                      <TabList>
-                        <Tab>Information</Tab>
-                        <Tab>Shipping</Tab>
-                        <Tab>Payment</Tab>
-                      </TabList>
+                        <TabPanels>
+                          <TabPanel>
+                            <CartInformationPanel
+                              shippingAddress={shippingAddress}
+                              setShippingAddress={setShippingAddress}
+                              handleSaveShippingAddress={
+                                handleSaveShippingAddress
+                              }
+                            />
+                          </TabPanel>
+                          <TabPanel>
+                            <CartShippingPanel
+                              shippingAddress={shippingAddress}
+                              handleNextTab={handleNextTab}
+                              handlePrevTab={handlePrevTab}
+                            />
+                          </TabPanel>
 
-                      <TabPanels>
-                        <TabPanel>
-                          <CartInformationPanel
-                            shippingAddress={shippingAddress}
-                            setShippingAddress={setShippingAddress}
-                            handleSaveShippingAddress={
-                              handleSaveShippingAddress
-                            }
-                          />
-                        </TabPanel>
-                        <TabPanel>
-                          <CartShippingPanel
-                            shippingAddress={shippingAddress}
-                            handleNextTab={handleNextTab}
-                            handlePrevTab={handlePrevTab}
-                          />
-                        </TabPanel>
-
-                        <TabPanel display="flex" flexDirection="column">
-                          <CartPaymentPanel
-                            submitOrder={submitOrder}
-                            submitting={submitting}
-                          />
-                        </TabPanel>
-                      </TabPanels>
-                    </Tabs>
+                          <TabPanel display="flex" flexDirection="column">
+                            <CartPaymentPanel
+                              submitOrder={submitOrder}
+                              submitting={submitting}
+                            />
+                          </TabPanel>
+                        </TabPanels>
+                      </Tabs>
+                    ) : (
+                      <Spinner />
+                    )}
                   </Container>
                 </GridItem>
 
