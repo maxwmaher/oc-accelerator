@@ -6,14 +6,12 @@ import {
   Heading,
   HStack,
   Input,
-  Select,
   Stack,
   VStack,
 } from "@chakra-ui/react";
 import { Address } from "ordercloud-javascript-sdk";
 import { Dispatch, SetStateAction, useState } from "react";
 import { DebouncedInput } from "../../shared/DebouncedInput";
-import { US_STATES } from "../../../constants";
 
 type CartInformationPanelProps = {
   shippingAddress: Address;
