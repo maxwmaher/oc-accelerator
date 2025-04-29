@@ -59,7 +59,7 @@ const Layout: FC = () => {
           bg="gray.400"
         >
           <Text fontWeight="normal" fontSize="sm" color="whiteAlpha.800">
-            © Sitcore Inc. 2024
+            © Sitcore Inc. 2025
           </Text>
         </HStack>
       </VStack>

@@ -25,7 +25,8 @@ interface CartSummaryProps {
 }
 
 const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
-  const { addCartPromo, removeCartPromo, orderWorksheet } = useShopper();
+  const { calculateOrder, addCartPromo, removeCartPromo, orderWorksheet } =
+    useShopper();
   const [promoCode, setPromoCode] = useState<string>("");
   const handleLineItemChange = (newLi: LineItem) => {
     // Implement the logic to update the line item
@@ -45,6 +46,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
           duration: 5000,
           isClosable: true,
         });
+        calculateOrder();
         setPromoCode("");
       } catch (error) {
         console.error(error);

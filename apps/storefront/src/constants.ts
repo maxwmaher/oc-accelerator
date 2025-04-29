@@ -29,7 +29,6 @@ const IS_AUTO_APPLY_STRING = import.meta.env
   .VITE_APP_ORDERCLOUD_AUTO_APPLY_PROMOS;
 const IS_AUTO_APPLY = Boolean(IS_AUTO_APPLY_STRING === "true");
 
-
 const BRAND_COLOR_PRIMARY =
   import.meta.env.VITE_APP_ORDERCLOUD_BRAND_COLOR_PRIMARY || "";
 const BRAND_COLOR_SECONDARY =
@@ -37,29 +36,29 @@ const BRAND_COLOR_SECONDARY =
 const BRAND_COLOR_ACCENT =
   import.meta.env.VITE_APP_ORDERCLOUD_BRAND_COLOR_ACCENT || "";
 
-  const BRAND_LOGO_LIGHT =
-    import.meta.env.VITE_APP_ORDERCLOUD_BRAND_LOGO_LIGHT || "";
-  const BRAND_LOGO_DARK =
-    import.meta.env.VITE_APP_ORDERCLOUD_BRAND_LOGO_DARK || "";
-  const BRAND_FAVICON_LIGHT =
-    import.meta.env.VITE_APP_ORDERCLOUD_BRAND_LOGO_LIGHT || "";
-  const BRAND_FAVICON_DARK =
-    import.meta.env.VITE_APP_ORDERCLOUD_BRAND_LOGO_DARK || "";
+const BRAND_LOGO_LIGHT =
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Sodexo_logo.svg/2560px-Sodexo_logo.svg.png";
+const BRAND_LOGO_DARK =
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Sodexo_logo.svg/2560px-Sodexo_logo.svg.png";
+const BRAND_FAVICON_LIGHT =
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Sodexo_logo.svg/2560px-Sodexo_logo.svg.png";
+const BRAND_FAVICON_DARK =
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Sodexo_logo.svg/2560px-Sodexo_logo.svg.png";
 
 // Dashboard configs
 const DASHBOARD_HERO_TAGLINE =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_HERO_TAGLINE ||
-  `Welcome to ${APP_NAME} storefront app`;
-const DASHBOARD_HERO_IMAGE = import.meta.env
-  .VITE_APP_ORDERCLOUD_DASHBOARD_HERO_IMAGE;
+  `Welcome to Sodexo`;
+const DASHBOARD_HERO_IMAGE =
+  "https://edge.sitecorecloud.io/sodexofrance1-sodexocorpsites-prod-e74c/media/Project/Sodexo-Corp/Americas/US/Media/Images/Hero-720-x-540/SodexoAbout---Hero_720x540.jpg?h=540&iar=0&w=720";
 const DASHBOARD_HERO_CTA_TEXT =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_HERO_CTA_TEXT ||
   "Call to action";
 const DASHBOARD_HERO_CTA_LINK = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_HERO_CTA_LINK;
 
-const DASHBOARD_SECONDARY_IMAGE = import.meta.env
-  .VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_IMAGE;
+const DASHBOARD_SECONDARY_IMAGE =
+  "https://edge.sitecorecloud.io/sodexofrance1-sodexocorpsites-prod-e74c/media/Project/Sodexo-Corp/Americas/US/Media/Images/Banner-Card-503-x-503/mdr-banner-1-503x503.jpg?h=503&iar=0&w=503";
 const DASHBOARD_SECONDARY_HEADING =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_HEADING ||
   "Secondary heading text";
@@ -72,8 +71,8 @@ const DASHBOARD_SECONDARY_CTA_TEXT =
 const DASHBOARD_SECONDARY_CTA_LINK = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_CTA_LINK;
 
-const DASHBOARD_TERTIARY_IMAGE = import.meta.env
-  .VITE_APP_ORDERCLOUD_DASHBOARD_TERTIARY_IMAGE;
+const DASHBOARD_TERTIARY_IMAGE =
+  "https://edge.sitecorecloud.io/sodexofrance1-sodexocorpsites-prod-e74c/media/Project/Sodexo-Corp/Americas/US/Media/Images/Banner-Card-503-x-503/mr-hero-530-x530_Circles.jpg?h=530&iar=0&w=530";
 const DASHBOARD_TERTIARY_HEADING =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_TERTIARY_HEADING ||
   "Tertiary heading text";
@@ -158,16 +157,13 @@ export {
   ALLOW_ANONYMOUS,
   IS_MULTI_LOCATION_INVENTORY,
   IS_AUTO_APPLY,
-
   BRAND_COLOR_PRIMARY,
   BRAND_COLOR_SECONDARY,
   BRAND_COLOR_ACCENT,
-
   BRAND_LOGO_LIGHT,
   BRAND_LOGO_DARK,
   BRAND_FAVICON_LIGHT,
   BRAND_FAVICON_DARK,
-
   DASHBOARD_HERO_TAGLINE,
   DASHBOARD_HERO_IMAGE,
   DASHBOARD_HERO_CTA_LINK,

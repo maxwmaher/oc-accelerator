@@ -127,7 +127,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         });
       }
     }
-  }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate]);
+  }, [
+    product,
+    activeRecordId,
+    productId,
+    toast,
+    addCartLineItem,
+    quantity,
+    navigate,
+  ]);
 
   return loading ? (
     <Center h="50vh">
@@ -171,6 +179,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               quantity={quantity}
               onChange={setQuantity}
             />
+          </HStack>
+          <HStack alignItems="center" gap={4} my={3}>
+            <Text maxW="prose">{product?.xp?.B1}</Text>
           </HStack>
           {!outOfStock && IS_MULTI_LOCATION_INVENTORY && (
             <>
