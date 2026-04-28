@@ -31,6 +31,7 @@ import {
   useOcResourceList,
   useShopper,
 } from "@ordercloud/react-sdk";
+import { useSellerContext } from "../../context/SellerContext";
 
 export interface ProductDetailProps {
   productId: string;
@@ -43,10 +44,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 }) => {
   const navigate = useNavigate();
   const toast = useToast();
+  const { selectedSeller, ensureOrderSellerContext } = useSellerContext();
+  const scopedSellerID =
+    selectedSeller?.sellerType === "supplier" ? selectedSeller.sellerID : undefined;
   const [activeRecordId, setActiveRecordId] = useState<string>();
   const { data: product, isLoading: loading } = useOcResourceGet<BuyerProduct>(
     "Me.Products",
-    { productID: productId }
+    { productID: productId, ...(scopedSellerID ? { sellerID: scopedSellerID } : {}) }
   );
   const { data: inventoryRecords } = useOcResourceList<InventoryRecord>(
     "Me.ProductInventoryRecords",
@@ -63,7 +67,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable]
   );
-  const { addCartLineItem } = useShopper();
+  const { addCartLineItem, orderWorksheet } = useShopper();
   const soldBy = useMemo(() => resolveSellerLabel(product as any), [product]);
   const usedPartsMeta = useMemo(() => resolveUsedPartsMeta(product as any), [product]);
 
@@ -94,6 +98,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
     try {
       setAddingToCart(true);
+      await ensureOrderSellerContext(orderWorksheet?.Order?.ID);
       await addCartLineItem({
         ProductID: productId,
         Quantity: quantity,
@@ -130,7 +135,17 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         });
       }
     }
-  }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate]);
+  }, [
+    activeRecordId,
+    addCartLineItem,
+    ensureOrderSellerContext,
+    navigate,
+    orderWorksheet?.Order?.ID,
+    product,
+    productId,
+    quantity,
+    toast,
+  ]);
 
   return loading ? (
     <Center h="50vh">
@@ -158,7 +173,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           <Text maxW="prose">{product.Description}</Text>
           {soldBy && (
             <Text fontSize="sm" color="chakra-subtle-text">
-              Sold by {soldBy}
+              Buying from {selectedSeller?.displayName || soldBy}
             </Text>
           )}
           <Text fontSize="3xl" fontWeight="medium">

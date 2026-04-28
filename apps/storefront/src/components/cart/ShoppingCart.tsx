@@ -24,6 +24,7 @@ import { CartPaymentPanel } from "./cart-panels/CartPaymentPanel";
 import CartShippingPanel from "./cart-panels/CartShippingPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
+import { useSellerContext } from "../../context/SellerContext";
 
 export const TABS = {
   INFORMATION: 0,
@@ -42,6 +43,7 @@ export const ShoppingCart = (): JSX.Element => {
     submitCart,
     estimateShipping,
   } = useShopper();
+  const { selectedSeller, ensureOrderSellerContext } = useSellerContext();
 
   const [shippingAddress, setShippingAddress] = useState<Address>({
     FirstName: "",
@@ -63,6 +65,7 @@ export const ShoppingCart = (): JSX.Element => {
     setSubmitting(true);
     if (!orderWorksheet?.Order?.ID) return;
     try {
+      await ensureOrderSellerContext(orderWorksheet?.Order?.ID);
       await submitCart();
       setSubmitting(false);
       navigate(`/order-confirmation?orderID=${orderWorksheet.Order.ID}`);
@@ -78,7 +81,7 @@ export const ShoppingCart = (): JSX.Element => {
         isClosable: true,
       });
     }
-  }, [navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
+  }, [ensureOrderSellerContext, navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
 
   const deleteOrder = useCallback(async () => {
     if (!orderWorksheet?.Order?.ID) return;
@@ -103,6 +106,7 @@ export const ShoppingCart = (): JSX.Element => {
     if (!orderWorksheet?.Order?.ID) return;
 
     try {
+      await ensureOrderSellerContext(orderWorksheet?.Order?.ID);
       await setShippingAddress(shippingAddress);
       await estimateShipping();
     } catch (err) {
@@ -157,6 +161,11 @@ export const ShoppingCart = (): JSX.Element => {
                     p={{ base: 6, lg: 12 }}
                   >
                     <Heading mb={6}>Checkout</Heading>
+                    {selectedSeller?.displayName && (
+                      <Text mb={4} color="chakra-subtle-text">
+                        Buying from: {selectedSeller.displayName}
+                      </Text>
+                    )}
 
                     <Tabs
                       size="sm"

@@ -13,6 +13,7 @@ import {
 } from "@chakra-ui/react";
 import { PriceSchedule, BuyerProduct } from "ordercloud-javascript-sdk";
 import { useOcResourceGet } from "@ordercloud/react-sdk";
+import { useSellerContext } from "../../context/SellerContext";
 
 interface OcQuantityInputProps {
   controlId: string;
@@ -32,9 +33,12 @@ const OcQuantityInput: FunctionComponent<OcQuantityInputProps> = ({
   quantity,
   onChange,
 }) => {
+  const { selectedSeller } = useSellerContext();
+  const scopedSellerID =
+    selectedSeller?.sellerType === "supplier" ? selectedSeller.sellerID : undefined;
   const { data } = useOcResourceGet(
     "Me.Products",
-    { productID: productId! },
+    { productID: productId!, ...(scopedSellerID ? { sellerID: scopedSellerID } : {}) },
     {
       disabled: !productId || !!priceSchedule,
     }
