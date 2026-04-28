@@ -94,7 +94,7 @@ export const ShoppingCart = (): JSX.Element => {
     setSubmitting(true);
     if (!orderWorksheet?.Order?.ID) return;
     try {
-      await ensureOrderSellerContext(orderWorksheet?.Order?.ID);
+      await ensureOrderSellerContext();
       await submitCart();
       setSubmitting(false);
       navigate(`/order-confirmation?orderID=${orderWorksheet.Order.ID}`);
@@ -135,7 +135,7 @@ export const ShoppingCart = (): JSX.Element => {
     if (!orderWorksheet?.Order?.ID) return;
 
     try {
-      await ensureOrderSellerContext(orderWorksheet?.Order?.ID);
+      await ensureOrderSellerContext();
       await setShippingAddress(shippingAddress);
       await estimateShipping();
     } catch (err) {

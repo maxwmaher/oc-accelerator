@@ -1,5 +1,5 @@
 import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Me, Orders } from "ordercloud-javascript-sdk";
+import { Cart, Me, OrderCloudError } from "ordercloud-javascript-sdk";
 import { useOrderCloudContext } from "@ordercloud/react-sdk";
 import { useCurrentUser } from "../hooks/currentUser";
 
@@ -22,7 +22,7 @@ interface SellerContextValue {
   loadingSuppliers: boolean;
   setSelectedSeller: (selection: SellerSelection) => void;
   clearSelectedSeller: () => void;
-  ensureOrderSellerContext: (orderID?: string) => Promise<void>;
+  ensureOrderSellerContext: () => Promise<void>;
 }
 
 const STORAGE_KEY = "oc_storefront_selected_seller";
@@ -82,23 +82,41 @@ export const SellerProvider: FC<PropsWithChildren> = ({ children }) => {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  const ensureOrderSellerContext = useCallback(
-    async (orderID?: string) => {
-      if (!selectedSeller?.sellerID || selectedSeller.sellerType !== "supplier") return;
-      let targetOrderID = orderID;
-      if (!targetOrderID) {
-        const orderList = await Orders.List("Outgoing", {
-          sortBy: ["!DateCreated"],
-          pageSize: 1,
-          filters: { Status: "Unsubmitted" },
-        });
-        targetOrderID = orderList.Items?.[0]?.ID;
+  const ensureOrderSellerContext = useCallback(async () => {
+    if (!selectedSeller) return;
+    const run = async () => {
+      const currentCart = await Cart.Get();
+      const currentToCompanyID = currentCart?.ToCompanyID;
+      const hasLineItems = Boolean(currentCart?.LineItemCount);
+      const needsSupplierCart =
+        selectedSeller.sellerType === "supplier" &&
+        currentToCompanyID !== selectedSeller.sellerID;
+
+      if (needsSupplierCart && hasLineItems) {
+        await Cart.Delete();
       }
-      if (!targetOrderID) return;
-      await Orders.Patch("Outgoing", targetOrderID, { ToCompanyID: selectedSeller.sellerID });
-    },
-    [selectedSeller?.sellerID, selectedSeller?.sellerType]
-  );
+
+      if (needsSupplierCart) {
+        await Cart.Save({ ToCompanyID: selectedSeller.sellerID } as any);
+      }
+    };
+
+    try {
+      await run();
+    } catch (ex) {
+      const error = ex as OrderCloudError;
+      if (error?.status === 404) {
+        await Cart.Delete().catch(() => undefined);
+        await Cart.Save(
+          selectedSeller.sellerType === "supplier"
+            ? ({ ToCompanyID: selectedSeller.sellerID } as any)
+            : ({} as any)
+        );
+        return;
+      }
+      throw ex;
+    }
+  }, [selectedSeller]);
 
   useEffect(() => {
     if (!isLoggedIn) {

@@ -116,7 +116,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       if (orderSellerMismatch && orderWorksheet?.LineItems?.length) {
         await deleteCart();
       }
-      await ensureOrderSellerContext(orderWorksheet?.Order?.ID);
+      await ensureOrderSellerContext();
       await addCartLineItem({
         ProductID: productId,
         Quantity: quantity,
