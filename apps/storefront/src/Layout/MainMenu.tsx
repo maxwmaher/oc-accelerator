@@ -310,13 +310,13 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                 as="button"
                 textAlign="left"
                 onClick={() =>
-                  onSelectSeller("admin", user?.Seller?.ID || "admin", "Scania / Admin")
+                  onSelectSeller("admin", user?.Seller?.ID || "admin", "Scania")
                 }
               >
                 <CardBody>
-                  <Heading size="sm">Buy from Scania / Admin</Heading>
+                  <Heading size="sm">Buy from Scania</Heading>
                   <Text fontSize="sm" color="chakra-subtle-text">
-                    Marketplace/admin fulfillment
+                    Scania fulfillment
                   </Text>
                 </CardBody>
               </Card>

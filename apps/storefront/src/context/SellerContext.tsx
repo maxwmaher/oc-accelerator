@@ -52,19 +52,25 @@ export const SellerProvider: FC<PropsWithChildren> = ({ children }) => {
       setLoadingSuppliers(true);
       try {
         const result = await Me.ListBuyerSellers({ pageSize: 100, sortBy: ["Name"] });
+        const marketplaceSellerID = user?.Seller?.ID;
         setAvailableSuppliers(
-          (result.Items || []).map((item) => ({
-            SupplierID: item.ID || "",
-            Name: item.Name || item.ID || "Supplier",
-          }))
-          .filter((item) => Boolean(item.SupplierID))
+          (result.Items || [])
+            .map((item) => ({
+              SupplierID: item.ID || "",
+              Name: item.Name || item.ID || "Supplier",
+            }))
+            .filter(
+              (item) =>
+                Boolean(item.SupplierID) &&
+                item.SupplierID !== marketplaceSellerID
+            )
         );
       } finally {
         setLoadingSuppliers(false);
       }
     };
     fetchSuppliers();
-  }, [isLoggedIn]);
+  }, [isLoggedIn, user?.Seller?.ID]);
 
   const setSelectedSeller = useCallback((selection: SellerSelection) => {
     setSelectedSellerState(selection);

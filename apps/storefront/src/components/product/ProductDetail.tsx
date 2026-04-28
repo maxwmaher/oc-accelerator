@@ -16,6 +16,7 @@ import {
 import {
   BuyerProduct,
   InventoryRecord,
+  Me,
   OrderCloudError,
 } from "ordercloud-javascript-sdk";
 import pluralize from "pluralize";
@@ -26,11 +27,7 @@ import formatPrice from "../../utils/formatPrice";
 import { resolveSellerLabel, resolveUsedPartsMeta } from "../../utils/demoProductMeta";
 import OcQuantityInput from "../cart/OcQuantityInput";
 import ProductImageGallery from "./product-detail/ProductImageGallery";
-import {
-  useOcResourceGet,
-  useOcResourceList,
-  useShopper,
-} from "@ordercloud/react-sdk";
+import { useOcResourceList, useShopper } from "@ordercloud/react-sdk";
 import { useSellerContext } from "../../context/SellerContext";
 
 export interface ProductDetailProps {
@@ -48,10 +45,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const scopedSellerID =
     selectedSeller?.sellerType === "supplier" ? selectedSeller.sellerID : undefined;
   const [activeRecordId, setActiveRecordId] = useState<string>();
-  const { data: product, isLoading: loading } = useOcResourceGet<BuyerProduct>(
-    "Me.Products",
-    { productID: productId, ...(scopedSellerID ? { sellerID: scopedSellerID } : {}) }
-  );
+  const [product, setProduct] = useState<BuyerProduct>();
+  const [loading, setLoading] = useState(true);
   const { data: inventoryRecords } = useOcResourceList<InventoryRecord>(
     "Me.ProductInventoryRecords",
     undefined,
@@ -70,6 +65,22 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const { addCartLineItem, orderWorksheet } = useShopper();
   const soldBy = useMemo(() => resolveSellerLabel(product as any), [product]);
   const usedPartsMeta = useMemo(() => resolveUsedPartsMeta(product as any), [product]);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setLoading(true);
+      try {
+        const result = await Me.GetProduct(
+          productId,
+          scopedSellerID ? { sellerID: scopedSellerID } : undefined
+        );
+        setProduct(result as BuyerProduct);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [productId, scopedSellerID]);
 
   useEffect(() => {
     const availableRecord = inventoryRecords?.Items.find(
