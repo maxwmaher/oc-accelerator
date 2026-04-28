@@ -25,6 +25,7 @@ import CartShippingPanel from "./cart-panels/CartShippingPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
 import { useSellerContext } from "../../context/SellerContext";
+import { useEffect } from "react";
 
 export const TABS = {
   INFORMATION: 0,
@@ -60,6 +61,34 @@ export const ShoppingCart = (): JSX.Element => {
 
   const navigate = useNavigate();
   const toast = useToast();
+
+  useEffect(() => {
+    const clearMismatchedCart = async () => {
+      const mismatch =
+        selectedSeller?.sellerType === "supplier" &&
+        orderWorksheet?.Order?.ToCompanyID &&
+        orderWorksheet.Order.ToCompanyID !== selectedSeller.sellerID &&
+        orderWorksheet?.LineItems?.length;
+      if (mismatch) {
+        await deleteCart();
+        toast({
+          title: "Cart updated",
+          description: "Seller changed. Previous cart items were cleared.",
+          status: "info",
+          duration: 3500,
+          isClosable: true,
+        });
+      }
+    };
+    clearMismatchedCart();
+  }, [
+    deleteCart,
+    orderWorksheet?.LineItems?.length,
+    orderWorksheet?.Order?.ToCompanyID,
+    selectedSeller?.sellerID,
+    selectedSeller?.sellerType,
+    toast,
+  ]);
 
   const submitOrder = useCallback(async () => {
     setSubmitting(true);

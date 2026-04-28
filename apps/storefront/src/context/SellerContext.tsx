@@ -84,8 +84,18 @@ export const SellerProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const ensureOrderSellerContext = useCallback(
     async (orderID?: string) => {
-      if (!orderID || !selectedSeller?.sellerID || selectedSeller.sellerType !== "supplier") return;
-      await Orders.Patch("Outgoing", orderID, { ToCompanyID: selectedSeller.sellerID });
+      if (!selectedSeller?.sellerID || selectedSeller.sellerType !== "supplier") return;
+      let targetOrderID = orderID;
+      if (!targetOrderID) {
+        const orderList = await Orders.List("Outgoing", {
+          sortBy: ["!DateCreated"],
+          pageSize: 1,
+          filters: { Status: "Unsubmitted" },
+        });
+        targetOrderID = orderList.Items?.[0]?.ID;
+      }
+      if (!targetOrderID) return;
+      await Orders.Patch("Outgoing", targetOrderID, { ToCompanyID: selectedSeller.sellerID });
     },
     [selectedSeller?.sellerID, selectedSeller?.sellerType]
   );

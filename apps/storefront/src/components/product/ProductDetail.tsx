@@ -62,7 +62,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable]
   );
-  const { addCartLineItem, orderWorksheet } = useShopper();
+  const { addCartLineItem, deleteCart, orderWorksheet } = useShopper();
   const soldBy = useMemo(() => resolveSellerLabel(product as any), [product]);
   const usedPartsMeta = useMemo(() => resolveUsedPartsMeta(product as any), [product]);
 
@@ -109,6 +109,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
     try {
       setAddingToCart(true);
+      const orderSellerMismatch =
+        selectedSeller?.sellerType === "supplier" &&
+        Boolean(orderWorksheet?.Order?.ToCompanyID) &&
+        orderWorksheet?.Order?.ToCompanyID !== selectedSeller.sellerID;
+      if (orderSellerMismatch && orderWorksheet?.LineItems?.length) {
+        await deleteCart();
+      }
       await ensureOrderSellerContext(orderWorksheet?.Order?.ID);
       await addCartLineItem({
         ProductID: productId,
@@ -149,9 +156,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   }, [
     activeRecordId,
     addCartLineItem,
+    deleteCart,
     ensureOrderSellerContext,
     navigate,
     orderWorksheet?.Order?.ID,
+    orderWorksheet?.Order?.ToCompanyID,
+    orderWorksheet?.LineItems?.length,
     product,
     productId,
     quantity,
