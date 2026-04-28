@@ -23,6 +23,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
+import { resolveSellerLabel, resolveUsedPartsMeta } from "../../utils/demoProductMeta";
 import OcQuantityInput from "../cart/OcQuantityInput";
 import ProductImageGallery from "./product-detail/ProductImageGallery";
 import {
@@ -63,6 +64,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     [product?.Inventory?.QuantityAvailable]
   );
   const { addCartLineItem } = useShopper();
+  const soldBy = useMemo(() => resolveSellerLabel(product as any), [product]);
+  const usedPartsMeta = useMemo(() => resolveUsedPartsMeta(product as any), [product]);
 
   useEffect(() => {
     const availableRecord = inventoryRecords?.Items.find(
@@ -153,9 +156,26 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             {product.ID}
           </Text>
           <Text maxW="prose">{product.Description}</Text>
+          {soldBy && (
+            <Text fontSize="sm" color="chakra-subtle-text">
+              Sold by {soldBy}
+            </Text>
+          )}
           <Text fontSize="3xl" fontWeight="medium">
             {formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}
           </Text>
+          {usedPartsMeta.length > 0 && (
+            <VStack alignItems="flex-start" gap={1} mt={1}>
+              {usedPartsMeta.map((item) => (
+                <Text key={item.label} fontSize="sm" color="chakra-subtle-text">
+                  <Text as="span" fontWeight="semibold" color="chakra-body-text">
+                    {item.label}:
+                  </Text>{" "}
+                  {item.value}
+                </Text>
+              ))}
+            </VStack>
+          )}
           <HStack alignItems="center" gap={4} my={3}>
             <Button
               colorScheme="primary"

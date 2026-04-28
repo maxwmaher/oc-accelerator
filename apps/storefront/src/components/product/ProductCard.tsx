@@ -13,12 +13,16 @@ import { FunctionComponent } from "react";
 import { TbPhoto } from "react-icons/tb";
 import { Link as RouterLink } from "react-router-dom";
 import formatPrice from "../../utils/formatPrice";
+import { resolveSellerLabel, resolveUsedPartsMeta } from "../../utils/demoProductMeta";
 
 interface ProductCardProps {
   product: BuyerProduct;
 }
 
 const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
+  const soldBy = resolveSellerLabel(product as any);
+  const usedPartsMeta = resolveUsedPartsMeta(product as any);
+
   return (
     <>
       {product && (
@@ -90,6 +94,21 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                   {product.ID}
                 </Text>
                 <Heading size="lg">{product.Name}</Heading>
+                {product.Description && (
+                  <Text
+                    color="chakra-subtle-text"
+                    noOfLines={2}
+                    fontSize="sm"
+                    minH="2.5rem"
+                  >
+                    {product.Description}
+                  </Text>
+                )}
+                {soldBy && (
+                  <Text fontSize="xs" color="chakra-subtle-text">
+                    Sold by {soldBy}
+                  </Text>
+                )}
                 {product.PriceSchedule?.PriceBreaks && (
                   <Text fontSize="md" fontWeight="normal">
                     {formatPrice(
@@ -97,6 +116,15 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                     )}
                   </Text>
                 )}
+                {usedPartsMeta.length > 0 &&
+                  usedPartsMeta.map((item) => (
+                    <Text key={item.label} fontSize="xs" color="chakra-subtle-text">
+                      <Text as="span" fontWeight="semibold">
+                        {item.label}:
+                      </Text>{" "}
+                      {item.value}
+                    </Text>
+                  ))}
               </VStack>
             </CardBody>
           </Card>

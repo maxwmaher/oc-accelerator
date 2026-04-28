@@ -1,6 +1,7 @@
 import {
   Button,
   ButtonProps,
+  Badge,
   Container,
   Drawer,
   GridItem,
@@ -93,6 +94,8 @@ const Layout: FC = () => {
             >
               <HeaderLogo width={['200px', 'auto']} />
               <HStack>
+                <Badge colorScheme="purple">Supplier Portal</Badge>
+                <Badge colorScheme="orange">Used Parts Supplier Portal</Badge>
                 <Text
                   fontSize="sm"
                   color="chakra-subtle-text"
@@ -134,6 +137,14 @@ const Layout: FC = () => {
           p="3"
         >
           <VStack>
+            <Text
+              alignSelf="flex-start"
+              fontSize="xs"
+              color="chakra-subtle-text"
+              textTransform="uppercase"
+            >
+              Supplier Portal Navigation
+            </Text>
             {resources
               .filter((r) => !!r.label)
               .map((r, idx) => {

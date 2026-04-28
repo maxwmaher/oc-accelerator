@@ -1,6 +1,7 @@
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import {
   Box,
+  Badge,
   Button,
   Container,
   Heading,
@@ -60,6 +61,17 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   );
 
   const categories = useMemo(() => categoryData?.Items ?? [], [categoryData]);
+  const selectedCatalogName = useMemo(
+    () => catalogs.find((catalog) => catalog.ID === selectedCatalog)?.Name || "",
+    [catalogs, selectedCatalog]
+  );
+  const isUsedPartsPortal = useMemo(
+    () => /used/i.test(selectedCatalogName),
+    [selectedCatalogName]
+  );
+  const portalLabel = isUsedPartsPortal
+    ? "Used Parts Buyer Portal"
+    : "Customer Portal / SPO";
 
   useEffect(() => {
     if (!selectedCatalog && catalogs?.length)
@@ -145,6 +157,9 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
             )}
           </RouterLink>
           <HStack as="nav" flexGrow="1" ml={3}>
+            <Badge colorScheme={isUsedPartsPortal ? "orange" : "blue"} px={2} py={1}>
+              {portalLabel}
+            </Badge>
             {categories.length > 0 && (
               <Button
                 isActive={megaMenuDisclosure.isOpen}
@@ -152,10 +167,13 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                 variant="ghost"
                 onClick={megaMenuDisclosure.onToggle}
               >
-                Categories
+                {isUsedPartsPortal ? "Used Parts Categories" : "Categories"}
               </Button>
             )}
             {renderCatalogMenu()}
+            <Button as={RouterLink} to="/orders" size="sm" variant="ghost">
+              My Orders
+            </Button>
           </HStack>
           <HStack>
             {isLoggedIn && (
