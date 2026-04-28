@@ -19,7 +19,11 @@ const CUSTOM_SCOPE: string[] = CUSTOM_SCOPE_STRING?.length
 //Anonymous auth configuration
 const ALLOW_ANONYMOUS_STRING = import.meta.env
   .VITE_APP_ORDERCLOUD_ALLOW_ANONYMOUS;
-const ALLOW_ANONYMOUS: boolean = Boolean(ALLOW_ANONYMOUS_STRING === "true");
+const ENABLE_DEMO_ANON_AUTH = import.meta.env
+  .VITE_APP_STOREFRONT_ENABLE_DEMO_ANON_AUTH;
+const ALLOW_ANONYMOUS: boolean = Boolean(
+  ENABLE_DEMO_ANON_AUTH === "true" && ALLOW_ANONYMOUS_STRING === "true"
+);
 
 //Other configs
 const IS_MULTILOCATION_STRING = import.meta.env
@@ -156,6 +160,7 @@ export {
   SCOPE,
   CUSTOM_SCOPE,
   ALLOW_ANONYMOUS,
+  ENABLE_DEMO_ANON_AUTH,
   IS_MULTI_LOCATION_INVENTORY,
   IS_AUTO_APPLY,
 
