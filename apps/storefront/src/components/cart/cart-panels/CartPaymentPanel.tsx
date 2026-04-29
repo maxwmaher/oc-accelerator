@@ -15,7 +15,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { useShopper } from "@ordercloud/react-sdk";
-import { Payment, Payments } from "ordercloud-javascript-sdk";
+import { Order, Orders, Payment, Payments } from "ordercloud-javascript-sdk";
 import { FormEvent, useMemo, useState } from "react";
 import { DEMO_FUNCTIONS_BASE_URL } from "../../../config/demoFunctions";
 
@@ -41,6 +41,7 @@ const initialState: DemoPaymentForm = {
   cvv: "",
   billingZip: "",
 };
+const DEMO_PAYMENT_DEBUG = true;
 
 const getCardType = (cardNumber: string) => {
   if (/^4/.test(cardNumber)) return "Visa";
@@ -90,12 +91,15 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
     return Object.keys(nextErrors).length === 0;
   };
 
-  const acceptPayment = async (createdPayment: Payment) => {
+  const acceptPayment = async (orderID: string, paymentID: string) => {
     const endpoint = `${DEMO_FUNCTIONS_BASE_URL}/api/payments/accept`;
+    if (DEMO_PAYMENT_DEBUG) {
+      console.debug("[DemoPayment] Accept payload", { orderID, paymentID });
+    }
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderID, paymentID: createdPayment.ID }),
+      body: JSON.stringify({ orderID, paymentID }),
     });
     if (!response.ok) {
       throw new Error(`Payment acceptance failed (${response.status})`);
@@ -127,8 +131,22 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
 
     try {
       setProcessingPayment(true);
-      const createdPayment = await Payments.Create("Outgoing", orderID, createdPaymentRequest);
-      const accepted = await acceptPayment(createdPayment);
+      const currentOrder = (await Orders.Get("Outgoing", orderID)) as Order;
+      if (!currentOrder?.ID) throw new Error("Unable to load current order before payment create.");
+      if (DEMO_PAYMENT_DEBUG) {
+        console.debug("[DemoPayment] Current order for payment create", { orderID: currentOrder.ID });
+      }
+
+      const createdPayment = await Payments.Create("Outgoing", currentOrder.ID, createdPaymentRequest);
+      if (!createdPayment?.ID) throw new Error("Payment was created without an ID.");
+      if (DEMO_PAYMENT_DEBUG) {
+        console.debug("[DemoPayment] Created payment", { paymentID: createdPayment.ID });
+      }
+
+      const paymentCheck = await Payments.Get("Outgoing", currentOrder.ID, createdPayment.ID);
+      if (!paymentCheck?.ID) throw new Error("Unable to verify created payment before acceptance.");
+
+      const accepted = await acceptPayment(currentOrder.ID, createdPayment.ID);
       setAcceptedPayment(accepted);
       setFormData(initialState);
       toast({ title: "Payment saved", description: "Demo payment is accepted and ready.", status: "success" });
