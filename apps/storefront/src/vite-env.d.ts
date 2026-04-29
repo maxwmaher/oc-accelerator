@@ -9,7 +9,6 @@ interface ImportMetaEnv {
     readonly VITE_APP_ORDERCLOUD_CUSTOM_SCOPE?: string;
     readonly VITE_APP_ORDERCLOUD_ALLOW_ANONYMOUS?: string;
     readonly VITE_APP_STOREFRONT_ENABLE_DEMO_ANON_AUTH?: string;
-    readonly VITE_APP_FUNCTIONS_BASE_URL?: string;
     // more env variables...
   }
   
