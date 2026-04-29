@@ -66,15 +66,22 @@ namespace Accelerator.Functions
         }
 
         [Function("acceptpayment")]
-        public async Task<IActionResult> AcceptPaymentAsync(
+        public async Task AcceptPaymentAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "payments/accept")] HttpRequest req)
         {
+            logger.LogInformation(
+                "Demo payment request start method={Method} origin={Origin} url={Url}",
+                req.Method,
+                req.Headers["Origin"].ToString(),
+                req.GetDisplayUrl());
+
             AddCorsHeaders(req);
 
             if (HttpMethods.IsOptions(req.Method))
             {
-                logger.LogInformation("Demo payment preflight received for {Url}", req.GetDisplayUrl());
-                return new StatusCodeResult(StatusCodes.Status204NoContent);
+                logger.LogInformation("Demo payment preflight received (OPTIONS path hit=true)");
+                await WriteJsonResponseAsync(req, StatusCodes.Status204NoContent);
+                return;
             }
 
             logger.LogInformation("Demo payment request received for {Url}", req.GetDisplayUrl());
@@ -88,10 +95,11 @@ namespace Accelerator.Functions
             if (request == null || string.IsNullOrWhiteSpace(request.OrderID) || string.IsNullOrWhiteSpace(request.PaymentID))
             {
                 logger.LogWarning("Demo payment request missing orderID/paymentID");
-                return JsonResponse(req, StatusCodes.Status400BadRequest, new
+                await WriteJsonResponseAsync(req, StatusCodes.Status400BadRequest, new
                 {
                     error = "Request body must include orderID and paymentID."
                 });
+                return;
             }
 
             logger.LogInformation("Demo payment parsed IDs order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
@@ -104,33 +112,37 @@ namespace Accelerator.Functions
                 if (existingPayment == null)
                 {
                     logger.LogWarning("Demo payment fetch returned null for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
-                    return JsonResponse(req, StatusCodes.Status404NotFound, new
+                    await WriteJsonResponseAsync(req, StatusCodes.Status404NotFound, new
                     {
                         error = $"Payment '{request.PaymentID}' was not found for order '{request.OrderID}'."
                     });
+                    return;
                 }
 
                 logger.LogInformation("Demo payment patch started");
                 var response = await oc.Payments.PatchAsync<Payment>(OrderDirection.Outgoing, request.OrderID, request.PaymentID, new PartialPayment { Accepted = true });
 
                 logger.LogInformation("Demo payment final response success for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
-                return JsonResponse(req, StatusCodes.Status200OK, response);
+                await WriteJsonResponseAsync(req, StatusCodes.Status200OK, response);
+                return;
             }
             catch (OrderCloudException ex) when (ex.HttpStatus == HttpStatusCode.NotFound)
             {
                 logger.LogWarning(ex, "Demo payment not found for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
-                return JsonResponse(req, StatusCodes.Status404NotFound, new
+                await WriteJsonResponseAsync(req, StatusCodes.Status404NotFound, new
                 {
                     error = $"Payment '{request.PaymentID}' was not found for order '{request.OrderID}'."
                 });
+                return;
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Demo payment unhandled error for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
-                return JsonResponse(req, StatusCodes.Status500InternalServerError, new
+                await WriteJsonResponseAsync(req, StatusCodes.Status500InternalServerError, new
                 {
                     error = "Internal server error during payment accept."
                 });
+                return;
             }
         }
 
@@ -138,19 +150,25 @@ namespace Accelerator.Functions
         {
             var headers = req.HttpContext.Response.Headers;
             headers["Access-Control-Allow-Origin"] = "*";
-            headers["Access-Control-Allow-Methods"] = "POST,OPTIONS";
-            headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization,x-functions-key";
+            headers["Access-Control-Allow-Methods"] = "POST, OPTIONS";
+            headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
+            headers["Access-Control-Max-Age"] = "86400";
         }
 
-        private IActionResult JsonResponse(HttpRequest req, int statusCode, object payload)
+        private async Task WriteJsonResponseAsync(HttpRequest req, int statusCode, object payload = null)
         {
             AddCorsHeaders(req);
-            return new ContentResult
+
+            req.HttpContext.Response.StatusCode = statusCode;
+            logger.LogInformation("Demo payment response status={StatusCode}", statusCode);
+
+            if (payload == null)
             {
-                StatusCode = statusCode,
-                Content = JsonConvert.SerializeObject(payload),
-                ContentType = "application/json"
-            };
+                return;
+            }
+
+            req.HttpContext.Response.ContentType = "application/json";
+            await req.HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(payload));
         }
 
         private class AcceptPaymentRequest
