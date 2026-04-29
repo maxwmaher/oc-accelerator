@@ -130,7 +130,9 @@ const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
                     {method.Name}
                   </Text>
                   <Text fontSize="sm" color="chakra-subtle-text">
-                    {method.EstimatedTransitDays === 1
+                    {useDemoFallback
+                      ? ((method.xp as { demoLabel?: string } | undefined)?.demoLabel ?? "Demo shipping option")
+                      : method.EstimatedTransitDays === 1
                       ? "1-day delivery"
                       : `${method.EstimatedTransitDays}-day delivery`}
                   </Text>
