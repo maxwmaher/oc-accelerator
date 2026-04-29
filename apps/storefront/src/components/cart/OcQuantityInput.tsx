@@ -11,8 +11,9 @@ import {
   Select,
   VStack,
 } from "@chakra-ui/react";
-import { PriceSchedule, BuyerProduct } from "ordercloud-javascript-sdk";
-import { useOcResourceGet } from "@ordercloud/react-sdk";
+import { Me, PriceSchedule, BuyerProduct } from "ordercloud-javascript-sdk";
+import { useSellerContext } from "../../context/SellerContext";
+import { useEffect, useState } from "react";
 
 interface OcQuantityInputProps {
   controlId: string;
@@ -32,17 +33,26 @@ const OcQuantityInput: FunctionComponent<OcQuantityInputProps> = ({
   quantity,
   onChange,
 }) => {
-  const { data } = useOcResourceGet(
-    "Me.Products",
-    { productID: productId! },
-    {
-      disabled: !productId || !!priceSchedule,
-    }
-  );
+  const { selectedSeller } = useSellerContext();
+  const scopedSellerID =
+    selectedSeller?.sellerType === "supplier" ? selectedSeller.sellerID : undefined;
+  const [product, setProduct] = useState<BuyerProduct>();
+
+  useEffect(() => {
+    if (!productId || !!priceSchedule) return;
+    const fetchProduct = async () => {
+      const result = await Me.GetProduct(
+        productId,
+        scopedSellerID ? { sellerID: scopedSellerID } : undefined
+      );
+      setProduct(result as BuyerProduct);
+    };
+    fetchProduct();
+  }, [priceSchedule, productId, scopedSellerID]);
 
   const ps = useMemo(
-    () => priceSchedule ?? (data as BuyerProduct)?.PriceSchedule,
-    [data, priceSchedule]
+    () => priceSchedule ?? product?.PriceSchedule,
+    [priceSchedule, product]
   );
 
   const handleSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {

@@ -22,9 +22,10 @@ interface CartSummaryProps {
   onSubmitOrder: () => void;
   deleteOrder: () => void;
   tabIndex: number;
+  fallbackShippingCost?: number;
 }
 
-const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
+const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex, fallbackShippingCost }) => {
   const { addCartPromo, removeCartPromo, orderWorksheet } = useShopper();
   const [promoCode, setPromoCode] = useState<string>("");
   const handleLineItemChange = (newLi: LineItem) => {
@@ -142,7 +143,14 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
         <Flex justify="space-between">
           <Text>Shipping</Text>
           {tabIndex !== TABS.SHIPPING && tabIndex !== TABS.INFORMATION && (
-            <Text>${orderWorksheet?.Order?.ShippingCost?.toFixed(2)}</Text>
+            <Text>
+              $
+              {(
+                fallbackShippingCost ??
+                orderWorksheet?.Order?.ShippingCost ??
+                0
+              ).toFixed(2)}
+            </Text>
           )}
         </Flex>
         <Flex justify="space-between">
@@ -153,7 +161,13 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
         </Flex>
         <Flex justify="space-between" fontWeight="bold" fontSize="lg">
           <Text>Total</Text>
-          <Text>${orderWorksheet?.Order?.Total?.toFixed(2)}</Text>
+          <Text>
+            $
+            {(
+              (orderWorksheet?.Order?.Total ?? 0) +
+              (fallbackShippingCost ? fallbackShippingCost - (orderWorksheet?.Order?.ShippingCost ?? 0) : 0)
+            ).toFixed(2)}
+          </Text>
         </Flex>
       </Stack>
     </VStack>

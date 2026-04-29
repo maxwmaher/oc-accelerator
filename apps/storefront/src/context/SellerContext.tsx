@@ -1,0 +1,161 @@
+import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { Cart, Me, OrderCloudError } from "ordercloud-javascript-sdk";
+import { useOrderCloudContext } from "@ordercloud/react-sdk";
+import { useCurrentUser } from "../hooks/currentUser";
+
+type SellerType = "admin" | "supplier";
+
+interface SellerSelection {
+  sellerType: SellerType;
+  sellerID: string;
+  displayName: string;
+}
+
+interface BuyerSeller {
+  SupplierID: string;
+  Name?: string;
+}
+
+interface SellerContextValue {
+  selectedSeller?: SellerSelection;
+  availableSuppliers: BuyerSeller[];
+  loadingSuppliers: boolean;
+  setSelectedSeller: (selection: SellerSelection) => void;
+  clearSelectedSeller: () => void;
+  ensureOrderSellerContext: () => Promise<void>;
+}
+
+const STORAGE_KEY = "oc_storefront_selected_seller";
+
+const SellerContext = createContext<SellerContextValue | undefined>(undefined);
+
+export const SellerProvider: FC<PropsWithChildren> = ({ children }) => {
+  const { isLoggedIn } = useOrderCloudContext();
+  const { data: user } = useCurrentUser();
+  const [selectedSeller, setSelectedSellerState] = useState<SellerSelection | undefined>();
+  const [availableSuppliers, setAvailableSuppliers] = useState<BuyerSeller[]>([]);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      setSelectedSellerState(JSON.parse(stored));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setAvailableSuppliers([]);
+      return;
+    }
+    const fetchSuppliers = async () => {
+      setLoadingSuppliers(true);
+      try {
+        const result = await Me.ListBuyerSellers({ pageSize: 100, sortBy: ["Name"] });
+        const marketplaceSellerID = user?.Seller?.ID;
+        setAvailableSuppliers(
+          (result.Items || [])
+            .map((item) => ({
+              SupplierID: item.ID || "",
+              Name: item.Name || item.ID || "Supplier",
+            }))
+            .filter(
+              (item) =>
+                Boolean(item.SupplierID) &&
+                item.SupplierID !== marketplaceSellerID
+            )
+        );
+      } finally {
+        setLoadingSuppliers(false);
+      }
+    };
+    fetchSuppliers();
+  }, [isLoggedIn, user?.Seller?.ID]);
+
+  const setSelectedSeller = useCallback((selection: SellerSelection) => {
+    setSelectedSellerState(selection);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(selection));
+  }, []);
+
+  const clearSelectedSeller = useCallback(() => {
+    setSelectedSellerState(undefined);
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
+
+  const ensureOrderSellerContext = useCallback(async () => {
+    if (!selectedSeller) return;
+    const run = async () => {
+      const currentCart = await Cart.Get();
+      const currentToCompanyID = currentCart?.ToCompanyID;
+      const hasLineItems = Boolean(currentCart?.LineItemCount);
+      const needsSupplierCart =
+        selectedSeller.sellerType === "supplier" &&
+        currentToCompanyID !== selectedSeller.sellerID;
+
+      if (needsSupplierCart && hasLineItems) {
+        await Cart.Delete();
+      }
+
+      if (needsSupplierCart) {
+        await Cart.Save({ ToCompanyID: selectedSeller.sellerID } as any);
+      }
+    };
+
+    try {
+      await run();
+    } catch (ex) {
+      const error = ex as OrderCloudError;
+      if (error?.status === 404) {
+        await Cart.Delete().catch(() => undefined);
+        await Cart.Save(
+          selectedSeller.sellerType === "supplier"
+            ? ({ ToCompanyID: selectedSeller.sellerID } as any)
+            : ({} as any)
+        );
+        return;
+      }
+      throw ex;
+    }
+  }, [selectedSeller]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      clearSelectedSeller();
+      return;
+    }
+    if (!selectedSeller && user?.Seller?.ID) {
+      // keep intentionally unselected to force buyer choice after login
+    }
+  }, [clearSelectedSeller, isLoggedIn, selectedSeller, user?.Seller?.ID]);
+
+  const value = useMemo(
+    () => ({
+      selectedSeller,
+      availableSuppliers,
+      loadingSuppliers,
+      setSelectedSeller,
+      clearSelectedSeller,
+      ensureOrderSellerContext,
+    }),
+    [
+      availableSuppliers,
+      clearSelectedSeller,
+      ensureOrderSellerContext,
+      loadingSuppliers,
+      selectedSeller,
+      setSelectedSeller,
+    ]
+  );
+
+  return <SellerContext.Provider value={value}>{children}</SellerContext.Provider>;
+};
+
+export const useSellerContext = () => {
+  const context = useContext(SellerContext);
+  if (!context) {
+    throw new Error("useSellerContext must be used inside SellerProvider");
+  }
+  return context;
+};
+
+export type { SellerSelection, SellerType };

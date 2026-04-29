@@ -33,6 +33,7 @@ import FilterSearchMenu, {
 import FacetList from "./facets/FacetList";
 import ProductCard from "./ProductCard";
 import { useOcResourceListWithFacets } from "@ordercloud/react-sdk";
+import { useSellerContext } from "../../context/SellerContext";
 
 export interface ProductListProps {
   renderItem?: (product: BuyerProduct) => JSX.Element;
@@ -47,6 +48,9 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { selectedSeller } = useSellerContext();
+  const scopedSellerID =
+    selectedSeller?.sellerType === "supplier" ? selectedSeller.sellerID : undefined;
 
   const searchTerm = useMemo(() => {
     return searchParams.get("search") || undefined;
@@ -74,6 +78,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
       page: currentPage.toString(),
       catalogId,
       categoryId,
+      sellerID: scopedSellerID,
       ...filters,
     }
   );

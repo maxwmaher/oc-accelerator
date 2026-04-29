@@ -16,6 +16,7 @@ import {
 import {
   BuyerProduct,
   InventoryRecord,
+  Me,
   OrderCloudError,
 } from "ordercloud-javascript-sdk";
 import pluralize from "pluralize";
@@ -23,13 +24,11 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
+import { resolveSellerLabel, resolveUsedPartsMeta } from "../../utils/demoProductMeta";
 import OcQuantityInput from "../cart/OcQuantityInput";
 import ProductImageGallery from "./product-detail/ProductImageGallery";
-import {
-  useOcResourceGet,
-  useOcResourceList,
-  useShopper,
-} from "@ordercloud/react-sdk";
+import { useOcResourceList, useShopper } from "@ordercloud/react-sdk";
+import { useSellerContext } from "../../context/SellerContext";
 
 export interface ProductDetailProps {
   productId: string;
@@ -42,11 +41,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 }) => {
   const navigate = useNavigate();
   const toast = useToast();
+  const { selectedSeller, ensureOrderSellerContext } = useSellerContext();
+  const scopedSellerID =
+    selectedSeller?.sellerType === "supplier" ? selectedSeller.sellerID : undefined;
   const [activeRecordId, setActiveRecordId] = useState<string>();
-  const { data: product, isLoading: loading } = useOcResourceGet<BuyerProduct>(
-    "Me.Products",
-    { productID: productId }
-  );
+  const [product, setProduct] = useState<BuyerProduct>();
+  const [loading, setLoading] = useState(true);
   const { data: inventoryRecords } = useOcResourceList<InventoryRecord>(
     "Me.ProductInventoryRecords",
     undefined,
@@ -62,7 +62,25 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable]
   );
-  const { addCartLineItem } = useShopper();
+  const { addCartLineItem, deleteCart, orderWorksheet } = useShopper();
+  const soldBy = useMemo(() => resolveSellerLabel(product as any), [product]);
+  const usedPartsMeta = useMemo(() => resolveUsedPartsMeta(product as any), [product]);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setLoading(true);
+      try {
+        const result = await Me.GetProduct(
+          productId,
+          scopedSellerID ? { sellerID: scopedSellerID } : undefined
+        );
+        setProduct(result as BuyerProduct);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [productId, scopedSellerID]);
 
   useEffect(() => {
     const availableRecord = inventoryRecords?.Items.find(
@@ -91,6 +109,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
     try {
       setAddingToCart(true);
+      const orderSellerMismatch =
+        selectedSeller?.sellerType === "supplier" &&
+        Boolean(orderWorksheet?.Order?.ToCompanyID) &&
+        orderWorksheet?.Order?.ToCompanyID !== selectedSeller.sellerID;
+      if (orderSellerMismatch && orderWorksheet?.LineItems?.length) {
+        await deleteCart();
+      }
+      await ensureOrderSellerContext();
       await addCartLineItem({
         ProductID: productId,
         Quantity: quantity,
@@ -127,7 +153,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         });
       }
     }
-  }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate]);
+  }, [
+    activeRecordId,
+    addCartLineItem,
+    deleteCart,
+    ensureOrderSellerContext,
+    navigate,
+    orderWorksheet?.Order?.ID,
+    orderWorksheet?.Order?.ToCompanyID,
+    orderWorksheet?.LineItems?.length,
+    product,
+    productId,
+    quantity,
+    toast,
+  ]);
 
   return loading ? (
     <Center h="50vh">
@@ -153,9 +192,26 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             {product.ID}
           </Text>
           <Text maxW="prose">{product.Description}</Text>
+          {soldBy && (
+            <Text fontSize="sm" color="chakra-subtle-text">
+              Buying from {selectedSeller?.displayName || soldBy}
+            </Text>
+          )}
           <Text fontSize="3xl" fontWeight="medium">
             {formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}
           </Text>
+          {usedPartsMeta.length > 0 && (
+            <VStack alignItems="flex-start" gap={1} mt={1}>
+              {usedPartsMeta.map((item) => (
+                <Text key={item.label} fontSize="sm" color="chakra-subtle-text">
+                  <Text as="span" fontWeight="semibold" color="chakra-body-text">
+                    {item.label}:
+                  </Text>{" "}
+                  {item.value}
+                </Text>
+              ))}
+            </VStack>
+          )}
           <HStack alignItems="center" gap={4} my={3}>
             <Button
               colorScheme="primary"

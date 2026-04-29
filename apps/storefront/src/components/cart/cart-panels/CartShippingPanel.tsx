@@ -11,37 +11,56 @@ import {
 import { useShopper } from "@ordercloud/react-sdk";
 import {
   Address,
+  OrderWorksheet,
   OrderShipMethodSelection,
   ShipMethod
 } from "ordercloud-javascript-sdk";
 import React, { useState } from "react";
+import {
+  getDemoFallbackShipEstimates,
+  isMissingShipEstimates,
+} from "../demoShippingFallback";
 
 interface CartShippingPanelProps {
   shippingAddress: Address;
   handleNextTab: () => void;
   handlePrevTab: () => void;
+  onFallbackModeChange?: (isFallback: boolean, selectedCost?: number) => void;
 }
 
 const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
   handleNextTab,
+  onFallbackModeChange,
 }) => {
   const { orderWorksheet, calculateOrder, selectShipMethods } = useShopper();
   const [shipMethodID, setShipMethodID] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const useDemoFallback = isMissingShipEstimates(orderWorksheet as OrderWorksheet);
+  const shipEstimates = useDemoFallback
+    ? getDemoFallbackShipEstimates(orderWorksheet?.Order?.ID)
+    : orderWorksheet?.ShipEstimateResponse?.ShipEstimates || [];
 
   const handleSelectShipMethod = async () => {
-    const orderID = orderWorksheet?.Order?.ID;
-    const shipEstimateID =
-      orderWorksheet?.ShipEstimateResponse?.ShipEstimates?.at(0)?.ID;
-
-    if (!orderID || !shipEstimateID) {
-      console.error("Missing required data for ship method selection.");
+    if (!shipMethodID) {
+      console.error("Selected method not found.");
       return;
     }
 
-    if (!shipMethodID) {
-      console.error("Selected method not found.");
+    if (useDemoFallback) {
+      const selectedMethod = shipEstimates
+        ?.at(0)
+        ?.ShipMethods?.find((method: ShipMethod) => method.ID === shipMethodID);
+      onFallbackModeChange?.(true, selectedMethod?.Cost);
+      handleNextTab();
+      return;
+    }
+
+    const orderID = orderWorksheet?.Order?.ID;
+    const shipEstimateID = shipEstimates?.at(0)?.ID;
+
+    if (!orderID || !shipEstimateID) {
+      console.error("Missing required data for ship method selection.");
       return;
     }
 
@@ -55,6 +74,7 @@ const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
       setLoading(true);
       await selectShipMethods(shipMethodSelection);
       await calculateOrder();
+      onFallbackModeChange?.(false);
       handleNextTab();
     } catch (err) {
       console.error("Failed to select shipping method:", err);
@@ -103,9 +123,7 @@ const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
             onChange={setShipMethodID}
             as={VStack}
           >
-            {orderWorksheet?.ShipEstimateResponse?.ShipEstimates?.at(
-              0
-            )?.ShipMethods?.map((method: ShipMethod) => (
+            {shipEstimates?.at(0)?.ShipMethods?.map((method: ShipMethod) => (
               <Radio key={method.ID} value={method.ID} w="full" gap="3">
                 <VStack align="flex-start" gap="0" flexGrow="1">
                   <Text fontSize="lg" fontWeight="semibold">
@@ -116,6 +134,11 @@ const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
                       ? "1-day delivery"
                       : `${method.EstimatedTransitDays}-day delivery`}
                   </Text>
+                  {useDemoFallback && (
+                    <Text fontSize="xs" color="chakra-subtle-text">
+                      Demo shipping option
+                    </Text>
+                  )}
                 </VStack>
                 <Text
                   ml="auto"

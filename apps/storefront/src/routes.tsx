@@ -6,6 +6,7 @@ import { ShoppingCart } from "./components/cart/ShoppingCart";
 import CategoryList from "./components/category/CategoryList";
 import ProductDetailWrapper from "./components/product/ProductDetailWrapper";
 import ProductList from "./components/product/ProductList";
+import MyOrders from "./components/orders/MyOrders";
 
 const routes: RouteObject[] = [
   {
@@ -44,6 +45,10 @@ const routes: RouteObject[] = [
       {
         path: "/products/:productId",
         element: <ProductDetailWrapper />,
+      },
+      {
+        path: "/orders",
+        element: <MyOrders />,
       },
     ],
   },

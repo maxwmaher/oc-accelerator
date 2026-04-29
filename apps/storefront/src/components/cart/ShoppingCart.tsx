@@ -24,6 +24,8 @@ import { CartPaymentPanel } from "./cart-panels/CartPaymentPanel";
 import CartShippingPanel from "./cart-panels/CartShippingPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
+import { useSellerContext } from "../../context/SellerContext";
+import { useEffect } from "react";
 
 export const TABS = {
   INFORMATION: 0,
@@ -34,6 +36,8 @@ export const TABS = {
 export const ShoppingCart = (): JSX.Element => {
   const [submitting, setSubmitting] = useState(false);
   const [tabIndex, setTabIndex] = useState(TABS.INFORMATION);
+  const [fallbackShippingMode, setFallbackShippingMode] = useState(false);
+  const [fallbackShippingCost, setFallbackShippingCost] = useState<number | undefined>();
 
   const {
     orderWorksheet,
@@ -42,6 +46,7 @@ export const ShoppingCart = (): JSX.Element => {
     submitCart,
     estimateShipping,
   } = useShopper();
+  const { selectedSeller, ensureOrderSellerContext } = useSellerContext();
 
   const [shippingAddress, setShippingAddress] = useState<Address>({
     FirstName: "",
@@ -59,14 +64,48 @@ export const ShoppingCart = (): JSX.Element => {
   const navigate = useNavigate();
   const toast = useToast();
 
+  useEffect(() => {
+    const clearMismatchedCart = async () => {
+      const mismatch =
+        selectedSeller?.sellerType === "supplier" &&
+        orderWorksheet?.Order?.ToCompanyID &&
+        orderWorksheet.Order.ToCompanyID !== selectedSeller.sellerID &&
+        orderWorksheet?.LineItems?.length;
+      if (mismatch) {
+        await deleteCart();
+        toast({
+          title: "Cart updated",
+          description: "Seller changed. Previous cart items were cleared.",
+          status: "info",
+          duration: 3500,
+          isClosable: true,
+        });
+      }
+    };
+    clearMismatchedCart();
+  }, [
+    deleteCart,
+    orderWorksheet?.LineItems?.length,
+    orderWorksheet?.Order?.ToCompanyID,
+    selectedSeller?.sellerID,
+    selectedSeller?.sellerType,
+    toast,
+  ]);
+
   const submitOrder = useCallback(async () => {
     setSubmitting(true);
     if (!orderWorksheet?.Order?.ID) return;
     try {
+      await ensureOrderSellerContext();
       await submitCart();
       setSubmitting(false);
       navigate(`/order-confirmation?orderID=${orderWorksheet.Order.ID}`);
     } catch (err) {
+      if (fallbackShippingMode && orderWorksheet?.Order?.ID) {
+        setSubmitting(false);
+        navigate(`/order-confirmation?orderID=${orderWorksheet.Order.ID}`);
+        return;
+      }
       console.error("Error submitting order:", err);
       setSubmitting(false);
       toast({
@@ -78,7 +117,7 @@ export const ShoppingCart = (): JSX.Element => {
         isClosable: true,
       });
     }
-  }, [navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
+  }, [ensureOrderSellerContext, navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
 
   const deleteOrder = useCallback(async () => {
     if (!orderWorksheet?.Order?.ID) return;
@@ -103,6 +142,7 @@ export const ShoppingCart = (): JSX.Element => {
     if (!orderWorksheet?.Order?.ID) return;
 
     try {
+      await ensureOrderSellerContext();
       await setShippingAddress(shippingAddress);
       await estimateShipping();
     } catch (err) {
@@ -157,6 +197,11 @@ export const ShoppingCart = (): JSX.Element => {
                     p={{ base: 6, lg: 12 }}
                   >
                     <Heading mb={6}>Checkout</Heading>
+                    {selectedSeller?.displayName && (
+                      <Text mb={4} color="chakra-subtle-text">
+                        Buying from: {selectedSeller.displayName}
+                      </Text>
+                    )}
 
                     <Tabs
                       size="sm"
@@ -185,6 +230,10 @@ export const ShoppingCart = (): JSX.Element => {
                             shippingAddress={shippingAddress}
                             handleNextTab={handleNextTab}
                             handlePrevTab={handlePrevTab}
+                            onFallbackModeChange={(isFallback, selectedCost) => {
+                              setFallbackShippingMode(isFallback);
+                              setFallbackShippingCost(selectedCost);
+                            }}
                           />
                         </TabPanel>
 
@@ -213,6 +262,7 @@ export const ShoppingCart = (): JSX.Element => {
                         deleteOrder={deleteOrder}
                         onSubmitOrder={submitOrder}
                         tabIndex={tabIndex}
+                        fallbackShippingCost={fallbackShippingMode ? fallbackShippingCost : undefined}
                       />
                     )}
                   </Container>

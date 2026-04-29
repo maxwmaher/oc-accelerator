@@ -1,7 +1,10 @@
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import {
   Box,
+  Badge,
   Button,
+  Card,
+  CardBody,
   Container,
   Heading,
   HStack,
@@ -11,6 +14,13 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalHeader,
+  ModalOverlay,
+  Spinner,
   Text,
   useDisclosure,
   UseDisclosureProps,
@@ -27,6 +37,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { DEFAULT_BRAND } from "../assets/DEFAULT_BRAND";
 import { BRAND_LOGO_DARK, BRAND_LOGO_LIGHT } from "../constants";
 import { useCurrentUser } from "../hooks/currentUser";
+import { useSellerContext } from "../context/SellerContext";
 import MegaMenu from "../Layout/MegaMenu";
 
 interface MainMenuProps {
@@ -39,7 +50,13 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   const megaMenuDisclosure = useDisclosure();
   const [selectedCatalog, setSelectedCatalog] = useState<string>("");
 
-  const { orderWorksheet } = useShopper();
+  const { orderWorksheet, deleteCart } = useShopper();
+  const {
+    selectedSeller,
+    availableSuppliers,
+    loadingSuppliers,
+    setSelectedSeller,
+  } = useSellerContext();
 
   const { data: catalogData } = useOcResourceList<Catalog>(
     "Me.Catalogs",
@@ -60,11 +77,49 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   );
 
   const categories = useMemo(() => categoryData?.Items ?? [], [categoryData]);
+  const selectedCatalogName = useMemo(
+    () => catalogs.find((catalog) => catalog.ID === selectedCatalog)?.Name || "",
+    [catalogs, selectedCatalog]
+  );
+  const isUsedPartsPortal = useMemo(
+    () => /used/i.test(selectedCatalogName),
+    [selectedCatalogName]
+  );
+  const portalLabel = isUsedPartsPortal
+    ? "Used Parts Buyer Portal"
+    : "Customer Portal / SPO";
+  const sellerDisclosure = useDisclosure({ defaultIsOpen: false });
 
   useEffect(() => {
     if (!selectedCatalog && catalogs?.length)
       setSelectedCatalog(catalogs[0].ID);
   }, [catalogs, selectedCatalog]);
+
+  useEffect(() => {
+    if (isLoggedIn && !selectedSeller) {
+      sellerDisclosure.onOpen();
+    } else if (selectedSeller && sellerDisclosure.isOpen) {
+      sellerDisclosure.onClose();
+    }
+  }, [isLoggedIn, selectedSeller, sellerDisclosure]);
+
+  const onSelectSeller = async (sellerType: "admin" | "supplier", sellerID: string, displayName: string) => {
+    const hasExistingCartItems = Boolean(orderWorksheet?.LineItems?.length);
+    const hasChangedSeller =
+      selectedSeller &&
+      (selectedSeller.sellerID !== sellerID || selectedSeller.sellerType !== sellerType);
+
+    if (hasExistingCartItems && hasChangedSeller) {
+      const shouldSwitch = window.confirm(
+        "Changing who you buy from will clear your current cart. Continue?"
+      );
+      if (!shouldSwitch) return;
+      await deleteCart();
+    }
+
+    setSelectedSeller({ sellerType, sellerID, displayName });
+    sellerDisclosure.onClose();
+  };
 
   const totalQuantity = useMemo(() => {
     return (
@@ -145,6 +200,9 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
             )}
           </RouterLink>
           <HStack as="nav" flexGrow="1" ml={3}>
+            <Badge colorScheme={isUsedPartsPortal ? "orange" : "blue"} px={2} py={1}>
+              {portalLabel}
+            </Badge>
             {categories.length > 0 && (
               <Button
                 isActive={megaMenuDisclosure.isOpen}
@@ -152,10 +210,23 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                 variant="ghost"
                 onClick={megaMenuDisclosure.onToggle}
               >
-                Categories
+                {isUsedPartsPortal ? "Used Parts Categories" : "Categories"}
               </Button>
             )}
             {renderCatalogMenu()}
+            <Button as={RouterLink} to="/orders" size="sm" variant="ghost">
+              My Orders
+            </Button>
+            {isLoggedIn && (
+              <Badge colorScheme="teal" px={2} py={1}>
+                Buying from: {selectedSeller?.displayName || "Not selected"}
+              </Badge>
+            )}
+            {isLoggedIn && (
+              <Button size="xs" variant="outline" onClick={sellerDisclosure.onOpen}>
+                Change seller
+              </Button>
+            )}
           </HStack>
           <HStack>
             {isLoggedIn && (
@@ -224,6 +295,60 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
           />
         )}
       </Container>
+      <Modal
+        isOpen={sellerDisclosure.isOpen}
+        onClose={selectedSeller ? sellerDisclosure.onClose : () => undefined}
+        closeOnOverlayClick={!!selectedSeller}
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Who would you like to buy from?</ModalHeader>
+          {selectedSeller && <ModalCloseButton />}
+          <ModalBody pb={6}>
+            <HStack alignItems="stretch" flexDirection="column">
+              <Card
+                as="button"
+                textAlign="left"
+                onClick={() =>
+                  onSelectSeller("admin", user?.Seller?.ID || "admin", "Scania")
+                }
+              >
+                <CardBody>
+                  <Heading size="sm">Buy from Scania</Heading>
+                  <Text fontSize="sm" color="chakra-subtle-text">
+                    Scania fulfillment
+                  </Text>
+                </CardBody>
+              </Card>
+              {loadingSuppliers ? (
+                <Spinner />
+              ) : (
+                availableSuppliers.map((supplier) => (
+                  <Card
+                    key={supplier.SupplierID}
+                    as="button"
+                    textAlign="left"
+                    onClick={() =>
+                      onSelectSeller(
+                        "supplier",
+                        supplier.SupplierID,
+                        supplier.Name || supplier.SupplierID
+                      )
+                    }
+                  >
+                    <CardBody>
+                      <Heading size="sm">{supplier.Name || supplier.SupplierID}</Heading>
+                      <Text fontSize="sm" color="chakra-subtle-text">
+                        Supplier fulfillment
+                      </Text>
+                    </CardBody>
+                  </Card>
+                ))
+              )}
+            </HStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </HStack>
   );
 };
