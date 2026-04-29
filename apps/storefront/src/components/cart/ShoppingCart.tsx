@@ -36,6 +36,8 @@ export const TABS = {
 export const ShoppingCart = (): JSX.Element => {
   const [submitting, setSubmitting] = useState(false);
   const [tabIndex, setTabIndex] = useState(TABS.INFORMATION);
+  const [fallbackShippingMode, setFallbackShippingMode] = useState(false);
+  const [fallbackShippingCost, setFallbackShippingCost] = useState<number | undefined>();
 
   const {
     orderWorksheet,
@@ -99,6 +101,11 @@ export const ShoppingCart = (): JSX.Element => {
       setSubmitting(false);
       navigate(`/order-confirmation?orderID=${orderWorksheet.Order.ID}`);
     } catch (err) {
+      if (fallbackShippingMode && orderWorksheet?.Order?.ID) {
+        setSubmitting(false);
+        navigate(`/order-confirmation?orderID=${orderWorksheet.Order.ID}`);
+        return;
+      }
       console.error("Error submitting order:", err);
       setSubmitting(false);
       toast({
@@ -223,6 +230,10 @@ export const ShoppingCart = (): JSX.Element => {
                             shippingAddress={shippingAddress}
                             handleNextTab={handleNextTab}
                             handlePrevTab={handlePrevTab}
+                            onFallbackModeChange={(isFallback, selectedCost) => {
+                              setFallbackShippingMode(isFallback);
+                              setFallbackShippingCost(selectedCost);
+                            }}
                           />
                         </TabPanel>
 
@@ -251,6 +262,7 @@ export const ShoppingCart = (): JSX.Element => {
                         deleteOrder={deleteOrder}
                         onSubmitOrder={submitOrder}
                         tabIndex={tabIndex}
+                        fallbackShippingCost={fallbackShippingMode ? fallbackShippingCost : undefined}
                       />
                     )}
                   </Container>
