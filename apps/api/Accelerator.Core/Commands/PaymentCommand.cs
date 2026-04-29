@@ -60,5 +60,19 @@ namespace Accelerator.Commands
         {
             return await creditCardProcessor.GetIFrameCredentialAsync();
         }
+
+        public async Task<Payment> AcceptDemoPaymentAsync(string orderID, string paymentID)
+        {
+            var payment = await oc.Payments.GetAsync(OrderDirection.All, orderID, paymentID);
+            Require.That(payment != null, new ErrorCode("Payment.NotFound", "Payment was not found."));
+
+            await oc.Payments.PatchAsync<Payment>(
+                OrderDirection.All,
+                orderID,
+                paymentID,
+                new PartialPayment { Accepted = true });
+
+            return await oc.Payments.GetAsync(OrderDirection.All, orderID, paymentID);
+        }
     }
 }

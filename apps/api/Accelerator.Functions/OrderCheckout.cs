@@ -60,5 +60,16 @@ namespace Accelerator.Functions
             var response = await paymentCommand.GetIFrameCredentialsAsync() ?? "sk_test_BQokikJOvBiI2HlWgH4olfQ2";
             return new OkObjectResult(response);
         }
+
+        [Function("acceptdemopayment")]
+        public async Task<IActionResult> AcceptDemoPaymentAsync(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orders/{orderID}/payments/{paymentID}/accept-demo")] HttpRequest req,
+            string orderID,
+            string paymentID)
+        {
+            logger.LogInformation("Accepting demo payment for order {OrderID} and payment {PaymentID}", orderID, paymentID);
+            var response = await paymentCommand.AcceptDemoPaymentAsync(orderID, paymentID);
+            return new OkObjectResult(response);
+        }
     }
 }
