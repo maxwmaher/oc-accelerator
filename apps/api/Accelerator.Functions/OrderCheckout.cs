@@ -7,6 +7,7 @@ using System.IO;
 using Newtonsoft.Json;
 using OrderCloud.Catalyst;
 using OrderCloud.SDK;
+using System.Net;
 
 namespace Accelerator.Functions
 {
@@ -77,6 +78,19 @@ namespace Accelerator.Functions
             }
 
             logger.LogInformation("Accepting payment for order {OrderID} and payment {PaymentID}", request.OrderID, request.PaymentID);
+            try
+            {
+                var existingPayment = await oc.Payments.GetAsync<Payment>(OrderDirection.Outgoing, request.OrderID, request.PaymentID);
+                if (existingPayment == null)
+                {
+                    return new NotFoundObjectResult($"Payment '{request.PaymentID}' was not found for order '{request.OrderID}'.");
+                }
+            }
+            catch (OrderCloudException ex) when (ex.HttpStatus == HttpStatusCode.NotFound)
+            {
+                return new NotFoundObjectResult($"Payment '{request.PaymentID}' was not found for order '{request.OrderID}'.");
+            }
+
             var response = await oc.Payments.PatchAsync<Payment>(OrderDirection.Outgoing, request.OrderID, request.PaymentID, new PartialPayment { Accepted = true });
             return new OkObjectResult(response);
         }
