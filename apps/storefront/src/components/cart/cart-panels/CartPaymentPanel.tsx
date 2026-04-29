@@ -17,7 +17,7 @@ import {
 import { useShopper } from "@ordercloud/react-sdk";
 import { Payment, Payments } from "ordercloud-javascript-sdk";
 import { FormEvent, useMemo, useState } from "react";
-import { DEMO_PAYMENT_API_BASE_URL } from "../../../constants";
+import { FUNCTIONS_BASE_URL } from "../../../constants";
 
 type CartPaymentPanelProps = {
   submitOrder: () => void;
@@ -91,8 +91,12 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
   };
 
   const acceptPayment = async (createdPayment: Payment) => {
-    const endpoint = `${DEMO_PAYMENT_API_BASE_URL}/api/orders/${orderID}/payments/${createdPayment.ID}/accept-demo`;
-    const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" } });
+    const endpoint = `${FUNCTIONS_BASE_URL}/api/payments/accept`;
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderID, paymentID: createdPayment.ID }),
+    });
     if (!response.ok) {
       throw new Error(`Payment acceptance failed (${response.status})`);
     }
@@ -105,8 +109,8 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
       toast({ title: "Missing order", description: "Unable to locate the active order.", status: "error" });
       return;
     }
-    if (!DEMO_PAYMENT_API_BASE_URL) {
-      toast({ title: "Missing payment API config", description: "Set VITE_APP_DEMO_PAYMENT_API_BASE_URL.", status: "error" });
+    if (!FUNCTIONS_BASE_URL) {
+      toast({ title: "Missing payment API config", description: "Set VITE_APP_FUNCTIONS_BASE_URL.", status: "error" });
       return;
     }
     if (!validate()) return;

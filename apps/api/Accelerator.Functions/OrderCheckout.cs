@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using System.IO;
 using Newtonsoft.Json;
 using OrderCloud.Catalyst;
 using OrderCloud.SDK;
@@ -13,7 +14,8 @@ namespace Accelerator.Functions
         ILogger<OrderCheckout> logger, 
         ShippingCommand shippingCommand, 
         TaxCommand taxCommand, 
-        PaymentCommand paymentCommand)
+        PaymentCommand paymentCommand,
+        IOrderCloudClient oc)
     {
 
         [Function("shippingrates")]
@@ -61,15 +63,31 @@ namespace Accelerator.Functions
             return new OkObjectResult(response);
         }
 
-        [Function("acceptdemopayment")]
-        public async Task<IActionResult> AcceptDemoPaymentAsync(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orders/{orderID}/payments/{paymentID}/accept-demo")] HttpRequest req,
-            string orderID,
-            string paymentID)
+        [Function("acceptpayment")]
+        public async Task<IActionResult> AcceptPaymentAsync(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "payments/accept")] HttpRequest req)
         {
-            logger.LogInformation("Accepting demo payment for order {OrderID} and payment {PaymentID}", orderID, paymentID);
-            var response = await paymentCommand.AcceptDemoPaymentAsync(orderID, paymentID);
+            using var reader = new StreamReader(req.Body);
+            var body = await reader.ReadToEndAsync();
+            var request = JsonConvert.DeserializeObject<AcceptPaymentRequest>(body);
+
+            if (request == null || string.IsNullOrWhiteSpace(request.OrderID) || string.IsNullOrWhiteSpace(request.PaymentID))
+            {
+                return new BadRequestObjectResult("Request body must include orderID and paymentID.");
+            }
+
+            logger.LogInformation("Accepting payment for order {OrderID} and payment {PaymentID}", request.OrderID, request.PaymentID);
+            var response = await oc.Payments.PatchAsync<Payment>(OrderDirection.Outgoing, request.OrderID, request.PaymentID, new PartialPayment { Accepted = true });
             return new OkObjectResult(response);
+        }
+
+        private class AcceptPaymentRequest
+        {
+            [JsonProperty("orderID")]
+            public string OrderID { get; set; }
+
+            [JsonProperty("paymentID")]
+            public string PaymentID { get; set; }
         }
     }
 }
