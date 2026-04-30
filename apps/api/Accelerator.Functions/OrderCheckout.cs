@@ -10,6 +10,9 @@ using OrderCloud.SDK;
 using System.Net;
 using Microsoft.AspNetCore.Http.Extensions;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 
 namespace Accelerator.Functions
 {
@@ -88,11 +91,13 @@ namespace Accelerator.Functions
 
             logger.LogInformation("Demo payment request received for {Url}", req.GetDisplayUrl());
 
+            logger.LogInformation("Demo payment step=request parsing started");
             using var reader = new StreamReader(req.Body);
             var body = await reader.ReadToEndAsync();
             logger.LogDebug("Demo payment raw request body: {Body}", body);
 
             var request = JsonConvert.DeserializeObject<AcceptPaymentRequest>(body);
+            logger.LogInformation("Demo payment step=request parsing completed parsed={Parsed}", request != null);
 
             if (request == null || string.IsNullOrWhiteSpace(request.OrderID) || string.IsNullOrWhiteSpace(request.PaymentID))
             {
@@ -107,6 +112,7 @@ namespace Accelerator.Functions
             logger.LogInformation("Demo payment parsed IDs order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
             logger.LogInformation("Demo payment OC auth/config loaded and client available={ClientAvailable}", oc != null);
 
+            logger.LogInformation("Demo payment step=admin OC client creation/auth readiness started");
             var adminClient = CreateAdminOrderCloudClient();
             var configuredRoles = adminClient.Config.Roles?.Select(r => r.ToString()).ToList() ?? new List<string>();
             var isFullAccess = configuredRoles.Contains(FullAccessRole, StringComparer.OrdinalIgnoreCase);
@@ -118,6 +124,7 @@ namespace Accelerator.Functions
                 hasClientSecret,
                 configuredRoles,
                 isFullAccess);
+            logger.LogInformation("Demo payment step=admin OC client creation/auth readiness completed");
 
             if (!isFullAccess)
             {
@@ -131,7 +138,7 @@ namespace Accelerator.Functions
 
             try
             {
-                logger.LogInformation("Demo payment fetch started");
+                logger.LogInformation("Demo payment step=Payments.GetAsync(All) started");
                 var existingPayment = await adminClient.Payments.GetAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID);
                 if (existingPayment == null)
                 {
@@ -159,10 +166,58 @@ namespace Accelerator.Functions
                     return;
                 }
 
-                logger.LogInformation("Demo payment patch started");
-                var response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, new PartialPayment { Accepted = true });
+                var patchPayload = new PartialPayment { Accepted = true };
+                logger.LogInformation(
+                    "Demo payment step=Payments.PatchAsync(All) started payload={Payload}",
+                    JsonConvert.SerializeObject(patchPayload));
+                Payment response;
+                var sdkPatchSucceeded = false;
+                try
+                {
+                    response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, patchPayload);
+                    sdkPatchSucceeded = true;
+                    logger.LogInformation("Demo payment step=Payments.PatchAsync(All) succeeded");
+                }
+                catch (OrderCloudException sdkEx)
+                {
+                    logger.LogWarning(
+                        sdkEx,
+                        "Demo payment step=Payments.PatchAsync(All) failed status={HttpStatus} message={Message} errors={Errors}",
+                        sdkEx.HttpStatus,
+                        sdkEx.Message,
+                        sdkEx.Errors != null ? JsonConvert.SerializeObject(sdkEx.Errors) : null);
+
+                    logger.LogInformation("Demo payment step=DirectREST PATCH(All) started after SDK failure");
+                    var directResult = await RunDirectPatchDiagnosticAsync(adminClient, request.OrderID, request.PaymentID);
+                    logger.LogInformation(
+                        "Demo payment step=DirectREST PATCH(All) completed status={StatusCode} success={Success}",
+                        directResult.StatusCode,
+                        directResult.Success);
+
+                    await WriteJsonResponseAsync(req, (int)sdkEx.HttpStatus, new
+                    {
+                        error = "OrderCloud payment accept failed.",
+                        sdkPatchSucceeded,
+                        directRestPatchSucceeded = directResult.Success,
+                        sdk = new
+                        {
+                            status = sdkEx.HttpStatus,
+                            message = sdkEx.Message,
+                            errors = sdkEx.Errors
+                        },
+                        directRest = new
+                        {
+                            status = directResult.StatusCode,
+                            body = directResult.Body
+                        },
+                        orderID = request.OrderID,
+                        paymentID = request.PaymentID
+                    });
+                    return;
+                }
 
                 logger.LogInformation("Demo payment final response success for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
+                logger.LogInformation("Demo payment step=response serialization started");
                 await WriteJsonResponseAsync(req, StatusCodes.Status200OK, response);
                 return;
             }
@@ -182,6 +237,7 @@ namespace Accelerator.Functions
                     error = "OrderCloud payment accept failed.",
                     status = ex.HttpStatus,
                     message = ex.Message,
+                    errors = ex.Errors,
                     orderID = request.OrderID,
                     paymentID = request.PaymentID
                 });
@@ -236,6 +292,28 @@ namespace Accelerator.Functions
             await req.HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(payload));
         }
 
+        private async Task<DirectPatchDiagnosticResult> RunDirectPatchDiagnosticAsync(OrderCloudClient adminClient, string orderID, string paymentID)
+        {
+            var token = await adminClient.AuthenticateAsync();
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var apiUrl = adminClient.Config.ApiUrl?.TrimEnd('/') ?? "https://api.ordercloud.io";
+            var uri = $"{apiUrl}/v1/orders/All/{WebUtility.UrlEncode(orderID)}/payments/{WebUtility.UrlEncode(paymentID)}";
+            var body = "{\"Accepted\":true}";
+            using var content = new StringContent(body, Encoding.UTF8, "application/json");
+
+            var response = await httpClient.PatchAsync(uri, content);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            return new DirectPatchDiagnosticResult
+            {
+                Success = response.IsSuccessStatusCode,
+                StatusCode = (int)response.StatusCode,
+                Body = responseBody
+            };
+        }
+
         private class AcceptPaymentRequest
         {
             [JsonProperty("orderID")]
@@ -243,6 +321,13 @@ namespace Accelerator.Functions
 
             [JsonProperty("paymentID")]
             public string PaymentID { get; set; }
+        }
+
+        private class DirectPatchDiagnosticResult
+        {
+            public bool Success { get; set; }
+            public int StatusCode { get; set; }
+            public string Body { get; set; }
         }
     }
 }
