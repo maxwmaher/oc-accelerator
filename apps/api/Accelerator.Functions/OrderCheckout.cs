@@ -100,59 +100,58 @@ namespace Accelerator.Functions
             var request = JsonConvert.DeserializeObject<AcceptPaymentRequest>(body);
             logger.LogInformation("Demo payment step=request parsing completed parsed={Parsed}", request != null);
 
-            if (request == null || string.IsNullOrWhiteSpace(request.OrderID) || string.IsNullOrWhiteSpace(request.PaymentID))
-            {
-                logger.LogWarning("Demo payment request missing orderID/paymentID");
-                await WriteJsonResponseAsync(req, StatusCodes.Status400BadRequest, new
-                {
-                    error = "Request body must include orderID and paymentID."
-                });
-                return;
-            }
-
-            logger.LogInformation("Demo payment parsed IDs order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
-            logger.LogInformation("Demo payment OC auth/config loaded and client available={ClientAvailable}", oc != null);
-
-            logger.LogInformation("Demo payment step=admin OC client creation/auth readiness started");
-            var adminClient = CreateAdminOrderCloudClient();
-            var configuredRoles = adminClient.Config.Roles?.Select(r => r.ToString()).ToList() ?? new List<string>();
-            var hasClientId = !string.IsNullOrWhiteSpace(adminClient.Config.ClientId);
-            var hasClientSecret = !string.IsNullOrWhiteSpace(adminClient.Config.ClientSecret);
-            var tokenResponse = await adminClient.AuthenticateAsync();
-            var tokenDebug = BuildTokenDebug(tokenResponse?.AccessToken);
-            logger.LogInformation(
-                "Demo payment auth intent clientIdPresent={ClientIdPresent} clientSecretPresent={ClientSecretPresent} configuredRoles={ConfiguredRoles}",
-                hasClientId,
-                hasClientSecret,
-                configuredRoles);
-            logger.LogInformation(
-                "Demo payment token diagnostics hasToken={HasToken} tokenLast8={TokenLast8} clientID={ClientID} userID={UserID} roles={Roles} scope={Scope} expiresUtc={ExpiresUtc} aud={Audience} iss={Issuer} hasFullAccess={HasFullAccess}",
-                tokenDebug.HasToken,
-                tokenDebug.TokenLast8,
-                tokenDebug.ClientID,
-                tokenDebug.UserID,
-                tokenDebug.Roles,
-                tokenDebug.Scope,
-                tokenDebug.ExpiresUtc,
-                tokenDebug.Audience,
-                tokenDebug.Issuer,
-                tokenDebug.HasFullAccess);
-            logger.LogInformation("Demo payment step=admin OC client creation/auth readiness completed");
-
-            if (!tokenDebug.HasFullAccess)
-            {
-                logger.LogWarning("Demo payment forbidden: token missing FullAccess role");
-                await WriteJsonResponseAsync(req, StatusCodes.Status403Forbidden, new
-                {
-                    error = "Payment accept requires FullAccess role.",
-                    tokenDebug
-                });
-                return;
-            }
-
             try
             {
+                if (request == null || string.IsNullOrWhiteSpace(request.OrderID) || string.IsNullOrWhiteSpace(request.PaymentID))
+                {
+                    logger.LogWarning("Demo payment request missing orderID/paymentID");
+                    await WriteJsonResponseAsync(req, StatusCodes.Status400BadRequest, new
+                    {
+                        error = "Request body must include orderID and paymentID."
+                    });
+                    return;
+                }
+
+                logger.LogInformation("Demo payment parsed IDs order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
+                logger.LogInformation("Demo payment OC auth/config loaded and client available={ClientAvailable}", oc != null);
+
+                logger.LogInformation("Demo payment step=admin OC client creation/auth readiness started");
+                var adminClient = CreateAdminOrderCloudClient();
+                var tokenDebug = new TokenDebug();
+                try
+                {
+                    var configuredRoles = adminClient.Config.Roles?.Select(r => r.ToString()).ToList() ?? new List<string>();
+                    var hasClientId = !string.IsNullOrWhiteSpace(adminClient.Config.ClientId);
+                    var hasClientSecret = !string.IsNullOrWhiteSpace(adminClient.Config.ClientSecret);
+                    var tokenResponse = await adminClient.AuthenticateAsync();
+                    tokenDebug = BuildTokenDebug(tokenResponse?.AccessToken);
+                    logger.LogInformation(
+                        "Demo payment auth intent clientIdPresent={ClientIdPresent} clientSecretPresent={ClientSecretPresent} configuredRoles={ConfiguredRoles}",
+                        hasClientId,
+                        hasClientSecret,
+                        configuredRoles);
+                    logger.LogInformation(
+                        "Demo payment token diagnostics hasToken={HasToken} tokenLast8={TokenLast8} clientID={ClientID} userID={UserID} roles={Roles} scope={Scope} expiresUtc={ExpiresUtc} aud={Audience} iss={Issuer} hasFullAccess={HasFullAccess}",
+                        tokenDebug.HasToken,
+                        tokenDebug.TokenLast8,
+                        tokenDebug.ClientID,
+                        tokenDebug.UserID,
+                        tokenDebug.Roles,
+                        tokenDebug.Scope,
+                        tokenDebug.ExpiresUtc,
+                        tokenDebug.Audience,
+                        tokenDebug.Issuer,
+                        tokenDebug.HasFullAccess);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Demo payment token debug failed message={Message} stackTrace={StackTrace}", ex.Message, ex.StackTrace);
+                }
+
+                logger.LogInformation("Demo payment step=admin OC client creation/auth readiness completed");
+
                 logger.LogInformation("Demo payment step=Payments.GetAsync(All) started");
+                logger.LogInformation("Demo payment step=Payments.GetAsync(All) call starting");
                 var existingPayment = await adminClient.Payments.GetAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID);
                 if (existingPayment == null)
                 {
@@ -184,6 +183,7 @@ namespace Accelerator.Functions
                 logger.LogInformation(
                     "Demo payment step=Payments.PatchAsync(All) started payload={Payload}",
                     JsonConvert.SerializeObject(patchPayload));
+                logger.LogInformation("Demo payment step=Payments.PatchAsync(All) call starting");
                 Payment response;
                 var sdkPatchSucceeded = false;
                 try
