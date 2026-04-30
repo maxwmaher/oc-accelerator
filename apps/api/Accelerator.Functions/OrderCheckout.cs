@@ -13,7 +13,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Globalization;
 
 namespace Accelerator.Functions
 {
@@ -24,8 +23,6 @@ namespace Accelerator.Functions
         PaymentCommand paymentCommand,
         IOrderCloudClient oc)
     {
-        private const string FullAccessRole = "FullAccess";
-
         [Function("shippingrates")]
         [OrderCloudWebhookAuth]
         public async Task<IActionResult> EstimateShippingAsync([HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req, [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
@@ -100,8 +97,6 @@ namespace Accelerator.Functions
             var request = JsonConvert.DeserializeObject<AcceptPaymentRequest>(body);
             logger.LogInformation("Demo payment step=request parsing completed parsed={Parsed}", request != null);
 
-            TokenDebug tokenDebug = null;
-
             try
             {
                 if (request == null || string.IsNullOrWhiteSpace(request.OrderID) || string.IsNullOrWhiteSpace(request.PaymentID))
@@ -124,35 +119,17 @@ namespace Accelerator.Functions
                     var configuredRoles = adminClient.Config.Roles?.Select(r => r.ToString()).ToList() ?? new List<string>();
                     var hasClientId = !string.IsNullOrWhiteSpace(adminClient.Config.ClientId);
                     var hasClientSecret = !string.IsNullOrWhiteSpace(adminClient.Config.ClientSecret);
-                    var tokenResponse = await adminClient.AuthenticateAsync();
-                    var accessToken = tokenResponse?.AccessToken;
-
-                    if (!string.IsNullOrEmpty(accessToken))
-                    {
-                        tokenDebug = BuildTokenDebug(accessToken);
-                    }
+                    await adminClient.AuthenticateAsync();
 
                     logger.LogInformation(
                         "Demo payment auth intent clientIdPresent={ClientIdPresent} clientSecretPresent={ClientSecretPresent} configuredRoles={ConfiguredRoles}",
                         hasClientId,
                         hasClientSecret,
                         configuredRoles);
-                    logger.LogInformation(
-                        "Demo payment token diagnostics hasToken={HasToken} tokenLast8={TokenLast8} clientID={ClientID} userID={UserID} roles={Roles} scope={Scope} expiresUtc={ExpiresUtc} aud={Audience} iss={Issuer} hasFullAccess={HasFullAccess}",
-                        tokenDebug?.HasToken,
-                        tokenDebug?.TokenLast8,
-                        tokenDebug?.ClientID,
-                        tokenDebug?.UserID,
-                        tokenDebug?.Roles,
-                        tokenDebug?.Scope,
-                        tokenDebug?.ExpiresUtc,
-                        tokenDebug?.Audience,
-                        tokenDebug?.Issuer,
-                        tokenDebug?.HasFullAccess);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Demo payment token debug failed message={Message} stackTrace={StackTrace}", ex.Message, ex.StackTrace);
+                    logger.LogError(ex, "Demo payment admin auth diagnostics failed message={Message} stackTrace={StackTrace}", ex.Message, ex.StackTrace);
                 }
 
                 logger.LogInformation("Demo payment step=admin OC client creation/auth readiness completed");
@@ -232,8 +209,7 @@ namespace Accelerator.Functions
                             body = directResult.Body
                         },
                         orderID = request.OrderID,
-                        paymentID = request.PaymentID,
-                        tokenDebug = tokenDebug ?? new { hasToken = false }
+                        paymentID = request.PaymentID
                     });
                     return;
                 }
@@ -261,8 +237,7 @@ namespace Accelerator.Functions
                     message = ex.Message,
                     errors = ex.Errors,
                     orderID = request.OrderID,
-                    paymentID = request.PaymentID,
-                    tokenDebug = tokenDebug ?? new { hasToken = false }
+                    paymentID = request.PaymentID
                 });
                 return;
             }
@@ -338,102 +313,6 @@ namespace Accelerator.Functions
         }
 
 
-        private TokenDebug BuildTokenDebug(string accessToken)
-        {
-            var debug = new TokenDebug
-            {
-                HasToken = !string.IsNullOrWhiteSpace(accessToken),
-                TokenLast8 = Last8(accessToken)
-            };
-
-            if (string.IsNullOrWhiteSpace(accessToken)) return debug;
-
-            try
-            {
-                var claims = DecodeJwtPayload(accessToken);
-                debug.ClientID = ClaimValue(claims, "client_id", "cid");
-                debug.UserID = ClaimValue(claims, "usr", "user_id", "sub");
-                debug.Scope = ClaimValue(claims, "scope", "scp");
-                debug.Roles = ClaimValues(claims, "roles", "role");
-                debug.ExpiresUtc = ExpUtc(claims);
-                debug.Audience = ClaimValue(claims, "aud");
-                debug.Issuer = ClaimValue(claims, "iss");
-                debug.HasFullAccess = debug.Roles?.Contains(FullAccessRole, StringComparer.OrdinalIgnoreCase) == true;
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Demo payment token diagnostics decode failed");
-            }
-
-            return debug;
-        }
-
-        private static Dictionary<string, object> DecodeJwtPayload(string jwt)
-        {
-            var parts = jwt.Split('.');
-            if (parts.Length < 2) return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            var payload = parts[1].Replace('-', '+').Replace('_', '/');
-            payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
-            var bytes = Convert.FromBase64String(payload);
-            var json = Encoding.UTF8.GetString(bytes);
-            return JsonConvert.DeserializeObject<Dictionary<string, object>>(json)
-                   ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-        }
-
-        private static string ClaimValue(Dictionary<string, object> claims, params string[] names)
-        {
-            foreach (var name in names)
-            {
-                if (!claims.TryGetValue(name, out var value) || value == null) continue;
-                var token = value is Newtonsoft.Json.Linq.JToken jt ? jt : Newtonsoft.Json.Linq.JToken.FromObject(value);
-                if (token.Type == Newtonsoft.Json.Linq.JTokenType.Array)
-                {
-                    var first = token.Values<string>().FirstOrDefault();
-                    if (!string.IsNullOrWhiteSpace(first)) return first;
-                }
-                else
-                {
-                    var str = token.ToString();
-                    if (!string.IsNullOrWhiteSpace(str)) return str;
-                }
-            }
-            return null;
-        }
-
-        private static List<string> ClaimValues(Dictionary<string, object> claims, params string[] names)
-        {
-            foreach (var name in names)
-            {
-                if (!claims.TryGetValue(name, out var value) || value == null) continue;
-                var token = value is Newtonsoft.Json.Linq.JToken jt ? jt : Newtonsoft.Json.Linq.JToken.FromObject(value);
-                if (token.Type == Newtonsoft.Json.Linq.JTokenType.Array)
-                {
-                    var arr = token.Values<string>().Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                    if (arr.Count > 0) return arr;
-                }
-                else
-                {
-                    var str = token.ToString();
-                    if (!string.IsNullOrWhiteSpace(str))
-                    {
-                        var vals = str.Split(' ', StringSplitOptions.RemoveEmptyEntries).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                        if (vals.Count > 0) return vals;
-                    }
-                }
-            }
-            return new List<string>();
-        }
-
-        private static string ExpUtc(Dictionary<string, object> claims)
-        {
-            var exp = ClaimValue(claims, "exp");
-            if (!long.TryParse(exp, out var expSeconds)) return null;
-            return DateTimeOffset.FromUnixTimeSeconds(expSeconds).UtcDateTime.ToString("O", CultureInfo.InvariantCulture);
-        }
-
-        private static string Last8(string token) =>
-            string.IsNullOrWhiteSpace(token) ? null : token.Length <= 8 ? token : token.Substring(token.Length - 8, 8);
-
         private class AcceptPaymentRequest
         {
             [JsonProperty("orderID")]
@@ -441,30 +320,6 @@ namespace Accelerator.Functions
 
             [JsonProperty("paymentID")]
             public string PaymentID { get; set; }
-        }
-
-        private class TokenDebug
-        {
-            [JsonProperty("hasToken")]
-            public bool HasToken { get; set; }
-            [JsonProperty("tokenLast8")]
-            public string TokenLast8 { get; set; }
-            [JsonProperty("clientID")]
-            public string ClientID { get; set; }
-            [JsonProperty("userID")]
-            public string UserID { get; set; }
-            [JsonProperty("roles")]
-            public List<string> Roles { get; set; } = new();
-            [JsonProperty("scope")]
-            public string Scope { get; set; }
-            [JsonProperty("expiresUtc")]
-            public string ExpiresUtc { get; set; }
-            [JsonProperty("aud")]
-            public string Audience { get; set; }
-            [JsonProperty("iss")]
-            public string Issuer { get; set; }
-            [JsonProperty("hasFullAccess")]
-            public bool HasFullAccess { get; set; }
         }
 
         private class DirectPatchDiagnosticResult
