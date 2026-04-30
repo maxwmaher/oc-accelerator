@@ -100,6 +100,8 @@ namespace Accelerator.Functions
             var request = JsonConvert.DeserializeObject<AcceptPaymentRequest>(body);
             logger.LogInformation("Demo payment step=request parsing completed parsed={Parsed}", request != null);
 
+            TokenDebug tokenDebug = null;
+
             try
             {
                 if (request == null || string.IsNullOrWhiteSpace(request.OrderID) || string.IsNullOrWhiteSpace(request.PaymentID))
@@ -117,14 +119,19 @@ namespace Accelerator.Functions
 
                 logger.LogInformation("Demo payment step=admin OC client creation/auth readiness started");
                 var adminClient = CreateAdminOrderCloudClient();
-                var tokenDebug = new TokenDebug();
                 try
                 {
                     var configuredRoles = adminClient.Config.Roles?.Select(r => r.ToString()).ToList() ?? new List<string>();
                     var hasClientId = !string.IsNullOrWhiteSpace(adminClient.Config.ClientId);
                     var hasClientSecret = !string.IsNullOrWhiteSpace(adminClient.Config.ClientSecret);
                     var tokenResponse = await adminClient.AuthenticateAsync();
-                    tokenDebug = BuildTokenDebug(tokenResponse?.AccessToken);
+                    var accessToken = tokenResponse?.AccessToken;
+
+                    if (!string.IsNullOrEmpty(accessToken))
+                    {
+                        tokenDebug = BuildTokenDebug(accessToken);
+                    }
+
                     logger.LogInformation(
                         "Demo payment auth intent clientIdPresent={ClientIdPresent} clientSecretPresent={ClientSecretPresent} configuredRoles={ConfiguredRoles}",
                         hasClientId,
@@ -132,16 +139,16 @@ namespace Accelerator.Functions
                         configuredRoles);
                     logger.LogInformation(
                         "Demo payment token diagnostics hasToken={HasToken} tokenLast8={TokenLast8} clientID={ClientID} userID={UserID} roles={Roles} scope={Scope} expiresUtc={ExpiresUtc} aud={Audience} iss={Issuer} hasFullAccess={HasFullAccess}",
-                        tokenDebug.HasToken,
-                        tokenDebug.TokenLast8,
-                        tokenDebug.ClientID,
-                        tokenDebug.UserID,
-                        tokenDebug.Roles,
-                        tokenDebug.Scope,
-                        tokenDebug.ExpiresUtc,
-                        tokenDebug.Audience,
-                        tokenDebug.Issuer,
-                        tokenDebug.HasFullAccess);
+                        tokenDebug?.HasToken,
+                        tokenDebug?.TokenLast8,
+                        tokenDebug?.ClientID,
+                        tokenDebug?.UserID,
+                        tokenDebug?.Roles,
+                        tokenDebug?.Scope,
+                        tokenDebug?.ExpiresUtc,
+                        tokenDebug?.Audience,
+                        tokenDebug?.Issuer,
+                        tokenDebug?.HasFullAccess);
                 }
                 catch (Exception ex)
                 {
@@ -226,7 +233,7 @@ namespace Accelerator.Functions
                         },
                         orderID = request.OrderID,
                         paymentID = request.PaymentID,
-                        tokenDebug
+                        tokenDebug = tokenDebug ?? new { hasToken = false }
                     });
                     return;
                 }
@@ -255,7 +262,7 @@ namespace Accelerator.Functions
                     errors = ex.Errors,
                     orderID = request.OrderID,
                     paymentID = request.PaymentID,
-                    tokenDebug
+                    tokenDebug = tokenDebug ?? new { hasToken = false }
                 });
                 return;
             }
