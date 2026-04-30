@@ -295,8 +295,9 @@ namespace Accelerator.Functions
         private async Task<DirectPatchDiagnosticResult> RunDirectPatchDiagnosticAsync(OrderCloudClient adminClient, string orderID, string paymentID)
         {
             var token = await adminClient.AuthenticateAsync();
+            var accessToken = token?.AccessToken;
             using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             var apiUrl = adminClient.Config.ApiUrl?.TrimEnd('/') ?? "https://api.ordercloud.io";
             var uri = $"{apiUrl}/v1/orders/All/{WebUtility.UrlEncode(orderID)}/payments/{WebUtility.UrlEncode(paymentID)}";
