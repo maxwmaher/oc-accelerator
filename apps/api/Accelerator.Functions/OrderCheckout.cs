@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Globalization;
 
 namespace Accelerator.Functions
 {
@@ -115,23 +116,36 @@ namespace Accelerator.Functions
             logger.LogInformation("Demo payment step=admin OC client creation/auth readiness started");
             var adminClient = CreateAdminOrderCloudClient();
             var configuredRoles = adminClient.Config.Roles?.Select(r => r.ToString()).ToList() ?? new List<string>();
-            var isFullAccess = configuredRoles.Contains(FullAccessRole, StringComparer.OrdinalIgnoreCase);
             var hasClientId = !string.IsNullOrWhiteSpace(adminClient.Config.ClientId);
             var hasClientSecret = !string.IsNullOrWhiteSpace(adminClient.Config.ClientSecret);
+            var tokenResponse = await adminClient.AuthenticateAsync();
+            var tokenDebug = BuildTokenDebug(tokenResponse?.AccessToken);
             logger.LogInformation(
-                "Demo payment auth intent clientIdPresent={ClientIdPresent} clientSecretPresent={ClientSecretPresent} configuredRoles={ConfiguredRoles} hasFullAccess={HasFullAccess}",
+                "Demo payment auth intent clientIdPresent={ClientIdPresent} clientSecretPresent={ClientSecretPresent} configuredRoles={ConfiguredRoles}",
                 hasClientId,
                 hasClientSecret,
-                configuredRoles,
-                isFullAccess);
+                configuredRoles);
+            logger.LogInformation(
+                "Demo payment token diagnostics hasToken={HasToken} tokenLast8={TokenLast8} clientID={ClientID} userID={UserID} roles={Roles} scope={Scope} expiresUtc={ExpiresUtc} aud={Audience} iss={Issuer} hasFullAccess={HasFullAccess}",
+                tokenDebug.HasToken,
+                tokenDebug.TokenLast8,
+                tokenDebug.ClientID,
+                tokenDebug.UserID,
+                tokenDebug.Roles,
+                tokenDebug.Scope,
+                tokenDebug.ExpiresUtc,
+                tokenDebug.Audience,
+                tokenDebug.Issuer,
+                tokenDebug.HasFullAccess);
             logger.LogInformation("Demo payment step=admin OC client creation/auth readiness completed");
 
-            if (!isFullAccess)
+            if (!tokenDebug.HasFullAccess)
             {
                 logger.LogWarning("Demo payment forbidden: token missing FullAccess role");
                 await WriteJsonResponseAsync(req, StatusCodes.Status403Forbidden, new
                 {
-                    error = "Payment accept requires FullAccess role."
+                    error = "Payment accept requires FullAccess role.",
+                    tokenDebug
                 });
                 return;
             }
@@ -211,7 +225,8 @@ namespace Accelerator.Functions
                             body = directResult.Body
                         },
                         orderID = request.OrderID,
-                        paymentID = request.PaymentID
+                        paymentID = request.PaymentID,
+                        tokenDebug
                     });
                     return;
                 }
@@ -239,7 +254,8 @@ namespace Accelerator.Functions
                     message = ex.Message,
                     errors = ex.Errors,
                     orderID = request.OrderID,
-                    paymentID = request.PaymentID
+                    paymentID = request.PaymentID,
+                    tokenDebug
                 });
                 return;
             }
@@ -294,8 +310,7 @@ namespace Accelerator.Functions
 
         private async Task<DirectPatchDiagnosticResult> RunDirectPatchDiagnosticAsync(OrderCloudClient adminClient, string orderID, string paymentID)
         {
-            var token = await adminClient.AuthenticateAsync();
-            var accessToken = token?.AccessToken;
+            var accessToken = (await adminClient.AuthenticateAsync())?.AccessToken;
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -315,6 +330,103 @@ namespace Accelerator.Functions
             };
         }
 
+
+        private TokenDebug BuildTokenDebug(string accessToken)
+        {
+            var debug = new TokenDebug
+            {
+                HasToken = !string.IsNullOrWhiteSpace(accessToken),
+                TokenLast8 = Last8(accessToken)
+            };
+
+            if (string.IsNullOrWhiteSpace(accessToken)) return debug;
+
+            try
+            {
+                var claims = DecodeJwtPayload(accessToken);
+                debug.ClientID = ClaimValue(claims, "client_id", "cid");
+                debug.UserID = ClaimValue(claims, "usr", "user_id", "sub");
+                debug.Scope = ClaimValue(claims, "scope", "scp");
+                debug.Roles = ClaimValues(claims, "roles", "role");
+                debug.ExpiresUtc = ExpUtc(claims);
+                debug.Audience = ClaimValue(claims, "aud");
+                debug.Issuer = ClaimValue(claims, "iss");
+                debug.HasFullAccess = debug.Roles?.Contains(FullAccessRole, StringComparer.OrdinalIgnoreCase) == true;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Demo payment token diagnostics decode failed");
+            }
+
+            return debug;
+        }
+
+        private static Dictionary<string, object> DecodeJwtPayload(string jwt)
+        {
+            var parts = jwt.Split('.');
+            if (parts.Length < 2) return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            var payload = parts[1].Replace('-', '+').Replace('_', '/');
+            payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+            var bytes = Convert.FromBase64String(payload);
+            var json = Encoding.UTF8.GetString(bytes);
+            return JsonConvert.DeserializeObject<Dictionary<string, object>>(json)
+                   ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static string ClaimValue(Dictionary<string, object> claims, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (!claims.TryGetValue(name, out var value) || value == null) continue;
+                var token = value is Newtonsoft.Json.Linq.JToken jt ? jt : Newtonsoft.Json.Linq.JToken.FromObject(value);
+                if (token.Type == Newtonsoft.Json.Linq.JTokenType.Array)
+                {
+                    var first = token.Values<string>().FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(first)) return first;
+                }
+                else
+                {
+                    var str = token.ToString();
+                    if (!string.IsNullOrWhiteSpace(str)) return str;
+                }
+            }
+            return null;
+        }
+
+        private static List<string> ClaimValues(Dictionary<string, object> claims, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (!claims.TryGetValue(name, out var value) || value == null) continue;
+                var token = value is Newtonsoft.Json.Linq.JToken jt ? jt : Newtonsoft.Json.Linq.JToken.FromObject(value);
+                if (token.Type == Newtonsoft.Json.Linq.JTokenType.Array)
+                {
+                    var arr = token.Values<string>().Where(v => !string.IsNullOrWhiteSpace(v)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                    if (arr.Count > 0) return arr;
+                }
+                else
+                {
+                    var str = token.ToString();
+                    if (!string.IsNullOrWhiteSpace(str))
+                    {
+                        var vals = str.Split(' ', StringSplitOptions.RemoveEmptyEntries).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                        if (vals.Count > 0) return vals;
+                    }
+                }
+            }
+            return new List<string>();
+        }
+
+        private static string ExpUtc(Dictionary<string, object> claims)
+        {
+            var exp = ClaimValue(claims, "exp");
+            if (!long.TryParse(exp, out var expSeconds)) return null;
+            return DateTimeOffset.FromUnixTimeSeconds(expSeconds).UtcDateTime.ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        private static string Last8(string token) =>
+            string.IsNullOrWhiteSpace(token) ? null : token.Length <= 8 ? token : token.Substring(token.Length - 8, 8);
+
         private class AcceptPaymentRequest
         {
             [JsonProperty("orderID")]
@@ -322,6 +434,30 @@ namespace Accelerator.Functions
 
             [JsonProperty("paymentID")]
             public string PaymentID { get; set; }
+        }
+
+        private class TokenDebug
+        {
+            [JsonProperty("hasToken")]
+            public bool HasToken { get; set; }
+            [JsonProperty("tokenLast8")]
+            public string TokenLast8 { get; set; }
+            [JsonProperty("clientID")]
+            public string ClientID { get; set; }
+            [JsonProperty("userID")]
+            public string UserID { get; set; }
+            [JsonProperty("roles")]
+            public List<string> Roles { get; set; } = new();
+            [JsonProperty("scope")]
+            public string Scope { get; set; }
+            [JsonProperty("expiresUtc")]
+            public string ExpiresUtc { get; set; }
+            [JsonProperty("aud")]
+            public string Audience { get; set; }
+            [JsonProperty("iss")]
+            public string Issuer { get; set; }
+            [JsonProperty("hasFullAccess")]
+            public bool HasFullAccess { get; set; }
         }
 
         private class DirectPatchDiagnosticResult
