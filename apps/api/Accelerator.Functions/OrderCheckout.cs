@@ -9,6 +9,11 @@ using OrderCloud.Catalyst;
 using OrderCloud.SDK;
 using System.Net;
 using Microsoft.AspNetCore.Http.Extensions;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Linq;
 
 namespace Accelerator.Functions
 {
@@ -19,6 +24,7 @@ namespace Accelerator.Functions
         PaymentCommand paymentCommand,
         IOrderCloudClient oc)
     {
+        private const string FullAccessRole = "FullAccess";
 
         [Function("shippingrates")]
         [OrderCloudWebhookAuth]
@@ -105,10 +111,36 @@ namespace Accelerator.Functions
             logger.LogInformation("Demo payment parsed IDs order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
             logger.LogInformation("Demo payment OC auth/config loaded and client available={ClientAvailable}", oc != null);
 
+            var adminClient = await CreateAdminOrderCloudClientAsync();
+            var tokenContext = GetTokenContext(adminClient?.Config?.AccessToken);
+            logger.LogInformation(
+                "Demo payment token claims roles={Roles} client_id={ClientID} usr={Usr} scope={Scope}",
+                tokenContext.Roles,
+                tokenContext.ClientID,
+                tokenContext.UserID,
+                tokenContext.Scope);
+
+            var isFullAccess = tokenContext.RoleList.Contains(FullAccessRole, StringComparer.OrdinalIgnoreCase);
+            var isBuyerToken = !string.IsNullOrWhiteSpace(tokenContext.UserID);
+            logger.LogInformation(
+                "Demo payment token context hasFullAccess={HasFullAccess} tokenType={TokenType}",
+                isFullAccess,
+                isBuyerToken ? "buyer" : "client_credentials");
+
+            if (!isFullAccess)
+            {
+                logger.LogWarning("Demo payment forbidden: token missing FullAccess role");
+                await WriteJsonResponseAsync(req, StatusCodes.Status403Forbidden, new
+                {
+                    error = "Payment accept requires FullAccess role."
+                });
+                return;
+            }
+
             try
             {
                 logger.LogInformation("Demo payment fetch started");
-                var existingPayment = await oc.Payments.GetAsync<Payment>(OrderDirection.Outgoing, request.OrderID, request.PaymentID);
+                var existingPayment = await adminClient.Payments.GetAsync<Payment>(OrderDirection.Outgoing, request.OrderID, request.PaymentID);
                 if (existingPayment == null)
                 {
                     logger.LogWarning("Demo payment fetch returned null for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
@@ -120,7 +152,7 @@ namespace Accelerator.Functions
                 }
 
                 logger.LogInformation("Demo payment patch started");
-                var response = await oc.Payments.PatchAsync<Payment>(OrderDirection.Outgoing, request.OrderID, request.PaymentID, new PartialPayment { Accepted = true });
+                var response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.Outgoing, request.OrderID, request.PaymentID, new PartialPayment { Accepted = true });
 
                 logger.LogInformation("Demo payment final response success for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
                 await WriteJsonResponseAsync(req, StatusCodes.Status200OK, response);
@@ -153,6 +185,70 @@ namespace Accelerator.Functions
             headers["Access-Control-Allow-Methods"] = "POST, OPTIONS";
             headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
             headers["Access-Control-Max-Age"] = "86400";
+        }
+
+        private async Task<OrderCloudClient> CreateAdminOrderCloudClientAsync()
+        {
+            var config = oc.Config;
+            var token = await RequestClientCredentialsTokenAsync(config.AuthUrl, config.ClientId, config.ClientSecret, FullAccessRole);
+            return new OrderCloudClient(new OrderCloudClientConfig
+            {
+                ApiUrl = config.ApiUrl,
+                AuthUrl = config.AuthUrl,
+                ClientId = config.ClientId,
+                ClientSecret = config.ClientSecret,
+                AccessToken = token
+            });
+        }
+
+        private static async Task<string> RequestClientCredentialsTokenAsync(string authUrl, string clientId, string clientSecret, string role)
+        {
+            using var httpClient = new HttpClient();
+            var tokenEndpoint = $"{authUrl.TrimEnd('/')}/oauth/token";
+            var encodedCredentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encodedCredentials);
+
+            using var content = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                new KeyValuePair<string, string>("scope", role)
+            });
+
+            var tokenResponse = await httpClient.PostAsync(tokenEndpoint, content);
+            tokenResponse.EnsureSuccessStatusCode();
+
+            var body = await tokenResponse.Content.ReadAsStringAsync();
+            var parsed = JsonConvert.DeserializeObject<dynamic>(body);
+            return parsed?.access_token?.ToString();
+        }
+
+        private static TokenContext GetTokenContext(string accessToken)
+        {
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                return new TokenContext();
+            }
+
+            var token = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+            var roles = token.Claims.Where(c => c.Type == "role" || c.Type == "roles").Select(c => c.Value).ToList();
+
+            return new TokenContext
+            {
+                RoleList = roles,
+                Roles = string.Join(",", roles),
+                ClientID = token.Claims.FirstOrDefault(c => c.Type == "client_id")?.Value,
+                UserID = token.Claims.FirstOrDefault(c => c.Type == "usr")?.Value,
+                Scope = token.Claims.FirstOrDefault(c => c.Type == "scope")?.Value
+            };
+        }
+
+        private class TokenContext
+        {
+            public List<string> RoleList { get; set; } = new();
+            public string Roles { get; set; }
+            public string ClientID { get; set; }
+            public string UserID { get; set; }
+            public string Scope { get; set; }
         }
 
         private async Task WriteJsonResponseAsync(HttpRequest req, int statusCode, object payload = null)
