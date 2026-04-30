@@ -114,23 +114,33 @@ namespace Accelerator.Functions
 
                 logger.LogInformation("Demo payment step=admin OC client creation/auth readiness started");
                 var adminClient = CreateAdminOrderCloudClient();
-                try
+                var hasClientId = !string.IsNullOrWhiteSpace(adminClient.Config.ClientId);
+                var hasClientSecret = !string.IsNullOrWhiteSpace(adminClient.Config.ClientSecret);
+                if (!hasClientId)
                 {
-                    var configuredRoles = adminClient.Config.Roles?.Select(r => r.ToString()).ToList() ?? new List<string>();
-                    var hasClientId = !string.IsNullOrWhiteSpace(adminClient.Config.ClientId);
-                    var hasClientSecret = !string.IsNullOrWhiteSpace(adminClient.Config.ClientSecret);
-                    await adminClient.AuthenticateAsync();
+                    logger.LogError("Demo payment missing required OrderCloud clientID configuration");
+                    await WriteJsonResponseAsync(req, StatusCodes.Status500InternalServerError, new
+                    {
+                        error = "OrderCloud client is missing clientID configuration."
+                    });
+                    return;
+                }
 
-                    logger.LogInformation(
-                        "Demo payment auth intent clientIdPresent={ClientIdPresent} clientSecretPresent={ClientSecretPresent} configuredRoles={ConfiguredRoles}",
-                        hasClientId,
-                        hasClientSecret,
-                        configuredRoles);
-                }
-                catch (Exception ex)
+                if (!hasClientSecret)
                 {
-                    logger.LogError(ex, "Demo payment admin auth diagnostics failed message={Message} stackTrace={StackTrace}", ex.Message, ex.StackTrace);
+                    logger.LogError("Demo payment missing required OrderCloud clientSecret configuration");
+                    await WriteJsonResponseAsync(req, StatusCodes.Status500InternalServerError, new
+                    {
+                        error = "OrderCloud client is missing clientSecret configuration."
+                    });
+                    return;
                 }
+
+                logger.LogInformation(
+                    "Demo payment auth intent clientIdPresent={ClientIdPresent} clientSecretPresent={ClientSecretPresent} rolesIncludeFullAccess={RolesIncludeFullAccess}",
+                    hasClientId,
+                    hasClientSecret,
+                    adminClient.Config.Roles?.Contains(ApiRole.FullAccess) == true);
 
                 logger.LogInformation("Demo payment step=admin OC client creation/auth readiness completed");
 

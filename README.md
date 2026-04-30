@@ -67,6 +67,18 @@ The Accelerator creates OrderCloud API Clients configured for Storefront, Admin,
     - `ocHashKey` - a long non-guessable string (max 50 characters) that will be used when creating a Webhook and the OrderCheckout Integration Event. This value should be kept secret, and is used to verify requests to your application come from OrderCloud. Read more about verifying requests [here](https://ordercloud.io/knowledge-base/using-webhooks#verifying-the-webhook-request).
     - Optional: The infrastructure seeding tool will create API Clients representing your Storefront and Admin applications. However, if you already have an established marketplace and wish to use existing API Clients for your Storefront and/or Admin applications, add them to the `appSettings.json` as `ocStorefrontClientId` and/or `ocAdminClientId`.
 
+
+### Azure Function App required application settings
+
+For the `acceptpayment` function and other OrderCloud SDK calls, the Azure Function App (or Azure App Configuration linked to it) must define the following keys exactly:
+
+- `OrderCloudSettings:MiddlewareClientID`
+- `OrderCloudSettings:MiddlewareClientSecret`
+- `OrderCloudSettings:ApiUrl` (used for both API and auth base URL)
+- `OrderCloudSettings:MiddlewareRoles` (must include `FullAccess`; app startup will enforce `FullAccess`)
+
+If any required credential key is missing, `acceptpayment` now returns a `500` with a clear configuration error.
+
 ### Configure Azure
 
 #### Create a Subscription, and a Resource Group within that Subscription in Azure portal
