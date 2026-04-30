@@ -132,7 +132,7 @@ namespace Accelerator.Functions
             try
             {
                 logger.LogInformation("Demo payment fetch started");
-                var existingPayment = await adminClient.Payments.GetAsync<Payment>(OrderDirection.Outgoing, request.OrderID, request.PaymentID);
+                var existingPayment = await adminClient.Payments.GetAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID);
                 if (existingPayment == null)
                 {
                     logger.LogWarning("Demo payment fetch returned null for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
@@ -143,19 +143,47 @@ namespace Accelerator.Functions
                     return;
                 }
 
+                logger.LogInformation(
+                    "Demo payment existing details id={PaymentID} accepted={Accepted} amount={Amount} type={Type} spendingAccountID={SpendingAccountID} creditCardID={CreditCardID}",
+                    existingPayment.ID,
+                    existingPayment.Accepted,
+                    existingPayment.Amount,
+                    existingPayment.Type,
+                    existingPayment.SpendingAccountID,
+                    existingPayment.CreditCardID);
+
+                if (existingPayment.Accepted == true)
+                {
+                    logger.LogInformation("Demo payment already accepted for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
+                    await WriteJsonResponseAsync(req, StatusCodes.Status200OK, existingPayment);
+                    return;
+                }
+
                 logger.LogInformation("Demo payment patch started");
-                var response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.Outgoing, request.OrderID, request.PaymentID, new PartialPayment { Accepted = true });
+                var response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, new PartialPayment { Accepted = true });
 
                 logger.LogInformation("Demo payment final response success for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
                 await WriteJsonResponseAsync(req, StatusCodes.Status200OK, response);
                 return;
             }
-            catch (OrderCloudException ex) when (ex.HttpStatus == HttpStatusCode.NotFound)
+            catch (OrderCloudException ex)
             {
-                logger.LogWarning(ex, "Demo payment not found for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
-                await WriteJsonResponseAsync(req, StatusCodes.Status404NotFound, new
+                logger.LogError(
+                    ex,
+                    "Demo payment OrderCloud error status={HttpStatus} message={Message} errors={Errors} order={OrderID} payment={PaymentID}",
+                    ex.HttpStatus,
+                    ex.Message,
+                    ex.Errors != null ? JsonConvert.SerializeObject(ex.Errors) : null,
+                    request.OrderID,
+                    request.PaymentID);
+
+                await WriteJsonResponseAsync(req, (int)ex.HttpStatus, new
                 {
-                    error = $"Payment '{request.PaymentID}' was not found for order '{request.OrderID}'."
+                    error = "OrderCloud payment accept failed.",
+                    status = ex.HttpStatus,
+                    message = ex.Message,
+                    orderID = request.OrderID,
+                    paymentID = request.PaymentID
                 });
                 return;
             }
