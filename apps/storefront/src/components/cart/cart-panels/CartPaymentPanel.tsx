@@ -43,7 +43,6 @@ const initialState: DemoPaymentForm = {
   cvv: "",
   billingZip: "",
 };
-const DEMO_PAYMENT_DEBUG = true;
 const amountsDiffer = (a?: number | null, b?: number | null) => Math.abs((a ?? 0) - (b ?? 0)) > 0.0001;
 
 type DemoPaymentSummary = {
@@ -92,14 +91,6 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
         let accepted: Payment | null = (paymentList.Items?.find((payment) => payment.Accepted) as Payment | undefined) || null;
         const latest = paymentList.Items?.[paymentList.Items.length - 1] || null;
         if (accepted?.ID && amountsDiffer(accepted.Amount, total)) {
-          if (DEMO_PAYMENT_DEBUG) {
-            console.debug("[DemoPayment] Accepted payment amount is stale. Healing via backend accept endpoint", {
-              orderID,
-              paymentID: accepted.ID,
-              acceptedAmount: accepted.Amount,
-              orderTotal: total,
-            });
-          }
           accepted = await acceptPayment(orderID, accepted.ID);
         }
 
@@ -156,9 +147,6 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
 
   const acceptPayment = async (orderID: string, paymentID: string) => {
     const endpoint = `${DEMO_FUNCTIONS_BASE_URL}/api/payments/accept`;
-    if (DEMO_PAYMENT_DEBUG) {
-      console.debug("[DemoPayment] Accept payload", { orderID, paymentID });
-    }
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -192,14 +180,7 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
       }
       const latestTotal = latestWorksheet?.Order?.Total ?? currentOrder.Total ?? total;
       paymentAmount = latestTotal;
-      console.log("[PAYMENT CREATE DEBUG]", {
-        orderID: currentOrder.ID,
-        subtotal: latestWorksheet?.Order?.Subtotal ?? currentOrder?.Subtotal,
-        shippingCost: latestWorksheet?.Order?.ShippingCost ?? currentOrder?.ShippingCost,
-        taxCost: latestWorksheet?.Order?.TaxCost ?? currentOrder?.TaxCost,
-        total: latestTotal,
-        paymentAmount,
-      });
+      console.info("paymentAmount and order.Total before payment creation", { paymentAmount, orderTotal: latestTotal });
       if (amountsDiffer(paymentAmount, latestTotal)) {
         const mismatchMessage = `Payment amount mismatch: attempted ${paymentAmount}, expected order total ${latestTotal}`;
         console.error(mismatchMessage);
@@ -230,10 +211,6 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
         : await Payments.Create("Outgoing", currentOrder.ID, createdPaymentRequest);
 
       if (!workingPayment?.ID) throw new Error("Payment was created or updated without an ID.");
-      if (DEMO_PAYMENT_DEBUG) {
-        console.debug("[DemoPayment] Payment ready for accept", { paymentID: workingPayment.ID, amount: paymentAmount });
-      }
-
       const paymentCheck = await Payments.Get("Outgoing", currentOrder.ID, workingPayment.ID);
       if (!paymentCheck?.ID) throw new Error("Unable to verify created payment before acceptance.");
 

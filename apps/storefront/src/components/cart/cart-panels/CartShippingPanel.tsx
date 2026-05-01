@@ -72,6 +72,7 @@ const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
 
     try {
       setLoading(true);
+      console.info("selected shipping method ID", shipMethodID);
       await selectShipMethods(shipMethodSelection);
       await calculateOrder();
       onFallbackModeChange?.(false);

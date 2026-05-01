@@ -74,8 +74,10 @@ namespace Accelerator.Functions
                 });
             }
 
-            logger.LogInformation("OrderCheckout ShippingRates handler invoked");
-            return new OkObjectResult(BuildShippingRatesResponse(payloadObject));
+            var response = BuildShippingRatesResponse(payloadObject);
+            logger.LogInformation("ShippingRates invoked");
+            logger.LogInformation("ship estimate count={ShipEstimateCount}", GetShipEstimateCount(response));
+            return new OkObjectResult(response);
         }
 
         [Function("integrationevent-shippingrates")]
@@ -84,9 +86,11 @@ namespace Accelerator.Functions
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent/ShippingRates")] HttpRequest req,
             [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
         {
-            logger.LogInformation("OrderCheckout ShippingRates handler invoked");
             var payloadObject = JObject.Parse(payload?.ToString() ?? "{}");
-            return new OkObjectResult(BuildShippingRatesResponse(payloadObject));
+            var response = BuildShippingRatesResponse(payloadObject);
+            logger.LogInformation("ShippingRates invoked");
+            logger.LogInformation("ship estimate count={ShipEstimateCount}", GetShipEstimateCount(response));
+            return new OkObjectResult(response);
         }
 
         [Function("integrationevent-shippingrates-lower")]
@@ -95,9 +99,11 @@ namespace Accelerator.Functions
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent/shippingrates")] HttpRequest req,
             [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
         {
-            logger.LogInformation("OrderCheckout ShippingRates handler invoked");
             var payloadObject = JObject.Parse(payload?.ToString() ?? "{}");
-            return new OkObjectResult(BuildShippingRatesResponse(payloadObject));
+            var response = BuildShippingRatesResponse(payloadObject);
+            logger.LogInformation("ShippingRates invoked");
+            logger.LogInformation("ship estimate count={ShipEstimateCount}", GetShipEstimateCount(response));
+            return new OkObjectResult(response);
         }
 
         [Function("ordercalculate")]
@@ -141,31 +147,16 @@ namespace Accelerator.Functions
             string requestMethod = Convert.ToString(req.Method) ?? string.Empty;
             string requestOrigin = Convert.ToString(req.Headers["Origin"]) ?? string.Empty;
             string requestUrl = Convert.ToString(req.GetDisplayUrl()) ?? string.Empty;
-            logger.LogInformation(
-                "Demo payment request start method={Method} origin={Origin} url={Url}",
-                requestMethod,
-                requestOrigin,
-                requestUrl);
-
             AddCorsHeaders(req);
 
             if (HttpMethods.IsOptions(req.Method))
             {
-                logger.LogInformation("Demo payment preflight received (OPTIONS path hit=true)");
                 await WriteJsonResponseAsync(req, StatusCodes.Status204NoContent);
                 return;
             }
-
-            string receivedRequestUrl = Convert.ToString(req.GetDisplayUrl()) ?? string.Empty;
-            logger.LogInformation("Demo payment request received for {Url}", receivedRequestUrl);
-
-            logger.LogInformation("Demo payment step=request parsing started");
             using var reader = new StreamReader(req.Body);
             var body = await reader.ReadToEndAsync();
-            logger.LogDebug("Demo payment raw request body: {Body}", body);
-
             var request = JsonConvert.DeserializeObject<AcceptPaymentRequest>(body);
-            logger.LogInformation("Demo payment step=request parsing completed parsed={Parsed}", request != null);
 
             try
             {
@@ -179,12 +170,7 @@ namespace Accelerator.Functions
                     return;
                 }
 
-                logger.LogInformation("Demo payment parsed IDs order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
-                logger.LogInformation("Demo payment OC auth/config loaded and client available={ClientAvailable}", oc != null);
-
-                logger.LogInformation("Demo payment step=admin OC client creation/auth readiness started");
                 var adminClient = CreateAdminOrderCloudClient();
-                LogConfigPresence();
                 var hasClientId = !string.IsNullOrWhiteSpace(adminClient.Config.ClientId);
                 var hasClientSecret = !string.IsNullOrWhiteSpace(adminClient.Config.ClientSecret);
                 var hasApiUrl = !string.IsNullOrWhiteSpace(adminClient.Config.ApiUrl);
@@ -227,16 +213,6 @@ namespace Accelerator.Functions
                     return;
                 }
 
-                logger.LogInformation(
-                    "Demo payment auth intent clientIdPresent={ClientIdPresent} clientSecretPresent={ClientSecretPresent} rolesIncludeFullAccess={RolesIncludeFullAccess}",
-                    hasClientId,
-                    hasClientSecret,
-                    hasFullAccess);
-
-                logger.LogInformation("Demo payment step=admin OC client creation/auth readiness completed");
-
-                logger.LogInformation("Demo payment step=Payments.GetAsync(All) started");
-                logger.LogInformation("Demo payment step=Payments.GetAsync(All) call starting");
                 var existingPayment = await adminClient.Payments.GetAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID);
                 if (existingPayment == null)
                 {
@@ -248,28 +224,13 @@ namespace Accelerator.Functions
                     return;
                 }
 
-                logger.LogInformation(
-                    "Demo payment existing details id={PaymentID} accepted={Accepted} amount={Amount} type={Type} spendingAccountID={SpendingAccountID} creditCardID={CreditCardID}",
-                    existingPayment.ID,
-                    existingPayment.Accepted,
-                    existingPayment.Amount,
-                    existingPayment.Type,
-                    existingPayment.SpendingAccountID,
-                    existingPayment.CreditCardID);
-
                 var latestOrder = await adminClient.Orders.GetAsync<Order>(OrderDirection.All, request.OrderID);
                 var selectedPaymentAmount = latestOrder?.Total ?? 0m;
-                logger.LogInformation(
-                    "Demo payment amount selection orderID={OrderID} selectedAmount={SelectedAmount}",
-                    request.OrderID,
-                    selectedPaymentAmount);
                 var existingPaymentAmount = existingPayment.Amount ?? 0m;
                 var wasAmountCorrected = false;
-                logger.LogInformation("Demo payment reconciliation existingPaymentAmount={ExistingPaymentAmount} orderTotal={OrderTotal}", existingPaymentAmount, selectedPaymentAmount);
 
                 if (existingPayment.Accepted == true && existingPaymentAmount == selectedPaymentAmount)
                 {
-                    logger.LogInformation("Demo payment already accepted with reconciled amount for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
                     await WriteJsonResponseAsync(req, StatusCodes.Status200OK, existingPayment);
                     return;
                 }
@@ -277,28 +238,12 @@ namespace Accelerator.Functions
                 if (existingPaymentAmount != selectedPaymentAmount)
                 {
                     var amountOnlyPatchPayload = new PartialPayment { Amount = selectedPaymentAmount };
-                    logger.LogInformation(
-                        "Demo payment amount mismatch detected. Patching amount before acceptance payload={Payload}",
-                        JsonConvert.SerializeObject(amountOnlyPatchPayload));
-                    logger.LogInformation("Demo payment step=Payments.PatchAsync(All) amount correction call starting");
                     existingPayment = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, amountOnlyPatchPayload);
                     wasAmountCorrected = true;
-                    logger.LogInformation("Demo payment step=Payments.PatchAsync(All) amount correction succeeded updatedAmount={UpdatedAmount}", existingPayment.Amount);
                 }
 
                 var patchPayload = new PartialPayment { Accepted = true, Amount = selectedPaymentAmount };
-                logger.LogInformation(
-                    "Demo payment step=Payments.PatchAsync(All) started payload={Payload}",
-                    JsonConvert.SerializeObject(patchPayload));
-                logger.LogInformation("Demo payment step=Payments.PatchAsync(All) call starting");
                 var response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, patchPayload);
-                logger.LogInformation("Demo payment step=Payments.PatchAsync(All) succeeded");
-
-                logger.LogInformation("Demo payment reconciliation result existingPaymentAmount={ExistingPaymentAmount} orderTotal={OrderTotal} wasAmountCorrected={WasAmountCorrected}", existingPaymentAmount, selectedPaymentAmount, wasAmountCorrected);
-                logger.LogInformation("payment amount after patch = {Amount}", response.Amount);
-                logger.LogInformation("payment accepted = {Accepted}", response.Accepted);
-                logger.LogInformation("Demo payment final response success for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
-                logger.LogInformation("Demo payment step=response serialization started");
                 await WriteJsonResponseAsync(req, StatusCodes.Status200OK, response);
                 return;
             }
@@ -334,23 +279,11 @@ namespace Accelerator.Functions
                 return;
             }
         }
-
-
-        private void LogConfigPresence()
+        private static int GetShipEstimateCount(object responseObject)
         {
-            logger.LogInformation(
-                "Demo payment startup diagnostics: OrderCloudSettings__ClientID present={ClientIdPresent} OrderCloudSettings__ClientSecret present={ClientSecretPresent} OrderCloudSettings__ApiUrl present={ApiUrlPresent} OrderCloudSettings__Roles present={RolesPresent} FullAccess included={FullAccessIncluded}",
-                HasValue("OrderCloudSettings__ClientID"),
-                HasValue("OrderCloudSettings__ClientSecret"),
-                HasValue("OrderCloudSettings__ApiUrl"),
-                HasValue("OrderCloudSettings__Roles"),
-                RolesIncludeFullAccess());
+            var token = JToken.FromObject(responseObject);
+            return token.SelectToken("ShipEstimates") is JArray estimates ? estimates.Count : 0;
         }
-
-        private bool HasValue(string key) => !string.IsNullOrWhiteSpace(configuration.GetValue<string>(key));
-        private bool RolesIncludeFullAccess() => (configuration.GetValue<string>("OrderCloudSettings__Roles") ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Contains(nameof(ApiRole.FullAccess), StringComparer.OrdinalIgnoreCase);
 
         private static void AddCorsHeaders(HttpRequest req)
         {
