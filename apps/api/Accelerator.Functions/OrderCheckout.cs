@@ -188,18 +188,18 @@ namespace Accelerator.Functions
 
                 var worksheet = await adminClient.IntegrationEvents.GetWorksheetAsync(OrderDirection.All, request.OrderID);
                 var latestOrder = worksheet?.Order;
-                if (latestOrder?.Total == null)
+                if (latestOrder == null || latestOrder.Total <= 0)
                 {
-                    logger.LogError("Demo payment latest order total is missing for order={OrderID}", request.OrderID);
+                    logger.LogError("Demo payment latest order total is invalid for order={OrderID} total={Total}", request.OrderID, latestOrder?.Total);
                     await WriteJsonResponseAsync(req, StatusCodes.Status500InternalServerError, new
                     {
-                        error = "Latest order total is missing; cannot accept payment.",
+                        error = "Latest order total is invalid; cannot accept payment.",
                         orderID = request.OrderID
                     });
                     return;
                 }
 
-                var selectedPaymentAmount = latestOrder.Total.Value;
+                var selectedPaymentAmount = latestOrder.Total;
                 logger.LogInformation(
                     "Demo payment amount selection orderID={OrderID} total={Total} subtotal={Subtotal} shipping={Shipping} tax={Tax} selectedAmount={SelectedAmount}",
                     request.OrderID,
