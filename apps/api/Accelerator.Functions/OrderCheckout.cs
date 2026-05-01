@@ -169,24 +169,29 @@ namespace Accelerator.Functions
                     existingPayment.SpendingAccountID,
                     existingPayment.CreditCardID);
 
-                var order = await adminClient.Orders.GetAsync<Order>(OrderDirection.All, request.OrderID);
-                var orderTotal = order?.Total ?? existingPayment.Amount;
-                logger.LogInformation(
-                    "Demo payment amount reconciliation order={OrderID} payment={PaymentID} requestedAmount={RequestedAmount} existingPaymentAmount={ExistingPaymentAmount} serverOrderTotal={ServerOrderTotal}",
-                    request.OrderID,
-                    request.PaymentID,
-                    request.Amount,
-                    existingPayment.Amount,
-                    orderTotal);
+                var worksheet = await adminClient.IntegrationEvents.GetWorksheetAsync(OrderDirection.All, request.OrderID);
+                var worksheetOrder = worksheet?.Order;
+                var orderSubtotal = worksheetOrder?.Subtotal ?? 0m;
+                var orderShipping = worksheetOrder?.ShippingCost ?? 0m;
+                var orderTax = worksheetOrder?.TaxCost ?? 0m;
+                var orderPromotionDiscount = worksheetOrder?.PromotionDiscount ?? 0m;
+                var serverFinalOrderTotal = worksheetOrder?.Total ?? existingPayment.Amount;
 
-                if (existingPayment.Accepted == true && existingPayment.Amount == orderTotal)
+                logger.LogInformation("payment amount before patch = {Amount}", existingPayment.Amount);
+                logger.LogInformation("order subtotal = {Subtotal}", orderSubtotal);
+                logger.LogInformation("order shipping = {Shipping}", orderShipping);
+                logger.LogInformation("order tax = {Tax}", orderTax);
+                logger.LogInformation("order promotion discount = {PromotionDiscount}", orderPromotionDiscount);
+                logger.LogInformation("server final order total = {FinalTotal}", serverFinalOrderTotal);
+
+                if (existingPayment.Accepted == true && existingPayment.Amount == serverFinalOrderTotal)
                 {
                     logger.LogInformation("Demo payment already accepted with reconciled amount for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
                     await WriteJsonResponseAsync(req, StatusCodes.Status200OK, existingPayment);
                     return;
                 }
 
-                var patchPayload = new PartialPayment { Accepted = true, Amount = orderTotal };
+                var patchPayload = new PartialPayment { Accepted = true, Amount = serverFinalOrderTotal };
                 logger.LogInformation(
                     "Demo payment step=Payments.PatchAsync(All) started payload={Payload}",
                     JsonConvert.SerializeObject(patchPayload));
@@ -237,6 +242,8 @@ namespace Accelerator.Functions
                     return;
                 }
 
+                logger.LogInformation("payment amount after patch = {Amount}", response.Amount);
+                logger.LogInformation("payment accepted = {Accepted}", response.Accepted);
                 logger.LogInformation("Demo payment final response success for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
                 logger.LogInformation("Demo payment step=response serialization started");
                 await WriteJsonResponseAsync(req, StatusCodes.Status200OK, response);
