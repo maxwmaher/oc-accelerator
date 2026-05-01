@@ -11,6 +11,7 @@ using System.Net;
 using Microsoft.AspNetCore.Http.Extensions;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json.Linq;
 
 namespace Accelerator.Functions
 {
@@ -49,6 +50,59 @@ namespace Accelerator.Functions
         public async Task<IActionResult> EstimateShippingLegacyAsync([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "shippingrates")] HttpRequest req, [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
         {
             return await EstimateShippingAsync(req, payload);
+        }
+
+        [Function("integrationevent")]
+        [OrderCloudWebhookAuth]
+        public async Task<IActionResult> IntegrationEventAsync(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent/{eventName?}")] HttpRequest req,
+            string? eventName,
+            [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
+        {
+            var payloadObject = JObject.Parse(payload?.ToString() ?? "{}");
+            var payloadEventType = payloadObject.SelectToken("EventType")?.ToString();
+            var normalizedRouteEvent = eventName?.Trim();
+            var derivedEventName = normalizedRouteEvent ?? payloadEventType ?? string.Empty;
+            var isShippingRates = string.Equals(derivedEventName, "ShippingRates", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(payloadEventType, "ShippingRates", StringComparison.OrdinalIgnoreCase);
+            var orderID = payloadObject.SelectToken("OrderWorksheet.Order.ID")?.ToString() ?? string.Empty;
+            var lineItems = payloadObject.SelectToken("OrderWorksheet.LineItems") as JArray;
+            var lineItemCount = lineItems?.Count ?? 0;
+
+            logger.LogInformation(
+                "Integration event request path={Path} method={Method} routeEvent={RouteEvent} payloadEvent={PayloadEvent} isShippingRates={IsShippingRates} orderID={OrderID} lineItemCount={LineItemCount}",
+                req.Path,
+                req.Method,
+                normalizedRouteEvent ?? "(none)",
+                payloadEventType ?? "(none)",
+                isShippingRates,
+                orderID,
+                lineItemCount);
+
+            if (!isShippingRates)
+            {
+                return new NotFoundObjectResult(new
+                {
+                    Message = $"Unsupported integration event '{derivedEventName}'.",
+                });
+            }
+
+            var shippingResult = await EstimateShippingAsync(req, payload);
+            if (shippingResult is OkObjectResult ok && ok.Value is ShipEstimateResponse shipEstimateResponse)
+            {
+                var shipEstimateCount = shipEstimateResponse.ShipEstimates?.Count ?? 0;
+                var methodDebug = shipEstimateResponse.ShipEstimates?
+                    .SelectMany(se => se.ShipMethods ?? [])
+                    .Select(sm => $"{sm.ID}:{sm.Cost}")
+                    .ToArray() ?? [];
+                logger.LogInformation(
+                    "Integration event shipping response orderID={OrderID} shipEstimateCount={ShipEstimateCount} shipMethods={ShipMethods}",
+                    orderID,
+                    shipEstimateCount,
+                    string.Join(", ", methodDebug));
+            }
+
+            return shippingResult;
         }
 
         [Function("ordercalculate")]
