@@ -66,15 +66,6 @@ namespace Accelerator.Functions
             var derivedEventName = normalizedRouteEvent ?? payloadEventType ?? string.Empty;
             var isShippingRates = string.Equals(derivedEventName, "ShippingRates", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(payloadEventType, "ShippingRates", StringComparison.OrdinalIgnoreCase);
-            var orderID = payloadObject.SelectToken("OrderWorksheet.Order.ID")?.ToString() ?? string.Empty;
-            var lineItems = payloadObject.SelectToken("OrderWorksheet.LineItems") as JArray;
-            var lineItemCount = lineItems?.Count ?? 0;
-
-            string requestPath = Convert.ToString(req.Path) ?? string.Empty;
-            string requestMethod = Convert.ToString(req.Method) ?? string.Empty;
-            string routeEventValue = normalizedRouteEvent ?? "(none)";
-            string payloadEventValue = payloadEventType ?? "(none)";
-
             if (!isShippingRates)
             {
                 return new NotFoundObjectResult(new
@@ -83,18 +74,30 @@ namespace Accelerator.Functions
                 });
             }
 
-            var shippingResult = await EstimateShippingAsync(req, payload);
-            if (shippingResult is OkObjectResult ok && ok.Value is ShipEstimateResponse shipEstimateResponse)
-            {
-                var shipEstimateCount = shipEstimateResponse.ShipEstimates?.Count ?? 0;
-                var methodDebug = shipEstimateResponse.ShipEstimates?
-                    .SelectMany(se => se.ShipMethods ?? [])
-                    .Select(sm => $"{sm.ID}:{sm.Cost}")
-                    .ToArray() ?? [];
-                string shipMethods = string.Join(", ", methodDebug);
-            }
+            logger.LogInformation("OrderCheckout ShippingRates handler invoked");
+            return new OkObjectResult(BuildShippingRatesResponse(payloadObject));
+        }
 
-            return shippingResult;
+        [Function("integrationevent-shippingrates")]
+        [OrderCloudWebhookAuth]
+        public IActionResult IntegrationEventShippingRatesAsync(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent/ShippingRates")] HttpRequest req,
+            [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
+        {
+            logger.LogInformation("OrderCheckout ShippingRates handler invoked");
+            var payloadObject = JObject.Parse(payload?.ToString() ?? "{}");
+            return new OkObjectResult(BuildShippingRatesResponse(payloadObject));
+        }
+
+        [Function("integrationevent-shippingrates-lower")]
+        [OrderCloudWebhookAuth]
+        public IActionResult IntegrationEventShippingRatesLowerAsync(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent/shippingrates")] HttpRequest req,
+            [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
+        {
+            logger.LogInformation("OrderCheckout ShippingRates handler invoked");
+            var payloadObject = JObject.Parse(payload?.ToString() ?? "{}");
+            return new OkObjectResult(BuildShippingRatesResponse(payloadObject));
         }
 
         [Function("ordercalculate")]
@@ -420,6 +423,39 @@ namespace Accelerator.Functions
 
             req.HttpContext.Response.ContentType = "application/json";
             await req.HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(payload));
+        }
+
+        private static object BuildShippingRatesResponse(JObject payloadObject)
+        {
+            var lineItems = payloadObject.SelectToken("OrderWorksheet.LineItems") as JArray ?? new JArray();
+            var shipEstimateItems = lineItems
+                .Select(li => new
+                {
+                    LineItemID = li["ID"]?.ToString(),
+                    Quantity = li["Quantity"]?.Value<int>() ?? 0
+                })
+                .Where(item => !string.IsNullOrWhiteSpace(item.LineItemID))
+                .ToList();
+
+            return new
+            {
+                ShipEstimates = new[]
+                {
+                    new
+                    {
+                        ID = "demo-shipment-1",
+                        SelectedShipMethodID = (string?)null,
+                        ShipEstimateItems = shipEstimateItems,
+                        ShipMethods = new[]
+                        {
+                            new { ID = "standard-ground", Name = "Standard Ground", Cost = 24.95m, EstimatedTransitDays = 5, xp = new { } },
+                            new { ID = "expedited-freight", Name = "Expedited Freight", Cost = 49.95m, EstimatedTransitDays = 2, xp = new { } }
+                        },
+                        xp = new { }
+                    }
+                },
+                xp = new { }
+            };
         }
 
 
