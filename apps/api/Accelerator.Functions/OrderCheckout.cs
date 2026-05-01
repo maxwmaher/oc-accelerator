@@ -28,14 +28,18 @@ namespace Accelerator.Functions
         {
             logger.LogInformation("Shipping estimate request received path={Path}", req.Path);
             var deserializedPayload = JsonConvert.DeserializeObject<OrderCheckoutIEPayload>(payload.ToString());
-            var lineItemCount = deserializedPayload?.OrderWorksheet?.LineItems?.Count ?? 0;
-            logger.LogInformation("Shipping estimate orderID={OrderID} lineItemCount={LineItemCount}", deserializedPayload?.OrderWorksheet?.Order?.ID, lineItemCount);
+            string orderID = Convert.ToString(deserializedPayload?.OrderWorksheet?.Order?.ID) ?? string.Empty;
+            int lineItemCount = deserializedPayload?.OrderWorksheet?.LineItems?.Count ?? 0;
+            logger.LogInformation("Shipping estimate orderID={OrderID} lineItemCount={LineItemCount}", orderID, lineItemCount);
             var response = await shippingCommand.EstimateShippingRatesAsync(deserializedPayload);
+            bool succeeded = response?.Succeeded ?? false;
+            int statusCode = (int?)(response?.HttpStatusCode) ?? 0;
+            int methodCount = response?.ShipEstimates?.FirstOrDefault()?.ShipMethods?.Count ?? 0;
             logger.LogInformation(
                 "Shipping estimate success={Succeeded} statusCode={StatusCode} methodCount={MethodCount}",
-                response?.Succeeded,
-                response?.HttpStatusCode,
-                response?.ShipEstimates?.FirstOrDefault()?.ShipMethods?.Count ?? 0);
+                succeeded,
+                statusCode,
+                methodCount);
 
             return new OkObjectResult(response);
         }
