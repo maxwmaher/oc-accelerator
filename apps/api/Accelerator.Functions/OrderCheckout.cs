@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http.Extensions;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
+using System.Diagnostics;
 
 namespace Accelerator.Functions
 {
@@ -55,34 +56,30 @@ namespace Accelerator.Functions
 
         [Function("integrationevent")]
         [OrderCloudWebhookAuth]
-        public async Task<IActionResult> IntegrationEventAsync(
+        public IActionResult IntegrationEventAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent/{eventName?}")] HttpRequest req,
-            string? eventName,
-            [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
+            string? eventName)
         {
-            var payloadObject = JObject.Parse(payload?.ToString() ?? "{}");
-            var payloadEventType = payloadObject.SelectToken("EventType")?.ToString();
-            var normalizedRouteEvent = eventName?.Trim();
-            var derivedEventName = normalizedRouteEvent ?? payloadEventType ?? string.Empty;
-            var isShippingRates = string.Equals(derivedEventName, "ShippingRates", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(payloadEventType, "ShippingRates", StringComparison.OrdinalIgnoreCase);
-            if (!isShippingRates)
-            {
-                return new NotFoundObjectResult(new
-                {
-                    Message = $"Unsupported integration event '{derivedEventName}'.",
-                });
-            }
+            var sw = Stopwatch.StartNew();
+            logger.LogInformation("ShippingRates step 1: entered handler.");
+            logger.LogInformation("ShippingRates short-circuit response starting.");
 
             try
             {
-                logger.LogInformation("ShippingRates invoked");
-                return new OkObjectResult(BuildShippingRatesResponse());
+                logger.LogInformation("ShippingRates step 4: before dispatch.");
+                var response = BuildShippingRatesResponse();
+                logger.LogInformation("ShippingRates step 5: after dispatch.");
+                logger.LogInformation("ShippingRates timing: short-circuit completed.");
+                return new OkObjectResult(response);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex.ToString());
-                return new OkObjectResult(BuildShippingRatesResponse());
+                logger.LogError(ex, "ShippingRates failed.");
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+            }
+            finally
+            {
+                sw.Stop();
             }
         }
 
@@ -99,7 +96,7 @@ namespace Accelerator.Functions
             }
             catch (Exception ex)
             {
-                logger.LogError(ex.ToString());
+                logger.LogError(ex, "ShippingRates failed.");
                 return new OkObjectResult(BuildShippingRatesResponse());
             }
         }
@@ -117,7 +114,7 @@ namespace Accelerator.Functions
             }
             catch (Exception ex)
             {
-                logger.LogError(ex.ToString());
+                logger.LogError(ex, "ShippingRates failed.");
                 return new OkObjectResult(BuildShippingRatesResponse());
             }
         }
