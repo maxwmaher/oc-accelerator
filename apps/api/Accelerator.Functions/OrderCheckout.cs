@@ -208,13 +208,27 @@ namespace Accelerator.Functions
                     latestOrder.ShippingCost,
                     latestOrder.TaxCost,
                     selectedPaymentAmount);
-                logger.LogInformation("payment amount before patch = {Amount}", existingPayment.Amount);
+                var existingPaymentAmount = existingPayment.Amount ?? 0m;
+                var wasAmountCorrected = false;
+                logger.LogInformation("Demo payment reconciliation existingPaymentAmount={ExistingPaymentAmount} orderTotal={OrderTotal}", existingPaymentAmount, selectedPaymentAmount);
 
-                if (existingPayment.Accepted == true && existingPayment.Amount == selectedPaymentAmount)
+                if (existingPayment.Accepted == true && existingPaymentAmount == selectedPaymentAmount)
                 {
                     logger.LogInformation("Demo payment already accepted with reconciled amount for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
                     await WriteJsonResponseAsync(req, StatusCodes.Status200OK, existingPayment);
                     return;
+                }
+
+                if (existingPaymentAmount != selectedPaymentAmount)
+                {
+                    var amountOnlyPatchPayload = new PartialPayment { Amount = selectedPaymentAmount };
+                    logger.LogInformation(
+                        "Demo payment amount mismatch detected. Patching amount before acceptance payload={Payload}",
+                        JsonConvert.SerializeObject(amountOnlyPatchPayload));
+                    logger.LogInformation("Demo payment step=Payments.PatchAsync(All) amount correction call starting");
+                    existingPayment = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, amountOnlyPatchPayload);
+                    wasAmountCorrected = true;
+                    logger.LogInformation("Demo payment step=Payments.PatchAsync(All) amount correction succeeded updatedAmount={UpdatedAmount}", existingPayment.Amount);
                 }
 
                 var patchPayload = new PartialPayment { Accepted = true, Amount = selectedPaymentAmount };
@@ -225,6 +239,7 @@ namespace Accelerator.Functions
                 var response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, patchPayload);
                 logger.LogInformation("Demo payment step=Payments.PatchAsync(All) succeeded");
 
+                logger.LogInformation("Demo payment reconciliation result existingPaymentAmount={ExistingPaymentAmount} orderTotal={OrderTotal} wasAmountCorrected={WasAmountCorrected}", existingPaymentAmount, selectedPaymentAmount, wasAmountCorrected);
                 logger.LogInformation("payment amount after patch = {Amount}", response.Amount);
                 logger.LogInformation("payment accepted = {Accepted}", response.Accepted);
                 logger.LogInformation("Demo payment final response success for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);

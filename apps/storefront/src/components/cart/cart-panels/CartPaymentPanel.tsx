@@ -180,19 +180,7 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
 
     const sanitizedCard = formData.cardNumber.replace(/\s+/g, "");
     let paymentAmount = total;
-    const createdPaymentRequest = {
-      Type: "CreditCard" as any,
-      Amount: paymentAmount,
-      xp: {
-        CardholderName: formData.nameOnCard.trim(),
-        CardType: getCardType(sanitizedCard),
-        LastFour: sanitizedCard.slice(-4),
-        ExpirationMonth: Number(formData.expirationMonth),
-        ExpirationYear: Number(formData.expirationYear),
-        BillingZip: formData.billingZip.trim(),
-        DemoPayment: true,
-      },
-    };
+
 
     try {
       setProcessingPayment(true);
@@ -200,8 +188,22 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
       if (!currentOrder?.ID) throw new Error("Unable to load current order before payment create.");
       paymentAmount = currentOrder.Total ?? total;
       if (DEMO_PAYMENT_DEBUG) {
-        console.debug("[DemoPayment] Current order for payment create", { orderID: currentOrder.ID });
+        console.debug("[DemoPayment] Current order for payment create", { orderID: currentOrder.ID, orderTotal: currentOrder.Total });
       }
+
+      const createdPaymentRequest = {
+        Type: "CreditCard" as any,
+        Amount: paymentAmount,
+        xp: {
+          CardholderName: formData.nameOnCard.trim(),
+          CardType: getCardType(sanitizedCard),
+          LastFour: sanitizedCard.slice(-4),
+          ExpirationMonth: Number(formData.expirationMonth),
+          ExpirationYear: Number(formData.expirationYear),
+          BillingZip: formData.billingZip.trim(),
+          DemoPayment: true,
+        },
+      };
 
       let paymentToUse = existingPayment;
       if (paymentToUse?.Accepted) {

@@ -38,11 +38,11 @@ namespace Accelerator.Commands
 
             Require.That(authorizationResult.Succeeded, new ErrorCode("Payment.AuthorizeDidNotSucceed", authorizationResult.Message), authorizationResult);
 
-            await oc.Payments.PatchAsync<Payment>(OrderDirection.All, worksheet.Order.ID, payment.ID, new PartialPayment { Accepted = true, Amount = authorizeRequest.Amount });
+            var acceptedPayment = await oc.Payments.PatchAsync<Payment>(OrderDirection.All, worksheet.Order.ID, payment.ID, new PartialPayment { Accepted = true, Amount = authorizeRequest.Amount });
             var updatedPayment = await oc.Payments.CreateTransactionAsync<Payment>(OrderDirection.All, worksheet.Order.ID, payment.ID, new PaymentTransaction()
             {
                 ID = authorizationResult.TransactionID,
-                Amount = payment.Amount,
+                Amount = acceptedPayment.Amount ?? authorizeRequest.Amount,
                 DateExecuted = DateTime.Now,
                 ResultCode = authorizationResult.AuthorizationCode,
                 ResultMessage = authorizationResult.Message,
