@@ -74,15 +74,6 @@ namespace Accelerator.Functions
             string requestMethod = Convert.ToString(req.Method) ?? string.Empty;
             string routeEventValue = normalizedRouteEvent ?? "(none)";
             string payloadEventValue = payloadEventType ?? "(none)";
-            logger.LogInformation(
-                "Integration event request path={Path} method={Method} routeEvent={RouteEvent} payloadEvent={PayloadEvent} isShippingRates={IsShippingRates} orderID={OrderID} lineItemCount={LineItemCount}",
-                requestPath,
-                requestMethod,
-                routeEventValue,
-                payloadEventValue,
-                isShippingRates,
-                orderID,
-                lineItemCount);
 
             if (!isShippingRates)
             {
@@ -101,11 +92,6 @@ namespace Accelerator.Functions
                     .Select(sm => $"{sm.ID}:{sm.Cost}")
                     .ToArray() ?? [];
                 string shipMethods = string.Join(", ", methodDebug);
-                logger.LogInformation(
-                    "Integration event shipping response orderID={OrderID} shipEstimateCount={ShipEstimateCount} shipMethods={ShipMethods}",
-                    orderID,
-                    shipEstimateCount,
-                    shipMethods);
             }
 
             return shippingResult;
