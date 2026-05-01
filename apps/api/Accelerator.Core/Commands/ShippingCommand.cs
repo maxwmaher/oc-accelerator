@@ -29,7 +29,7 @@ namespace Accelerator.Commands
             var rates = await shippingRatesCalculator.CalculateShippingRatesAsync(packages);
             for (var i = 0; i < shipEstimateResponse.ShipEstimates.Count; i++)
             {
-                shipEstimateResponse.ShipEstimates[0].ShipMethods = rates[i].Select(rate => new ShipMethod()
+                shipEstimateResponse.ShipEstimates[i].ShipMethods = rates[i].Select(rate => new ShipMethod()
                 {
                     ID = rate.ID,
                     Name = rate.Name,
@@ -37,6 +37,8 @@ namespace Accelerator.Commands
                     EstimatedTransitDays = rate.EstimatedTransitDays,
                 }).ToList();
             }
+            shipEstimateResponse.Succeeded = true;
+            shipEstimateResponse.HttpStatusCode = 200;
 
             return shipEstimateResponse;
         }

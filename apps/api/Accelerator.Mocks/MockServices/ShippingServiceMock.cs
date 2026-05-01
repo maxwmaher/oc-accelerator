@@ -11,34 +11,34 @@ namespace Accelerator.MockServices
     {
         public Task<List<List<ShippingRate>>> CalculateShippingRatesAsync(IEnumerable<ShippingPackage> shippingPackages, OCIntegrationConfig configOverride = null)
         {
-            return Task.FromResult(new List<List<ShippingRate>>()
+            var packageCount = shippingPackages?.Count() ?? 0;
+            var allRates = Enumerable.Range(0, Math.Max(1, packageCount)).Select(_ => new List<ShippingRate>
             {
-                new ()
+                new()
                 {
-                    new ShippingRate()
-                    {
-                        Cost = 45.45m,
-                        EstimatedTransitDays = 1,
-                        Carrier = "USPS",
-                        ID = "MOCK_rate_f0fef73584ec4220b6358b7fbdda64e2",
-                        Name = "Express"
-                    },
-                    new ShippingRate()
-                    {
-                        Cost = 9.75m,
-                        EstimatedTransitDays = 2,
-                        ID = "MOCK_rate_aef562aefcca4907944b55f152630af5",
-                        Name = "Priority"
-                    },
-                    new ShippingRate()
-                    {
-                        Cost = 5.62m,
-                        EstimatedTransitDays = 4,
-                        ID = "MOCK_rate_cbc72eaa10ea4c6da0e8f55cc2aec106",
-                        Name = "GroundAdvantage"
-                    }
+                    Cost = 34.95m,
+                    EstimatedTransitDays = 1,
+                    Carrier = "USPS",
+                    ID = "MOCK_rate_f0fef73584ec4220b6358b7fbdda64e2",
+                    Name = "Express Saver"
+                },
+                new()
+                {
+                    Cost = 24.95m,
+                    EstimatedTransitDays = 3,
+                    ID = "MOCK_rate_aef562aefcca4907944b55f152630af5",
+                    Name = "Priority Ground"
+                },
+                new()
+                {
+                    Cost = 12.95m,
+                    EstimatedTransitDays = 6,
+                    ID = "MOCK_rate_cbc72eaa10ea4c6da0e8f55cc2aec106",
+                    Name = "Economy Freight"
                 }
-            });
+            }).ToList();
+
+            return Task.FromResult(allRates);
         }
     }
 }

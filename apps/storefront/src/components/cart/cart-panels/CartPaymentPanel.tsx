@@ -186,6 +186,10 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
       const latestWorksheet = await calculateOrder();
       const currentOrder = (latestWorksheet?.Order as Order) || ((await Orders.Get("Outgoing", orderID)) as Order);
       if (!currentOrder?.ID) throw new Error("Unable to load current order before payment create.");
+      const estimateResponse = latestWorksheet?.ShipEstimateResponse;
+      if (!estimateResponse?.Succeeded || !estimateResponse?.ShipEstimates?.length) {
+        throw new Error("Shipping estimate must succeed before creating payment.");
+      }
       const latestTotal = latestWorksheet?.Order?.Total ?? currentOrder.Total ?? total;
       paymentAmount = latestTotal;
       console.log("[PAYMENT CREATE DEBUG]", {
