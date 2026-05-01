@@ -69,12 +69,16 @@ namespace Accelerator.Functions
             var lineItems = payloadObject.SelectToken("OrderWorksheet.LineItems") as JArray;
             var lineItemCount = lineItems?.Count ?? 0;
 
+            string requestPath = req.Path.ToString();
+            string requestMethod = req.Method;
+            string routeEventValue = normalizedRouteEvent ?? "(none)";
+            string payloadEventValue = payloadEventType ?? "(none)";
             logger.LogInformation(
                 "Integration event request path={Path} method={Method} routeEvent={RouteEvent} payloadEvent={PayloadEvent} isShippingRates={IsShippingRates} orderID={OrderID} lineItemCount={LineItemCount}",
-                req.Path,
-                req.Method,
-                normalizedRouteEvent ?? "(none)",
-                payloadEventType ?? "(none)",
+                requestPath,
+                requestMethod,
+                routeEventValue,
+                payloadEventValue,
                 isShippingRates,
                 orderID,
                 lineItemCount);
@@ -95,11 +99,12 @@ namespace Accelerator.Functions
                     .SelectMany(se => se.ShipMethods ?? [])
                     .Select(sm => $"{sm.ID}:{sm.Cost}")
                     .ToArray() ?? [];
+                string shipMethods = string.Join(", ", methodDebug);
                 logger.LogInformation(
                     "Integration event shipping response orderID={OrderID} shipEstimateCount={ShipEstimateCount} shipMethods={ShipMethods}",
                     orderID,
                     shipEstimateCount,
-                    string.Join(", ", methodDebug));
+                    shipMethods);
             }
 
             return shippingResult;
