@@ -56,31 +56,53 @@ namespace Accelerator.Functions
 
         [Function("integrationevent")]
         [OrderCloudWebhookAuth]
-        public IActionResult IntegrationEventAsync(
+        public async Task<IActionResult> IntegrationEventAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent/{eventName?}")] HttpRequest req,
             string? eventName)
         {
             var sw = Stopwatch.StartNew();
-            logger.LogInformation("ShippingRates step 1: entered handler.");
-            logger.LogInformation("ShippingRates short-circuit response starting.");
+            logger.LogInformation("IntegrationEvent step 1: entered.");
 
             try
             {
-                logger.LogInformation("ShippingRates step 4: before dispatch.");
+                logger.LogInformation("IntegrationEvent step 2: before reading body.");
+                using var reader = new StreamReader(req.Body);
+                var body = await reader.ReadToEndAsync();
+                logger.LogInformation("IntegrationEvent step 3: after reading body.");
+
+                if (IsShippingRatesRequest(body))
+                {
+                    logger.LogInformation("ShippingRates short-circuit response returned.");
+                    return new OkObjectResult(BuildShippingRatesResponse());
+                }
+
+                logger.LogInformation("IntegrationEvent step 4: before dispatch.");
                 var response = BuildShippingRatesResponse();
-                logger.LogInformation("ShippingRates step 5: after dispatch.");
-                logger.LogInformation("ShippingRates timing: short-circuit completed.");
+                logger.LogInformation("IntegrationEvent step 5: after dispatch.");
                 return new OkObjectResult(response);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "ShippingRates failed.");
+                logger.LogError(ex, "IntegrationEvent failed.");
                 return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
             finally
             {
                 sw.Stop();
             }
+        }
+
+        private static bool IsShippingRatesRequest(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return false;
+            }
+
+            return body.Contains("ShippingRates", StringComparison.OrdinalIgnoreCase) ||
+                   body.Contains("ShipEstimate", StringComparison.OrdinalIgnoreCase) ||
+                   body.Contains("OrderWorksheet", StringComparison.OrdinalIgnoreCase) ||
+                   body.Contains("LineItems", StringComparison.OrdinalIgnoreCase);
         }
 
         [Function("integrationevent-shippingrates")]
