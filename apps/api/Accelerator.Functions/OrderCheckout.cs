@@ -10,9 +10,6 @@ using OrderCloud.SDK;
 using System.Net;
 using Microsoft.AspNetCore.Http.Extensions;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
 using Microsoft.Extensions.Configuration;
 
 namespace Accelerator.Functions
@@ -119,6 +116,8 @@ namespace Accelerator.Functions
                 LogConfigPresence();
                 var hasClientId = !string.IsNullOrWhiteSpace(adminClient.Config.ClientId);
                 var hasClientSecret = !string.IsNullOrWhiteSpace(adminClient.Config.ClientSecret);
+                var hasApiUrl = !string.IsNullOrWhiteSpace(adminClient.Config.ApiUrl);
+                var hasFullAccess = adminClient.Config.Roles?.Contains(ApiRole.FullAccess) == true;
                 if (!hasClientId)
                 {
                     logger.LogError("Demo payment missing required OrderCloud clientID configuration");
@@ -138,12 +137,30 @@ namespace Accelerator.Functions
                     });
                     return;
                 }
+                if (!hasApiUrl)
+                {
+                    logger.LogError("Demo payment missing required OrderCloud apiUrl configuration");
+                    await WriteJsonResponseAsync(req, StatusCodes.Status500InternalServerError, new
+                    {
+                        error = "OrderCloud client is missing apiUrl configuration."
+                    });
+                    return;
+                }
+                if (!hasFullAccess)
+                {
+                    logger.LogError("Demo payment missing required OrderCloud FullAccess role on server-side client credentials");
+                    await WriteJsonResponseAsync(req, StatusCodes.Status500InternalServerError, new
+                    {
+                        error = "OrderCloud client credentials must include FullAccess role."
+                    });
+                    return;
+                }
 
                 logger.LogInformation(
                     "Demo payment auth intent clientIdPresent={ClientIdPresent} clientSecretPresent={ClientSecretPresent} rolesIncludeFullAccess={RolesIncludeFullAccess}",
                     hasClientId,
                     hasClientSecret,
-                    adminClient.Config.Roles?.Contains(ApiRole.FullAccess) == true);
+                    hasFullAccess);
 
                 logger.LogInformation("Demo payment step=admin OC client creation/auth readiness completed");
 
@@ -170,77 +187,43 @@ namespace Accelerator.Functions
                     existingPayment.CreditCardID);
 
                 var worksheet = await adminClient.IntegrationEvents.GetWorksheetAsync(OrderDirection.All, request.OrderID);
-                var worksheetOrder = worksheet?.Order;
-                var orderSubtotal = worksheetOrder?.Subtotal ?? 0m;
-                var orderShipping = worksheetOrder?.ShippingCost ?? 0m;
-                var orderTax = worksheetOrder?.TaxCost ?? 0m;
-                var orderPromotionDiscount = worksheetOrder?.PromotionDiscount ?? 0m;
-                var serverFinalOrderTotal = worksheetOrder?.Total ?? existingPayment.Amount;
+                var latestOrder = worksheet?.Order;
+                if (latestOrder?.Total == null)
+                {
+                    logger.LogError("Demo payment latest order total is missing for order={OrderID}", request.OrderID);
+                    await WriteJsonResponseAsync(req, StatusCodes.Status500InternalServerError, new
+                    {
+                        error = "Latest order total is missing; cannot accept payment.",
+                        orderID = request.OrderID
+                    });
+                    return;
+                }
 
+                var selectedPaymentAmount = latestOrder.Total.Value;
+                logger.LogInformation(
+                    "Demo payment amount selection orderID={OrderID} total={Total} subtotal={Subtotal} shipping={Shipping} tax={Tax} selectedAmount={SelectedAmount}",
+                    request.OrderID,
+                    latestOrder.Total,
+                    latestOrder.Subtotal,
+                    latestOrder.ShippingCost,
+                    latestOrder.TaxCost,
+                    selectedPaymentAmount);
                 logger.LogInformation("payment amount before patch = {Amount}", existingPayment.Amount);
-                logger.LogInformation("order subtotal = {Subtotal}", orderSubtotal);
-                logger.LogInformation("order shipping = {Shipping}", orderShipping);
-                logger.LogInformation("order tax = {Tax}", orderTax);
-                logger.LogInformation("order promotion discount = {PromotionDiscount}", orderPromotionDiscount);
-                logger.LogInformation("server final order total = {FinalTotal}", serverFinalOrderTotal);
 
-                if (existingPayment.Accepted == true && existingPayment.Amount == serverFinalOrderTotal)
+                if (existingPayment.Accepted == true && existingPayment.Amount == selectedPaymentAmount)
                 {
                     logger.LogInformation("Demo payment already accepted with reconciled amount for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
                     await WriteJsonResponseAsync(req, StatusCodes.Status200OK, existingPayment);
                     return;
                 }
 
-                var patchPayload = new PartialPayment { Accepted = true, Amount = serverFinalOrderTotal };
+                var patchPayload = new PartialPayment { Accepted = true, Amount = selectedPaymentAmount };
                 logger.LogInformation(
                     "Demo payment step=Payments.PatchAsync(All) started payload={Payload}",
                     JsonConvert.SerializeObject(patchPayload));
                 logger.LogInformation("Demo payment step=Payments.PatchAsync(All) call starting");
-                Payment response;
-                var sdkPatchSucceeded = false;
-                try
-                {
-                    response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, patchPayload);
-                    sdkPatchSucceeded = true;
-                    logger.LogInformation("Demo payment step=Payments.PatchAsync(All) succeeded");
-                }
-                catch (OrderCloudException sdkEx)
-                {
-                    logger.LogWarning(
-                        sdkEx,
-                        "Demo payment step=Payments.PatchAsync(All) failed status={HttpStatus} message={Message} errors={Errors}",
-                        sdkEx.HttpStatus,
-                        sdkEx.Message,
-                        sdkEx.Errors != null ? JsonConvert.SerializeObject(sdkEx.Errors) : null);
-
-                    logger.LogInformation("Demo payment step=DirectREST PATCH(All) started after SDK failure");
-                    var directResult = await RunDirectPatchDiagnosticAsync(adminClient, request.OrderID, request.PaymentID);
-                    logger.LogInformation(
-                        "Demo payment step=DirectREST PATCH(All) completed status={StatusCode} success={Success}",
-                        directResult.StatusCode,
-                        directResult.Success);
-
-                    await WriteJsonResponseAsync(req, (int)sdkEx.HttpStatus, new
-                    {
-                        error = "OrderCloud payment accept failed.",
-                        sdkPatchSucceeded,
-                        directRestPatchSucceeded = directResult.Success,
-                        sdk = new
-                        {
-                            status = sdkEx.HttpStatus,
-                            message = sdkEx.Message,
-                            errors = sdkEx.Errors
-                        },
-                        directRest = new
-                        {
-                            status = directResult.StatusCode,
-                            body = directResult.Body
-                        },
-                        orderID = request.OrderID,
-                        paymentID = request.PaymentID
-                    });
-                    return;
-                }
+                var response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, patchPayload);
+                logger.LogInformation("Demo payment step=Payments.PatchAsync(All) succeeded");
 
                 logger.LogInformation("payment amount after patch = {Amount}", response.Amount);
                 logger.LogInformation("payment accepted = {Accepted}", response.Accepted);
@@ -286,29 +269,18 @@ namespace Accelerator.Functions
         private void LogConfigPresence()
         {
             logger.LogInformation(
-                "Demo payment clientID presence OrderCloudSettings:ClientID={Path1} OrderCloudSettings__ClientID={Path2} ClientID={Path3} OrderCloudSettings:MiddlewareClientID={Path4} OrderCloudSettings__MiddlewareClientID={Path5}",
-                HasValue("OrderCloudSettings:ClientID"),
+                "Demo payment startup diagnostics: OrderCloudSettings__ClientID present={ClientIdPresent} OrderCloudSettings__ClientSecret present={ClientSecretPresent} OrderCloudSettings__ApiUrl present={ApiUrlPresent} OrderCloudSettings__Roles present={RolesPresent} FullAccess included={FullAccessIncluded}",
                 HasValue("OrderCloudSettings__ClientID"),
-                HasValue("ClientID"),
-                HasValue("OrderCloudSettings:MiddlewareClientID"),
-                HasValue("OrderCloudSettings__MiddlewareClientID"));
-
-            logger.LogInformation(
-                "Demo payment clientSecret presence OrderCloudSettings:ClientSecret={Path1} OrderCloudSettings__ClientSecret={Path2} ClientSecret={Path3} OrderCloudSettings:MiddlewareClientSecret={Path4} OrderCloudSettings__MiddlewareClientSecret={Path5}",
-                HasValue("OrderCloudSettings:ClientSecret"),
                 HasValue("OrderCloudSettings__ClientSecret"),
-                HasValue("ClientSecret"),
-                HasValue("OrderCloudSettings:MiddlewareClientSecret"),
-                HasValue("OrderCloudSettings__MiddlewareClientSecret"));
-
-            logger.LogInformation(
-                "Demo payment apiUrl presence OrderCloudSettings:ApiUrl={Path1} OrderCloudSettings__ApiUrl={Path2} ApiUrl={Path3}",
-                HasValue("OrderCloudSettings:ApiUrl"),
                 HasValue("OrderCloudSettings__ApiUrl"),
-                HasValue("ApiUrl"));
+                HasValue("OrderCloudSettings__Roles"),
+                RolesIncludeFullAccess());
         }
 
         private bool HasValue(string key) => !string.IsNullOrWhiteSpace(configuration.GetValue<string>(key));
+        private bool RolesIncludeFullAccess() => (configuration.GetValue<string>("OrderCloudSettings__Roles") ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Contains(nameof(ApiRole.FullAccess), StringComparer.OrdinalIgnoreCase);
 
         private static void AddCorsHeaders(HttpRequest req)
         {
@@ -322,22 +294,15 @@ namespace Accelerator.Functions
         private OrderCloudClient CreateAdminOrderCloudClient()
         {
             var config = oc.Config;
-            var apiUrl = FirstNonEmpty(
-                "OrderCloudSettings:ApiUrl",
-                "OrderCloudSettings__ApiUrl",
-                "ApiUrl") ?? config.ApiUrl;
+            var apiUrl = FirstNonEmpty("OrderCloudSettings__ApiUrl") ?? config.ApiUrl;
             var clientId = FirstNonEmpty(
-                "OrderCloudSettings:ClientID",
                 "OrderCloudSettings__ClientID",
-                "ClientID",
-                "OrderCloudSettings:MiddlewareClientID",
-                "OrderCloudSettings__MiddlewareClientID") ?? config.ClientId;
+                "ClientID") ?? config.ClientId;
             var clientSecret = FirstNonEmpty(
-                "OrderCloudSettings:ClientSecret",
                 "OrderCloudSettings__ClientSecret",
-                "ClientSecret",
-                "OrderCloudSettings:MiddlewareClientSecret",
-                "OrderCloudSettings__MiddlewareClientSecret") ?? config.ClientSecret;
+                "ClientSecret") ?? config.ClientSecret;
+            var configuredRoles = configuration.GetValue<string>("OrderCloudSettings__Roles");
+            var roles = ParseRoles(configuredRoles) ?? config.Roles;
 
             return new OrderCloudClient(new OrderCloudClientConfig
             {
@@ -345,8 +310,19 @@ namespace Accelerator.Functions
                 AuthUrl = apiUrl,
                 ClientId = clientId,
                 ClientSecret = clientSecret,
-                Roles = config.Roles
+                Roles = roles
             });
+        }
+        private ApiRole[] ParseRoles(string rawRoles)
+        {
+            if (string.IsNullOrWhiteSpace(rawRoles)) return null;
+            return rawRoles
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(role => Enum.TryParse<ApiRole>(role, true, out var parsed) ? (ApiRole?)parsed : null)
+                .Where(role => role.HasValue)
+                .Select(role => role.Value)
+                .Distinct()
+                .ToArray();
         }
 
         private string FirstNonEmpty(params string[] keys)
@@ -379,28 +355,6 @@ namespace Accelerator.Functions
             await req.HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(payload));
         }
 
-        private async Task<DirectPatchDiagnosticResult> RunDirectPatchDiagnosticAsync(OrderCloudClient adminClient, string orderID, string paymentID)
-        {
-            var accessToken = (await adminClient.AuthenticateAsync())?.AccessToken;
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            var apiUrl = adminClient.Config.ApiUrl?.TrimEnd('/') ?? "https://api.ordercloud.io";
-            var uri = $"{apiUrl}/v1/orders/All/{WebUtility.UrlEncode(orderID)}/payments/{WebUtility.UrlEncode(paymentID)}";
-            var body = "{\"Accepted\":true}";
-            using var content = new StringContent(body, Encoding.UTF8, "application/json");
-
-            var response = await httpClient.PatchAsync(uri, content);
-            var responseBody = await response.Content.ReadAsStringAsync();
-
-            return new DirectPatchDiagnosticResult
-            {
-                Success = response.IsSuccessStatusCode,
-                StatusCode = (int)response.StatusCode,
-                Body = responseBody
-            };
-        }
-
 
         private class AcceptPaymentRequest
         {
@@ -414,11 +368,5 @@ namespace Accelerator.Functions
             public decimal? Amount { get; set; }
         }
 
-        private class DirectPatchDiagnosticResult
-        {
-            public bool Success { get; set; }
-            public int StatusCode { get; set; }
-            public string Body { get; set; }
-        }
     }
 }
