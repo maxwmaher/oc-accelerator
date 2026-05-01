@@ -180,23 +180,26 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
 
     const sanitizedCard = formData.cardNumber.replace(/\s+/g, "");
     let paymentAmount = total;
-
-
     try {
       setProcessingPayment(true);
+      await calculateOrder();
       const latestWorksheet = await calculateOrder();
       const currentOrder = (latestWorksheet?.Order as Order) || ((await Orders.Get("Outgoing", orderID)) as Order);
       if (!currentOrder?.ID) throw new Error("Unable to load current order before payment create.");
-      paymentAmount = currentOrder.Total ?? total;
-      if (DEMO_PAYMENT_DEBUG) {
-        console.debug("[DemoPayment] Payment amount inputs", {
-          orderID: currentOrder.ID,
-          subtotal: currentOrder.Subtotal ?? 0,
-          shippingCost: currentOrder.ShippingCost ?? 0,
-          taxCost: currentOrder.TaxCost ?? 0,
-          total: currentOrder.Total ?? 0,
-          paymentAmount,
-        });
+      const latestTotal = latestWorksheet?.Order?.Total ?? currentOrder.Total ?? total;
+      paymentAmount = latestTotal;
+      console.log("[PAYMENT CREATE DEBUG]", {
+        orderID: currentOrder.ID,
+        subtotal: latestWorksheet?.Order?.Subtotal ?? currentOrder?.Subtotal,
+        shippingCost: latestWorksheet?.Order?.ShippingCost ?? currentOrder?.ShippingCost,
+        taxCost: latestWorksheet?.Order?.TaxCost ?? currentOrder?.TaxCost,
+        total: latestTotal,
+        paymentAmount,
+      });
+      if (amountsDiffer(paymentAmount, latestTotal)) {
+        const mismatchMessage = `Payment amount mismatch: attempted ${paymentAmount}, expected order total ${latestTotal}`;
+        console.error(mismatchMessage);
+        throw new Error(mismatchMessage);
       }
 
       const createdPaymentRequest = {
