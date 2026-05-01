@@ -74,9 +74,16 @@ namespace Accelerator.Functions
                 });
             }
 
-            var response = BuildShippingRatesResponse(payloadObject);
-            logger.LogInformation("ShippingRates invoked");
-            return new OkObjectResult(response);
+            try
+            {
+                logger.LogInformation("ShippingRates invoked");
+                return new OkObjectResult(BuildShippingRatesResponse());
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex.ToString());
+                return new OkObjectResult(BuildShippingRatesResponse());
+            }
         }
 
         [Function("integrationevent-shippingrates")]
@@ -85,10 +92,16 @@ namespace Accelerator.Functions
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent/ShippingRates")] HttpRequest req,
             [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
         {
-            var payloadObject = JObject.Parse(payload?.ToString() ?? "{}");
-            var response = BuildShippingRatesResponse(payloadObject);
-            logger.LogInformation("ShippingRates invoked");
-            return new OkObjectResult(response);
+            try
+            {
+                logger.LogInformation("ShippingRates invoked");
+                return new OkObjectResult(BuildShippingRatesResponse());
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex.ToString());
+                return new OkObjectResult(BuildShippingRatesResponse());
+            }
         }
 
         [Function("integrationevent-shippingrates-lower")]
@@ -97,10 +110,16 @@ namespace Accelerator.Functions
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent/shippingrates")] HttpRequest req,
             [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
         {
-            var payloadObject = JObject.Parse(payload?.ToString() ?? "{}");
-            var response = BuildShippingRatesResponse(payloadObject);
-            logger.LogInformation("ShippingRates invoked");
-            return new OkObjectResult(response);
+            try
+            {
+                logger.LogInformation("ShippingRates invoked");
+                return new OkObjectResult(BuildShippingRatesResponse());
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex.ToString());
+                return new OkObjectResult(BuildShippingRatesResponse());
+            }
         }
 
         [Function("ordercalculate")]
@@ -355,31 +374,21 @@ namespace Accelerator.Functions
             await req.HttpContext.Response.WriteAsync(JsonConvert.SerializeObject(payload));
         }
 
-        private static object BuildShippingRatesResponse(JObject payloadObject)
+        private static object BuildShippingRatesResponse()
         {
-            var lineItems = payloadObject.SelectToken("OrderWorksheet.LineItems") as JArray ?? new JArray();
-            var shipEstimateItems = lineItems
-                .Select(li => new
-                {
-                    LineItemID = li["ID"]?.ToString(),
-                    Quantity = li["Quantity"]?.Value<int>() ?? 0
-                })
-                .Where(item => !string.IsNullOrWhiteSpace(item.LineItemID))
-                .ToList();
-
             return new
             {
                 ShipEstimates = new[]
                 {
                     new
                     {
-                        ID = "demo-shipment-1",
+                        ID = "demo-shipment",
                         SelectedShipMethodID = (string?)null,
-                        ShipEstimateItems = shipEstimateItems,
+                        ShipEstimateItems = Array.Empty<object>(),
                         ShipMethods = new[]
                         {
-                            new { ID = "standard-ground", Name = "Standard Ground", Cost = 24.95m, EstimatedTransitDays = 5, xp = new { } },
-                            new { ID = "expedited-freight", Name = "Expedited Freight", Cost = 49.95m, EstimatedTransitDays = 2, xp = new { } }
+                            new { ID = "standard", Name = "Standard Shipping", Cost = 24.95m, EstimatedTransitDays = 5, xp = new { } },
+                            new { ID = "express", Name = "Express Shipping", Cost = 49.95m, EstimatedTransitDays = 2, xp = new { } }
                         },
                         xp = new { }
                     }
