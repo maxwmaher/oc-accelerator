@@ -65,7 +65,7 @@ const getCardType = (cardNumber: string) => {
 };
 
 export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelProps) => {
-  const { orderWorksheet } = useShopper();
+  const { orderWorksheet, calculateOrder } = useShopper();
   const toast = useToast();
   const [processingPayment, setProcessingPayment] = useState(false);
   const [formData, setFormData] = useState<DemoPaymentForm>(initialState);
@@ -184,11 +184,19 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
 
     try {
       setProcessingPayment(true);
-      const currentOrder = (await Orders.Get("Outgoing", orderID)) as Order;
+      const latestWorksheet = await calculateOrder();
+      const currentOrder = (latestWorksheet?.Order as Order) || ((await Orders.Get("Outgoing", orderID)) as Order);
       if (!currentOrder?.ID) throw new Error("Unable to load current order before payment create.");
       paymentAmount = currentOrder.Total ?? total;
       if (DEMO_PAYMENT_DEBUG) {
-        console.debug("[DemoPayment] Current order for payment create", { orderID: currentOrder.ID, orderTotal: currentOrder.Total });
+        console.debug("[DemoPayment] Payment amount inputs", {
+          orderID: currentOrder.ID,
+          subtotal: currentOrder.Subtotal ?? 0,
+          shippingCost: currentOrder.ShippingCost ?? 0,
+          taxCost: currentOrder.TaxCost ?? 0,
+          total: currentOrder.Total ?? 0,
+          paymentAmount,
+        });
       }
 
       const createdPaymentRequest = {
