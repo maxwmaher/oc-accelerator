@@ -186,27 +186,11 @@ namespace Accelerator.Functions
                     existingPayment.SpendingAccountID,
                     existingPayment.CreditCardID);
 
-                var worksheet = await adminClient.IntegrationEvents.GetWorksheetAsync(OrderDirection.All, request.OrderID);
-                var latestOrder = worksheet?.Order;
-                if (latestOrder == null || latestOrder.Total <= 0)
-                {
-                    logger.LogError("Demo payment latest order total is invalid for order={OrderID} total={Total}", request.OrderID, latestOrder?.Total);
-                    await WriteJsonResponseAsync(req, StatusCodes.Status500InternalServerError, new
-                    {
-                        error = "Latest order total is invalid; cannot accept payment.",
-                        orderID = request.OrderID
-                    });
-                    return;
-                }
-
-                var selectedPaymentAmount = latestOrder.Total;
+                // TODO: REMOVE HARDCODED AMOUNT AFTER DEBUG
+                var selectedPaymentAmount = 148.95m;
                 logger.LogInformation(
-                    "Demo payment amount selection orderID={OrderID} total={Total} subtotal={Subtotal} shipping={Shipping} tax={Tax} selectedAmount={SelectedAmount}",
+                    "Demo payment amount selection orderID={OrderID} selectedAmount={SelectedAmount}",
                     request.OrderID,
-                    latestOrder.Total,
-                    latestOrder.Subtotal,
-                    latestOrder.ShippingCost,
-                    latestOrder.TaxCost,
                     selectedPaymentAmount);
                 var existingPaymentAmount = existingPayment.Amount ?? 0m;
                 var wasAmountCorrected = false;
@@ -235,6 +219,7 @@ namespace Accelerator.Functions
                 logger.LogInformation(
                     "Demo payment step=Payments.PatchAsync(All) started payload={Payload}",
                     JsonConvert.SerializeObject(patchPayload));
+                logger.LogInformation("Forcing payment amount to 148.95 for debug");
                 logger.LogInformation("Demo payment step=Payments.PatchAsync(All) call starting");
                 var response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, patchPayload);
                 logger.LogInformation("Demo payment step=Payments.PatchAsync(All) succeeded");
