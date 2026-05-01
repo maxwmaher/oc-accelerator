@@ -176,7 +176,11 @@ namespace Accelerator.Functions
                     return;
                 }
 
-                var patchPayload = new PartialPayment { Accepted = true };
+                var order = await adminClient.Orders.GetAsync<Order>(OrderDirection.All, request.OrderID);
+                var orderTotal = order?.Total ?? existingPayment.Amount;
+                logger.LogInformation("Demo payment order total resolved order={OrderID} total={OrderTotal} requestAmount={RequestAmount}", request.OrderID, orderTotal, request.Amount);
+
+                var patchPayload = new PartialPayment { Accepted = true, Amount = orderTotal };
                 logger.LogInformation(
                     "Demo payment step=Payments.PatchAsync(All) started payload={Payload}",
                     JsonConvert.SerializeObject(patchPayload));
@@ -392,6 +396,9 @@ namespace Accelerator.Functions
 
             [JsonProperty("paymentID")]
             public string PaymentID { get; set; }
+
+            [JsonProperty("amount")]
+            public decimal? Amount { get; set; }
         }
 
         private class DirectPatchDiagnosticResult

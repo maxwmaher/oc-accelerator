@@ -11,12 +11,14 @@ import {
   HStack,
   Input,
   Text,
+  Spinner,
   VStack,
   useToast,
 } from "@chakra-ui/react";
 import { useShopper } from "@ordercloud/react-sdk";
 import { Order, Orders, Payment, Payments } from "ordercloud-javascript-sdk";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import formatPrice from "../../../utils/formatPrice";
 import { DEMO_FUNCTIONS_BASE_URL } from "../../../config/demoFunctions";
 
 type CartPaymentPanelProps = {
@@ -43,6 +45,16 @@ const initialState: DemoPaymentForm = {
 };
 const DEMO_PAYMENT_DEBUG = true;
 
+type DemoPaymentSummary = {
+  cardholderName: string;
+  cardType: string;
+  maskedCardNumber: string;
+  expirationMonth: number;
+  expirationYear: number;
+  billingZip: string;
+  amount: number;
+};
+
 const getCardType = (cardNumber: string) => {
   if (/^4/.test(cardNumber)) return "Visa";
   if (/^5[1-5]/.test(cardNumber)) return "Mastercard";
@@ -58,6 +70,9 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
   const [formData, setFormData] = useState<DemoPaymentForm>(initialState);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof DemoPaymentForm, string>>>({});
   const [acceptedPayment, setAcceptedPayment] = useState<Payment | null>(null);
+  const [existingPayment, setExistingPayment] = useState<Payment | null>(null);
+  const [summary, setSummary] = useState<DemoPaymentSummary | null>(null);
+  const [loadingPaymentState, setLoadingPaymentState] = useState(false);
 
   const orderID = orderWorksheet?.Order?.ID;
   const total = orderWorksheet?.Order?.Total ?? 0;
@@ -66,6 +81,41 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
     if (acceptedPayment?.Accepted) return true;
     return false;
   }, [acceptedPayment?.Accepted]);
+
+  useEffect(() => {
+    const loadPayments = async () => {
+      if (!orderID) return;
+      try {
+        setLoadingPaymentState(true);
+        const paymentList = await Payments.List("Outgoing", orderID, { pageSize: 100, sortBy: ["DateCreated"] });
+        const accepted = paymentList.Items?.find((payment) => payment.Accepted);
+        const latest = paymentList.Items?.[paymentList.Items.length - 1] || null;
+        const selected = accepted || latest;
+        setAcceptedPayment(accepted || null);
+        setExistingPayment(selected);
+        if (accepted) {
+          const xp = (accepted.xp || {}) as any;
+          setSummary({
+            cardholderName: xp.CardholderName || "Cardholder",
+            cardType: xp.CardType || "Credit Card",
+            maskedCardNumber: `•••• •••• •••• ${xp.LastFour || "0000"}`,
+            expirationMonth: Number(xp.ExpirationMonth) || 0,
+            expirationYear: Number(xp.ExpirationYear) || 0,
+            billingZip: xp.BillingZip || "N/A",
+            amount: accepted.Amount ?? total,
+          });
+        } else {
+          setSummary(null);
+        }
+      } catch (error) {
+        console.error("Failed to load payments", error);
+        toast({ title: "Unable to load payments", description: "Please refresh and try again.", status: "error" });
+      } finally {
+        setLoadingPaymentState(false);
+      }
+    };
+    loadPayments();
+  }, [orderID, toast, total]);
 
   const validate = () => {
     const nextErrors: Partial<Record<keyof DemoPaymentForm, string>> = {};
@@ -116,10 +166,12 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
     if (!validate()) return;
 
     const sanitizedCard = formData.cardNumber.replace(/\s+/g, "");
+    let paymentAmount = total;
     const createdPaymentRequest = {
       Type: "CreditCard" as any,
-      Amount: total,
+      Amount: paymentAmount,
       xp: {
+        CardholderName: formData.nameOnCard.trim(),
         CardType: getCardType(sanitizedCard),
         LastFour: sanitizedCard.slice(-4),
         ExpirationMonth: Number(formData.expirationMonth),
@@ -133,21 +185,40 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
       setProcessingPayment(true);
       const currentOrder = (await Orders.Get("Outgoing", orderID)) as Order;
       if (!currentOrder?.ID) throw new Error("Unable to load current order before payment create.");
+      paymentAmount = currentOrder.Total ?? total;
       if (DEMO_PAYMENT_DEBUG) {
         console.debug("[DemoPayment] Current order for payment create", { orderID: currentOrder.ID });
       }
 
-      const createdPayment = await Payments.Create("Outgoing", currentOrder.ID, createdPaymentRequest);
-      if (!createdPayment?.ID) throw new Error("Payment was created without an ID.");
-      if (DEMO_PAYMENT_DEBUG) {
-        console.debug("[DemoPayment] Created payment", { paymentID: createdPayment.ID });
+      let paymentToUse = existingPayment;
+      if (paymentToUse?.Accepted) {
+        paymentToUse = null;
       }
 
-      const paymentCheck = await Payments.Get("Outgoing", currentOrder.ID, createdPayment.ID);
+      const workingPayment = paymentToUse?.ID
+        ? await Payments.Patch("Outgoing", currentOrder.ID, paymentToUse.ID, createdPaymentRequest)
+        : await Payments.Create("Outgoing", currentOrder.ID, createdPaymentRequest);
+
+      if (!workingPayment?.ID) throw new Error("Payment was created or updated without an ID.");
+      if (DEMO_PAYMENT_DEBUG) {
+        console.debug("[DemoPayment] Payment ready for accept", { paymentID: workingPayment.ID, amount: paymentAmount });
+      }
+
+      const paymentCheck = await Payments.Get("Outgoing", currentOrder.ID, workingPayment.ID);
       if (!paymentCheck?.ID) throw new Error("Unable to verify created payment before acceptance.");
 
-      const accepted = await acceptPayment(currentOrder.ID, createdPayment.ID);
+      const accepted = await acceptPayment(currentOrder.ID, workingPayment.ID);
       setAcceptedPayment(accepted);
+      setExistingPayment(accepted);
+      setSummary({
+        cardholderName: formData.nameOnCard.trim(),
+        cardType: getCardType(sanitizedCard) || "Credit Card",
+        maskedCardNumber: `•••• •••• •••• ${sanitizedCard.slice(-4)}`,
+        expirationMonth: Number(formData.expirationMonth),
+        expirationYear: Number(formData.expirationYear),
+        billingZip: formData.billingZip.trim(),
+        amount: accepted.Amount ?? paymentAmount,
+      });
       setFormData(initialState);
       toast({ title: "Payment saved", description: "Demo payment is accepted and ready.", status: "success" });
     } catch (error) {
@@ -164,7 +235,11 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
 
   return (
     <VStack align="stretch" spacing={4}>
-      <Box as="form" onSubmit={onSubmitDemoPayment}>
+      {loadingPaymentState ? (
+        <HStack><Spinner size="sm" /><Text>Loading payment information...</Text></HStack>
+      ) : null}
+
+      {!paymentReady ? <Box as="form" onSubmit={onSubmitDemoPayment}>
         <VStack align="stretch" spacing={3}>
           <FormControl isRequired isInvalid={Boolean(fieldErrors.nameOnCard)}>
             <FormLabel>Name on card</FormLabel>
@@ -202,7 +277,21 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
             Save Payment
           </Button>
         </VStack>
-      </Box>
+      </Box> : null}
+
+      {paymentReady && summary ? (
+        <Box borderWidth="1px" borderRadius="md" p={4}>
+          <Text fontWeight="semibold" mb={2}>Payment accepted</Text>
+          <VStack align="stretch" spacing={1} fontSize="sm">
+            <Text>Cardholder: {summary.cardholderName}</Text>
+            <Text>Card type: {summary.cardType || "Credit Card"}</Text>
+            <Text>Card number: {summary.maskedCardNumber}</Text>
+            <Text>Expires: {summary.expirationMonth}/{summary.expirationYear}</Text>
+            <Text>Billing ZIP: {summary.billingZip}</Text>
+            <Text>Amount accepted: {formatPrice(summary.amount)}</Text>
+          </VStack>
+        </Box>
+      ) : null}
 
       {paymentReady ? (
         <Alert status="success"><AlertIcon /><AlertTitle>Payment accepted</AlertTitle><AlertDescription>Order is ready for submission.</AlertDescription></Alert>
