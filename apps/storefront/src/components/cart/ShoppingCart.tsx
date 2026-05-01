@@ -144,22 +144,8 @@ export const ShoppingCart = (): JSX.Element => {
     try {
       await ensureOrderSellerContext();
       await setShippingAddress(shippingAddress);
-      console.debug("[CheckoutShipping] before estimateshipping", {
-        orderID: orderWorksheet.Order.ID,
-        shippingAddress,
-      });
       const estimatedWorksheet = await estimateShipping();
       const response = estimatedWorksheet?.ShipEstimateResponse;
-      const order = estimatedWorksheet?.Order;
-      console.debug("[CheckoutShipping] estimateshipping response", {
-        httpStatusCode: response?.HttpStatusCode,
-        succeeded: response?.Succeeded,
-        shipEstimatesCount: response?.ShipEstimates?.length ?? 0,
-        subtotal: order?.Subtotal,
-        shippingCost: order?.ShippingCost,
-        taxCost: order?.TaxCost,
-        total: order?.Total,
-      });
 
       if (!response?.Succeeded || !response?.ShipEstimates?.length) {
         throw new Error("Shipping estimate did not return selectable ship methods.");
