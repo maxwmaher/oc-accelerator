@@ -22,15 +22,29 @@ namespace Accelerator.Functions
         IOrderCloudClient oc,
         IConfiguration configuration)
     {
-        [Function("shippingrates")]
+        [Function("estimateshipping")]
         [OrderCloudWebhookAuth]
-        public async Task<IActionResult> EstimateShippingAsync([HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req, [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
+        public async Task<IActionResult> EstimateShippingAsync([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "estimateshipping")] HttpRequest req, [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
         {
-            logger.LogInformation("C# HTTP trigger function processed a request.");
+            logger.LogInformation("Shipping estimate request received path={Path}", req.Path);
             var deserializedPayload = JsonConvert.DeserializeObject<OrderCheckoutIEPayload>(payload.ToString());
+            var lineItemCount = deserializedPayload?.OrderWorksheet?.LineItems?.Count ?? 0;
+            logger.LogInformation("Shipping estimate orderID={OrderID} lineItemCount={LineItemCount}", deserializedPayload?.OrderWorksheet?.Order?.ID, lineItemCount);
             var response = await shippingCommand.EstimateShippingRatesAsync(deserializedPayload);
+            logger.LogInformation(
+                "Shipping estimate success={Succeeded} statusCode={StatusCode} methodCount={MethodCount}",
+                response?.Succeeded,
+                response?.HttpStatusCode,
+                response?.ShipEstimates?.FirstOrDefault()?.ShipMethods?.Count ?? 0);
 
             return new OkObjectResult(response);
+        }
+
+        [Function("shippingrates")]
+        [OrderCloudWebhookAuth]
+        public async Task<IActionResult> EstimateShippingLegacyAsync([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "shippingrates")] HttpRequest req, [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
+        {
+            return await EstimateShippingAsync(req, payload);
         }
 
         [Function("ordercalculate")]
