@@ -102,7 +102,7 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
             expirationMonth: Number(xp.ExpirationMonth) || 0,
             expirationYear: Number(xp.ExpirationYear) || 0,
             billingZip: xp.BillingZip || "N/A",
-            amount: accepted.Amount ?? total,
+            amount: total,
           });
         } else {
           setSummary(null);
@@ -217,7 +217,7 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
         expirationMonth: Number(formData.expirationMonth),
         expirationYear: Number(formData.expirationYear),
         billingZip: formData.billingZip.trim(),
-        amount: accepted.Amount ?? paymentAmount,
+        amount: currentOrder.Total ?? paymentAmount,
       });
       setFormData(initialState);
       toast({ title: "Payment saved", description: "Demo payment is accepted and ready.", status: "success" });

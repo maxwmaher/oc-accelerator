@@ -169,16 +169,22 @@ namespace Accelerator.Functions
                     existingPayment.SpendingAccountID,
                     existingPayment.CreditCardID);
 
-                if (existingPayment.Accepted == true)
+                var order = await adminClient.Orders.GetAsync<Order>(OrderDirection.All, request.OrderID);
+                var orderTotal = order?.Total ?? existingPayment.Amount;
+                logger.LogInformation(
+                    "Demo payment amount reconciliation order={OrderID} payment={PaymentID} requestedAmount={RequestedAmount} existingPaymentAmount={ExistingPaymentAmount} serverOrderTotal={ServerOrderTotal}",
+                    request.OrderID,
+                    request.PaymentID,
+                    request.Amount,
+                    existingPayment.Amount,
+                    orderTotal);
+
+                if (existingPayment.Accepted == true && existingPayment.Amount == orderTotal)
                 {
-                    logger.LogInformation("Demo payment already accepted for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
+                    logger.LogInformation("Demo payment already accepted with reconciled amount for order={OrderID} payment={PaymentID}", request.OrderID, request.PaymentID);
                     await WriteJsonResponseAsync(req, StatusCodes.Status200OK, existingPayment);
                     return;
                 }
-
-                var order = await adminClient.Orders.GetAsync<Order>(OrderDirection.All, request.OrderID);
-                var orderTotal = order?.Total ?? existingPayment.Amount;
-                logger.LogInformation("Demo payment order total resolved order={OrderID} total={OrderTotal} requestAmount={RequestAmount}", request.OrderID, orderTotal, request.Amount);
 
                 var patchPayload = new PartialPayment { Accepted = true, Amount = orderTotal };
                 logger.LogInformation(
