@@ -27,7 +27,8 @@ namespace Accelerator.Functions
         [OrderCloudWebhookAuth]
         public async Task<IActionResult> EstimateShippingAsync([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "estimateshipping")] HttpRequest req, [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
         {
-            logger.LogInformation("Shipping estimate request received path={Path}", req.Path);
+            string estimateRequestPath = Convert.ToString(req.Path) ?? string.Empty;
+            logger.LogInformation("Shipping estimate request received path={Path}", estimateRequestPath);
             var deserializedPayload = JsonConvert.DeserializeObject<OrderCheckoutIEPayload>(payload.ToString());
             string orderID = Convert.ToString(deserializedPayload?.OrderWorksheet?.Order?.ID) ?? string.Empty;
             int lineItemCount = deserializedPayload?.OrderWorksheet?.LineItems?.Count ?? 0;
@@ -69,8 +70,8 @@ namespace Accelerator.Functions
             var lineItems = payloadObject.SelectToken("OrderWorksheet.LineItems") as JArray;
             var lineItemCount = lineItems?.Count ?? 0;
 
-            string requestPath = req.Path.ToString();
-            string requestMethod = req.Method;
+            string requestPath = Convert.ToString(req.Path) ?? string.Empty;
+            string requestMethod = Convert.ToString(req.Method) ?? string.Empty;
             string routeEventValue = normalizedRouteEvent ?? "(none)";
             string payloadEventValue = payloadEventType ?? "(none)";
             logger.LogInformation(
@@ -148,11 +149,14 @@ namespace Accelerator.Functions
         public async Task AcceptPaymentAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "payments/accept")] HttpRequest req)
         {
+            string requestMethod = Convert.ToString(req.Method) ?? string.Empty;
+            string requestOrigin = Convert.ToString(req.Headers["Origin"]) ?? string.Empty;
+            string requestUrl = Convert.ToString(req.GetDisplayUrl()) ?? string.Empty;
             logger.LogInformation(
                 "Demo payment request start method={Method} origin={Origin} url={Url}",
-                req.Method,
-                req.Headers["Origin"].ToString(),
-                req.GetDisplayUrl());
+                requestMethod,
+                requestOrigin,
+                requestUrl);
 
             AddCorsHeaders(req);
 
@@ -163,7 +167,8 @@ namespace Accelerator.Functions
                 return;
             }
 
-            logger.LogInformation("Demo payment request received for {Url}", req.GetDisplayUrl());
+            string receivedRequestUrl = Convert.ToString(req.GetDisplayUrl()) ?? string.Empty;
+            logger.LogInformation("Demo payment request received for {Url}", receivedRequestUrl);
 
             logger.LogInformation("Demo payment step=request parsing started");
             using var reader = new StreamReader(req.Body);
