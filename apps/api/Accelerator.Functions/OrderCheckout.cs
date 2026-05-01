@@ -186,8 +186,8 @@ namespace Accelerator.Functions
                     existingPayment.SpendingAccountID,
                     existingPayment.CreditCardID);
 
-                // TODO: REMOVE HARDCODED AMOUNT AFTER DEBUG
-                var selectedPaymentAmount = 148.95m;
+                var latestOrder = await adminClient.Orders.GetAsync<Order>(OrderDirection.All, request.OrderID);
+                var selectedPaymentAmount = latestOrder?.Total ?? 0m;
                 logger.LogInformation(
                     "Demo payment amount selection orderID={OrderID} selectedAmount={SelectedAmount}",
                     request.OrderID,
@@ -219,7 +219,6 @@ namespace Accelerator.Functions
                 logger.LogInformation(
                     "Demo payment step=Payments.PatchAsync(All) started payload={Payload}",
                     JsonConvert.SerializeObject(patchPayload));
-                logger.LogInformation("Forcing payment amount to 148.95 for debug");
                 logger.LogInformation("Demo payment step=Payments.PatchAsync(All) call starting");
                 var response = await adminClient.Payments.PatchAsync<Payment>(OrderDirection.All, request.OrderID, request.PaymentID, patchPayload);
                 logger.LogInformation("Demo payment step=Payments.PatchAsync(All) succeeded");
