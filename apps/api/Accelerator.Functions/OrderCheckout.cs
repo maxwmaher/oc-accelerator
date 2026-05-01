@@ -76,7 +76,6 @@ namespace Accelerator.Functions
 
             var response = BuildShippingRatesResponse(payloadObject);
             logger.LogInformation("ShippingRates invoked");
-            logger.LogInformation("ship estimate count={ShipEstimateCount}", GetShipEstimateCount(response));
             return new OkObjectResult(response);
         }
 
@@ -89,7 +88,6 @@ namespace Accelerator.Functions
             var payloadObject = JObject.Parse(payload?.ToString() ?? "{}");
             var response = BuildShippingRatesResponse(payloadObject);
             logger.LogInformation("ShippingRates invoked");
-            logger.LogInformation("ship estimate count={ShipEstimateCount}", GetShipEstimateCount(response));
             return new OkObjectResult(response);
         }
 
@@ -102,7 +100,6 @@ namespace Accelerator.Functions
             var payloadObject = JObject.Parse(payload?.ToString() ?? "{}");
             var response = BuildShippingRatesResponse(payloadObject);
             logger.LogInformation("ShippingRates invoked");
-            logger.LogInformation("ship estimate count={ShipEstimateCount}", GetShipEstimateCount(response));
             return new OkObjectResult(response);
         }
 
