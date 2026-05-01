@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 
 namespace Accelerator.Functions
 {
@@ -21,7 +22,8 @@ namespace Accelerator.Functions
         ShippingCommand shippingCommand, 
         TaxCommand taxCommand, 
         PaymentCommand paymentCommand,
-        IOrderCloudClient oc)
+        IOrderCloudClient oc,
+        IConfiguration configuration)
     {
         [Function("shippingrates")]
         [OrderCloudWebhookAuth]
@@ -114,6 +116,7 @@ namespace Accelerator.Functions
 
                 logger.LogInformation("Demo payment step=admin OC client creation/auth readiness started");
                 var adminClient = CreateAdminOrderCloudClient();
+                LogConfigPresence();
                 var hasClientId = !string.IsNullOrWhiteSpace(adminClient.Config.ClientId);
                 var hasClientSecret = !string.IsNullOrWhiteSpace(adminClient.Config.ClientSecret);
                 if (!hasClientId)
@@ -262,6 +265,34 @@ namespace Accelerator.Functions
             }
         }
 
+
+        private void LogConfigPresence()
+        {
+            logger.LogInformation(
+                "Demo payment clientID presence OrderCloudSettings:ClientID={Path1} OrderCloudSettings__ClientID={Path2} ClientID={Path3} OrderCloudSettings:MiddlewareClientID={Path4} OrderCloudSettings__MiddlewareClientID={Path5}",
+                HasValue("OrderCloudSettings:ClientID"),
+                HasValue("OrderCloudSettings__ClientID"),
+                HasValue("ClientID"),
+                HasValue("OrderCloudSettings:MiddlewareClientID"),
+                HasValue("OrderCloudSettings__MiddlewareClientID"));
+
+            logger.LogInformation(
+                "Demo payment clientSecret presence OrderCloudSettings:ClientSecret={Path1} OrderCloudSettings__ClientSecret={Path2} ClientSecret={Path3} OrderCloudSettings:MiddlewareClientSecret={Path4} OrderCloudSettings__MiddlewareClientSecret={Path5}",
+                HasValue("OrderCloudSettings:ClientSecret"),
+                HasValue("OrderCloudSettings__ClientSecret"),
+                HasValue("ClientSecret"),
+                HasValue("OrderCloudSettings:MiddlewareClientSecret"),
+                HasValue("OrderCloudSettings__MiddlewareClientSecret"));
+
+            logger.LogInformation(
+                "Demo payment apiUrl presence OrderCloudSettings:ApiUrl={Path1} OrderCloudSettings__ApiUrl={Path2} ApiUrl={Path3}",
+                HasValue("OrderCloudSettings:ApiUrl"),
+                HasValue("OrderCloudSettings__ApiUrl"),
+                HasValue("ApiUrl"));
+        }
+
+        private bool HasValue(string key) => !string.IsNullOrWhiteSpace(configuration.GetValue<string>(key));
+
         private static void AddCorsHeaders(HttpRequest req)
         {
             var headers = req.HttpContext.Response.Headers;
@@ -274,14 +305,45 @@ namespace Accelerator.Functions
         private OrderCloudClient CreateAdminOrderCloudClient()
         {
             var config = oc.Config;
+            var apiUrl = FirstNonEmpty(
+                "OrderCloudSettings:ApiUrl",
+                "OrderCloudSettings__ApiUrl",
+                "ApiUrl") ?? config.ApiUrl;
+            var clientId = FirstNonEmpty(
+                "OrderCloudSettings:ClientID",
+                "OrderCloudSettings__ClientID",
+                "ClientID",
+                "OrderCloudSettings:MiddlewareClientID",
+                "OrderCloudSettings__MiddlewareClientID") ?? config.ClientId;
+            var clientSecret = FirstNonEmpty(
+                "OrderCloudSettings:ClientSecret",
+                "OrderCloudSettings__ClientSecret",
+                "ClientSecret",
+                "OrderCloudSettings:MiddlewareClientSecret",
+                "OrderCloudSettings__MiddlewareClientSecret") ?? config.ClientSecret;
+
             return new OrderCloudClient(new OrderCloudClientConfig
             {
-                ApiUrl = config.ApiUrl,
-                AuthUrl = config.AuthUrl,
-                ClientId = config.ClientId,
-                ClientSecret = config.ClientSecret,
+                ApiUrl = apiUrl,
+                AuthUrl = apiUrl,
+                ClientId = clientId,
+                ClientSecret = clientSecret,
                 Roles = config.Roles
             });
+        }
+
+        private string FirstNonEmpty(params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                var value = configuration.GetValue<string>(key);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    return value;
+                }
+            }
+
+            return null;
         }
 
         private async Task WriteJsonResponseAsync(HttpRequest req, int statusCode, object payload = null)

@@ -10,6 +10,7 @@ using OrderCloud.Catalyst;
 using OrderCloud.SDK;
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Reflection;
 
 var builder = FunctionsApplication.CreateBuilder(args);
@@ -36,30 +37,63 @@ builder.Services.AddSingleton<IOrderCloudClient>(_ => new OrderCloudClient(order
 
 var app = builder.Build();
 
-LogOrderCloudStartupConfiguration(app.Services, orderCloudClientConfig);
+LogOrderCloudStartupConfiguration(app.Services, orderCloudClientConfig, config);
 
 app.Run();
 
 static OrderCloudClientConfig BuildOrderCloudClientConfig(IConfiguration config)
 {
-    var apiUrl = config.GetValue<string>("OrderCloudSettings:ApiUrl");
+    var clientId = FirstNonEmpty(config,
+        "OrderCloudSettings:ClientID",
+        "OrderCloudSettings__ClientID",
+        "ClientID",
+        "OrderCloudSettings:MiddlewareClientID",
+        "OrderCloudSettings__MiddlewareClientID");
+
+    var clientSecret = FirstNonEmpty(config,
+        "OrderCloudSettings:ClientSecret",
+        "OrderCloudSettings__ClientSecret",
+        "ClientSecret",
+        "OrderCloudSettings:MiddlewareClientSecret",
+        "OrderCloudSettings__MiddlewareClientSecret");
+
+    var apiUrl = FirstNonEmpty(config,
+        "OrderCloudSettings:ApiUrl",
+        "OrderCloudSettings__ApiUrl",
+        "ApiUrl");
+
     return new OrderCloudClientConfig
     {
         ApiUrl = apiUrl,
         AuthUrl = apiUrl,
-        ClientId = config.GetValue<string>("OrderCloudSettings:MiddlewareClientID"),
-        ClientSecret = config.GetValue<string>("OrderCloudSettings:MiddlewareClientSecret"),
+        ClientId = clientId,
+        ClientSecret = clientSecret,
         Roles = ResolveMiddlewareRoles(config.GetValue<string>("OrderCloudSettings:MiddlewareRoles")),
     };
 }
 
-static void LogOrderCloudStartupConfiguration(IServiceProvider services, OrderCloudClientConfig ocConfig)
+static void LogOrderCloudStartupConfiguration(IServiceProvider services, OrderCloudClientConfig ocConfig, IConfiguration config)
 {
     var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("OrderCloudStartup");
     var hasClientId = !string.IsNullOrWhiteSpace(ocConfig.ClientId);
     var hasClientSecret = !string.IsNullOrWhiteSpace(ocConfig.ClientSecret);
     var hasBaseApiUrl = !string.IsNullOrWhiteSpace(ocConfig.ApiUrl) || !string.IsNullOrWhiteSpace(ocConfig.AuthUrl);
     var rolesIncludeFullAccess = ocConfig.Roles?.Contains(ApiRole.FullAccess) == true;
+
+    var clientIdPresence = GetPresenceMap(config,
+        "OrderCloudSettings:ClientID",
+        "OrderCloudSettings__ClientID",
+        "ClientID",
+        "OrderCloudSettings:MiddlewareClientID",
+        "OrderCloudSettings__MiddlewareClientID");
+
+    logger.LogInformation(
+        "OrderCloud clientID presence OrderCloudSettings:ClientID={Path1} OrderCloudSettings__ClientID={Path2} ClientID={Path3} OrderCloudSettings:MiddlewareClientID={Path4} OrderCloudSettings__MiddlewareClientID={Path5}",
+        clientIdPresence["OrderCloudSettings:ClientID"],
+        clientIdPresence["OrderCloudSettings__ClientID"],
+        clientIdPresence["ClientID"],
+        clientIdPresence["OrderCloudSettings:MiddlewareClientID"],
+        clientIdPresence["OrderCloudSettings__MiddlewareClientID"]);
 
     logger.LogInformation(
         "OrderCloud configuration check clientIDPresent={ClientIDPresent} clientSecretPresent={ClientSecretPresent} rolesIncludeFullAccess={RolesIncludeFullAccess} baseApiUrlPresent={BaseApiUrlPresent}",
@@ -73,6 +107,26 @@ static void LogOrderCloudStartupConfiguration(IServiceProvider services, OrderCl
     // - OrderCloudSettings:MiddlewareClientSecret
     // - OrderCloudSettings:ApiUrl
     // - OrderCloudSettings:MiddlewareRoles (must include FullAccess; FullAccess is auto-added if omitted)
+}
+
+
+static string FirstNonEmpty(IConfiguration config, params string[] keys)
+{
+    foreach (var key in keys)
+    {
+        var value = config.GetValue<string>(key);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+    }
+
+    return null;
+}
+
+static Dictionary<string, bool> GetPresenceMap(IConfiguration config, params string[] keys)
+{
+    return keys.ToDictionary(key => key, key => !string.IsNullOrWhiteSpace(config.GetValue<string>(key)));
 }
 
 static ApiRole[] ResolveMiddlewareRoles(string configuredRoles)
