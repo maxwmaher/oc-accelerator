@@ -44,6 +44,7 @@ const initialState: DemoPaymentForm = {
   billingZip: "",
 };
 const DEMO_PAYMENT_DEBUG = true;
+const amountsDiffer = (a?: number | null, b?: number | null) => Math.abs((a ?? 0) - (b ?? 0)) > 0.0001;
 
 type DemoPaymentSummary = {
   cardholderName: string;
@@ -88,8 +89,20 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
       try {
         setLoadingPaymentState(true);
         const paymentList = await Payments.List("Outgoing", orderID, { pageSize: 100, sortBy: ["DateCreated"] });
-        const accepted = paymentList.Items?.find((payment) => payment.Accepted);
+        let accepted: Payment | null = (paymentList.Items?.find((payment) => payment.Accepted) as Payment | undefined) || null;
         const latest = paymentList.Items?.[paymentList.Items.length - 1] || null;
+        if (accepted?.ID && amountsDiffer(accepted.Amount, total)) {
+          if (DEMO_PAYMENT_DEBUG) {
+            console.debug("[DemoPayment] Accepted payment amount is stale. Healing via backend accept endpoint", {
+              orderID,
+              paymentID: accepted.ID,
+              acceptedAmount: accepted.Amount,
+              orderTotal: total,
+            });
+          }
+          accepted = await acceptPayment(orderID, accepted.ID);
+        }
+
         const selected = accepted || latest;
         setAcceptedPayment(accepted || null);
         setExistingPayment(selected);
@@ -102,7 +115,7 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
             expirationMonth: Number(xp.ExpirationMonth) || 0,
             expirationYear: Number(xp.ExpirationYear) || 0,
             billingZip: xp.BillingZip || "N/A",
-            amount: total,
+            amount: accepted.Amount ?? total,
           });
         } else {
           setSummary(null);
@@ -217,7 +230,7 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
         expirationMonth: Number(formData.expirationMonth),
         expirationYear: Number(formData.expirationYear),
         billingZip: formData.billingZip.trim(),
-        amount: currentOrder.Total ?? paymentAmount,
+        amount: accepted.Amount ?? currentOrder.Total ?? paymentAmount,
       });
       setFormData(initialState);
       toast({ title: "Payment saved", description: "Demo payment is accepted and ready.", status: "success" });
