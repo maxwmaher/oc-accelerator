@@ -24,6 +24,8 @@ namespace Accelerator.Functions
         IOrderCloudClient oc,
         IConfiguration configuration)
     {
+        private const string ShippingDebugVersion = "SHIPPING_DEBUG_2026_05_01_2127";
+
         [Function("estimateshipping")]
         [OrderCloudWebhookAuth]
         public async Task<IActionResult> EstimateShippingAsync([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "estimateshipping")] HttpRequest req, [Microsoft.Azure.Functions.Worker.Http.FromBody] dynamic payload)
@@ -60,6 +62,7 @@ namespace Accelerator.Functions
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent/{eventName?}")] HttpRequest req,
             string? eventName)
         {
+            logger.LogWarning($"{ShippingDebugVersion}: integrationevent method body entered.");
             var sw = Stopwatch.StartNew();
             logger.LogInformation("IntegrationEvent step 1: entered.");
 
@@ -73,17 +76,20 @@ namespace Accelerator.Functions
                 if (IsShippingRatesRequest(body))
                 {
                     logger.LogInformation("ShippingRates short-circuit response returned.");
+                    req.HttpContext.Response.Headers["X-Shipping-Debug-Version"] = ShippingDebugVersion;
                     return new OkObjectResult(BuildShippingRatesResponse());
                 }
 
                 logger.LogInformation("IntegrationEvent step 4: before dispatch.");
                 var response = BuildShippingRatesResponse();
                 logger.LogInformation("IntegrationEvent step 5: after dispatch.");
+                req.HttpContext.Response.Headers["X-Shipping-Debug-Version"] = ShippingDebugVersion;
                 return new OkObjectResult(response);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "IntegrationEvent failed.");
+                req.HttpContext.Response.Headers["X-Shipping-Debug-Version"] = ShippingDebugVersion;
                 return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
             finally
@@ -429,5 +435,18 @@ namespace Accelerator.Functions
             public decimal? Amount { get; set; }
         }
 
+    }
+
+    public class IntegrationEventPing
+    {
+        private const string ShippingDebugVersion = "SHIPPING_DEBUG_2026_05_01_2127";
+
+        [Function("integrationevent_ping")]
+        public IActionResult Run(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "integrationevent-ping")] HttpRequest req)
+        {
+            req.HttpContext.Response.Headers["X-Shipping-Debug-Version"] = ShippingDebugVersion;
+            return new OkObjectResult($"pong {ShippingDebugVersion}");
+        }
     }
 }
