@@ -45,6 +45,7 @@ export const ShoppingCart = (): JSX.Element => {
     deleteCart,
     submitCart,
     estimateShipping,
+    calculateOrder,
   } = useShopper();
   const { selectedSeller, ensureOrderSellerContext } = useSellerContext();
 
@@ -97,6 +98,16 @@ export const ShoppingCart = (): JSX.Element => {
     if (!orderWorksheet?.Order?.ID) return;
     try {
       await ensureOrderSellerContext();
+      console.log("[Checkout] Before calculate", { orderID: orderWorksheet.Order.ID });
+      let calculateResponse;
+      try {
+        calculateResponse = await calculateOrder();
+      } catch (calculateError) {
+        console.error("[Checkout] Calculate failed", calculateError);
+        throw calculateError;
+      }
+      console.log("[Checkout] Calculate response", calculateResponse);
+      console.log("[Checkout] Before submit", { orderID: orderWorksheet.Order.ID });
       await submitCart();
       setSubmitting(false);
       navigate(`/order-confirmation?orderID=${orderWorksheet.Order.ID}`);
@@ -117,7 +128,7 @@ export const ShoppingCart = (): JSX.Element => {
         isClosable: true,
       });
     }
-  }, [ensureOrderSellerContext, navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
+  }, [calculateOrder, ensureOrderSellerContext, navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
 
   const deleteOrder = useCallback(async () => {
     if (!orderWorksheet?.Order?.ID) return;
