@@ -56,10 +56,21 @@ const ResourceDetail: FC<IResourceDetail> = ({
 
   const { isAdmin } = useHasAccess(resourceName)
 
+  const hasInvalidPathParam = useMemo(() => {
+    if (!params) return false
+    return Object.values(params).some(
+      (value) => !value || value.includes('{') || value.includes('}')
+    )
+  }, [params])
+
   const dataQuery = useOcResourceGet(
     resourceName,
     params as { [key: string]: string },
-    { staleTime: 300000 } // 5 min
+    {
+      staleTime: 300000, // 5 min
+      // Prevent accidental API calls when route params are still template placeholders.
+      enabled: !hasInvalidPathParam,
+    }
   )
 
   const showOperationForm = useMemo(() => {
