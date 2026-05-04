@@ -3,6 +3,7 @@ import ResourceList from '../components/ResourceList/ResourceList'
 import { ResourceDetailWithParams } from '../components/ResourceDetail/ResourceDetail'
 import AssignmentList from '../components/AssignmentList/AssignmentList'
 import ResourceAssignment from '../components/ResourceAssignment/ResourceAssignment'
+import OrderLineItemsRoute from '../components/Orders/OrderLineItemsRoute'
 
 interface IndexResourceRoute extends IndexRouteObject {
   label?: string
@@ -108,6 +109,11 @@ export const resources: ResourceRoute[] = [
       />
     ),
   },
+
+  {
+    path: '/orders/:direction/:orderID/line-items',
+    element: <OrderLineItemsRoute />,
+  },
   {
     path: '/orders/:direction/:orderID',
     element: (
@@ -147,15 +153,6 @@ export const resources: ResourceRoute[] = [
       />
     ),
     children: [
-      {
-        path: `line-items`,
-        element: (
-          <ResourceList
-            resourceName="LineItems"
-            readOnly={true}
-          />
-        ),
-      },
       {
         path: `promotions`,
         element: (
