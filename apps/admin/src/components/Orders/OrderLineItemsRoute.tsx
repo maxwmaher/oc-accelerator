@@ -1,10 +1,25 @@
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, HStack, Heading, Text, VStack, useToast } from '@chakra-ui/react'
-import { useOcResourceGet } from '@ordercloud/react-sdk'
-import { useEffect, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
-import { NavButton } from '../Layout/Layout'
-import { ApiError } from '../OperationForm'
-import ResourceList from '../ResourceList/ResourceList'
+import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  AlertTitle,
+  Box,
+  HStack,
+  Heading,
+  Button,
+  Table,
+  Tbody,
+  Td,
+  Text,
+  Th,
+  Thead,
+  Tr,
+  VStack,
+} from '@chakra-ui/react'
+import { useQuery } from '@tanstack/react-query'
+import { LineItems, OrderDirection, Orders } from 'ordercloud-javascript-sdk'
+import { useMemo, useState } from 'react'
+import { Link as RouterLink, useParams } from 'react-router-dom'
 
 function isRealPathParam(value: unknown): value is string {
   return (
@@ -19,26 +34,27 @@ function isRealPathParam(value: unknown): value is string {
 
 const OrderLineItemsRoute = () => {
   const { direction, orderID } = useParams()
-  const toast = useToast()
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(20)
 
   const hasValidParams = useMemo(
     () => isRealPathParam(direction) && isRealPathParam(orderID),
     [direction, orderID]
   )
 
-  const orderQuery = useOcResourceGet<any>(
-    'Orders',
-    { direction: direction || '', orderID: orderID || '' },
-    { disabled: !hasValidParams, staleTime: 300000 }
-  )
+  const orderQuery = useQuery<any>({
+    queryKey: ['order', direction, orderID],
+    queryFn: () => Orders.Get(direction as OrderDirection, orderID!),
+    enabled: hasValidParams,
+    staleTime: 300000,
+  })
 
-  useEffect(() => {
-    if (!hasValidParams || !orderQuery.isError) return
-    const ocError = orderQuery.error?.response?.data?.Errors?.[0] as ApiError
-    if (ocError && !toast.isActive(ocError.ErrorCode)) {
-      toast({ id: ocError.ErrorCode, title: ocError.Message, status: 'error' })
-    }
-  }, [hasValidParams, orderQuery.error?.response?.data?.Errors, orderQuery.isError, toast])
+  const lineItemsQuery = useQuery<any>({
+    queryKey: ['order-line-items', direction, orderID, page, pageSize],
+    queryFn: () => LineItems.List(direction as OrderDirection, orderID!, { page, pageSize }),
+    enabled: hasValidParams,
+    staleTime: 60000,
+  })
 
   if (!hasValidParams) {
     return (
@@ -56,26 +72,99 @@ const OrderLineItemsRoute = () => {
     )
   }
 
+  const tabs = [
+    { label: 'Details', to: `/orders/${direction}/${orderID}` },
+    { label: 'Line Items', to: `/orders/${direction}/${orderID}/line-items` },
+    { label: 'Promotions', to: `/orders/${direction}/${orderID}/promotions` },
+    { label: 'Approvers', to: `/orders/${direction}/${orderID}/approvers` },
+    { label: 'Approvals', to: `/orders/${direction}/${orderID}/approvals` },
+    { label: 'Payments', to: `/orders/${direction}/${orderID}/payments` },
+    { label: 'Shipments', to: `/orders/${direction}/${orderID}/shipments` },
+  ]
+
+  const lineItems = lineItemsQuery.data?.Items || []
+  const meta = lineItemsQuery.data?.Meta
+
   return (
     <>
-      <VStack position="sticky" top="0" zIndex={1} background="chakra-body-bg" alignItems="start" mb={0} pb={3} mx={-1} px={4} borderBottomWidth={1} borderBottomColor="chakra-border-color">
+      <VStack
+        position="sticky"
+        top="0"
+        zIndex={1}
+        background="chakra-body-bg"
+        alignItems="start"
+        mb={0}
+        pb={3}
+        mx={-1}
+        px={4}
+        borderBottomWidth={1}
+        borderBottomColor="chakra-border-color"
+      >
         <Box py={3} flexGrow="1" w="full">
           <Heading size="md" as="h1">{orderQuery.data?.ID || orderID}</Heading>
-          {orderQuery.data?.ID && orderQuery.data?.ID !== orderID && (
-            <Text mt="2px" fontSize="xs" color="chakra-subtle-text">{orderID}</Text>
-          )}
+          <Text mt="2px" fontSize="xs" color="chakra-subtle-text">{direction}</Text>
         </Box>
-        <HStack as="nav" id={`${orderID}-tabs`}>
-          <NavButton minW="auto" size="sm" rounded="full" to={`/orders/${direction}/${orderID}`}>Details</NavButton>
-          <NavButton minW="auto" size="sm" rounded="full" to={`/orders/${direction}/${orderID}/line-items`}>Line Items</NavButton>
-          <NavButton minW="auto" size="sm" rounded="full" to={`/orders/${direction}/${orderID}/promotions`}>Promotions</NavButton>
-          <NavButton minW="auto" size="sm" rounded="full" to={`/orders/${direction}/${orderID}/approvers`}>Approvers</NavButton>
-          <NavButton minW="auto" size="sm" rounded="full" to={`/orders/${direction}/${orderID}/approvals`}>Approvals</NavButton>
-          <NavButton minW="auto" size="sm" rounded="full" to={`/orders/${direction}/${orderID}/payments`}>Payments</NavButton>
-          <NavButton minW="auto" size="sm" rounded="full" to={`/orders/${direction}/${orderID}/shipments`}>Shipments</NavButton>
+        <HStack as="nav" spacing={2}>
+          {tabs.map((tab) => (
+            <Button
+              key={tab.label}
+              as={RouterLink}
+              to={tab.to}
+              px={3}
+              py={1}
+              borderWidth={1}
+              borderRadius="full"
+              bg={tab.label === 'Line Items' ? 'purple.600' : 'transparent'}
+              color={tab.label === 'Line Items' ? 'white' : 'inherit'}
+>
+              {tab.label}
+            </Button>
+          ))}
         </HStack>
       </VStack>
-      <ResourceList resourceName="LineItems" readOnly={true} />
+
+      <Box p={4}>
+        <Table size="sm">
+          <Thead>
+            <Tr>
+              <Th>ID</Th>
+              <Th>Ship From Address ID</Th>
+              <Th>Product ID</Th>
+              <Th isNumeric>Quantity</Th>
+              <Th>Bundle Item ID</Th>
+              <Th>Is Bundle Item</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {lineItems.map((item: any) => (
+              <Tr key={item.ID}>
+                <Td>{item.ID}</Td>
+                <Td>{item.ShipFromAddressID || '-'}</Td>
+                <Td>{item.ProductID || '-'}</Td>
+                <Td isNumeric>{item.Quantity}</Td>
+                <Td>{item.BundleItemID || '-'}</Td>
+                <Td>{item.IsBundleItem ? 'true' : 'false'}</Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+        {lineItemsQuery.isLoading && <Text mt={3}>Loading line items...</Text>}
+        {!lineItemsQuery.isLoading && lineItems.length === 0 && <Text mt={3}>No line items found.</Text>}
+
+        {meta?.TotalPages && meta.TotalPages > 1 && (
+          <HStack mt={4}>
+            <Button size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} isDisabled={page <= 1}>Previous</Button>
+            <Text>Page {meta.Page} of {meta.TotalPages}</Text>
+            <Button
+              size="sm"
+              onClick={() => setPage((p) => Math.min(meta.TotalPages || p, p + 1))}
+              isDisabled={page >= (meta.TotalPages || 1)}
+            >
+              Next
+            </Button>
+          </HStack>
+        )}
+      </Box>
     </>
   )
 }
