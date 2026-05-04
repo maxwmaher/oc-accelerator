@@ -119,8 +119,6 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   useEffect(() => {
     if (isLoggedIn && !selectedSeller) {
       sellerDisclosure.onOpen();
-    } else if (selectedSeller && sellerDisclosure.isOpen) {
-      sellerDisclosure.onClose();
     }
   }, [isLoggedIn, selectedSeller, sellerDisclosure]);
 
@@ -244,7 +242,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               </Badge>
             )}
             {isLoggedIn && (
-              <Button size="xs" variant="outline" onClick={() => sellerDisclosure.onOpen()} aria-label="Change seller">
+              <Button type="button" size="xs" variant="outline" onClick={() => sellerDisclosure.onOpen()} aria-label="Change seller">
                 Change seller
               </Button>
             )}
