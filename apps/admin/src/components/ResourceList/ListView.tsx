@@ -53,20 +53,35 @@ const ListView = <T extends IDefaultResource>({
   onOptionChange,
   itemActions,
 }: IListView<T>) => {
+  const hasInvalidPathParam = useMemo(() => {
+    if (!parameters) return false
+    return Object.values(parameters).some((value) => {
+      if (!value) return true
+      const decoded = decodeURIComponent(value)
+      return (
+        decoded.startsWith('{') ||
+        decoded.endsWith('}') ||
+        value.includes('%7B') ||
+        value.includes('%7D')
+      )
+    })
+  }, [parameters])
   
   const dataQuery = useOcResourceList(resourceName, listOptions, parameters, {
     staleTime: 300000, // 5 min
-    disabled: !(!preloadAssignments && !listAssignments ? hasAccess : !!listOptions?.ID),
+    disabled:
+      hasInvalidPathParam || !(!preloadAssignments && !listAssignments ? hasAccess : !!listOptions?.ID),
   })
 
   const assignmentDataQuery = useListAssignments(resourceName, undefined, listOptions, parameters, {
     staleTime: 300000, // 5 min
-    disabled: !(!!listAssignments && hasAccess),
+    disabled: hasInvalidPathParam || !(!!listAssignments && hasAccess),
   })
 
   const toast = useToast()
 
   useEffect(() => {
+    if (hasInvalidPathParam) return
     const ocError = dataQuery?.error?.response?.data?.Errors[0] as ApiError
     if (ocError && !toast.isActive(ocError.ErrorCode)) {
       toast({
@@ -75,7 +90,7 @@ const ListView = <T extends IDefaultResource>({
         status: 'error',
       })
     }
-  }, [dataQuery.error?.response?.data?.Errors, dataQuery.isError, toast])
+  }, [dataQuery.error?.response?.data?.Errors, dataQuery.isError, hasInvalidPathParam, toast])
 
   const renderContent = useMemo(() => {
     return (

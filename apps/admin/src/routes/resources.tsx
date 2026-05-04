@@ -3,6 +3,7 @@ import ResourceList from '../components/ResourceList/ResourceList'
 import { ResourceDetailWithParams } from '../components/ResourceDetail/ResourceDetail'
 import AssignmentList from '../components/AssignmentList/AssignmentList'
 import ResourceAssignment from '../components/ResourceAssignment/ResourceAssignment'
+import OrderLineItemsRoute from '../components/Orders/OrderLineItemsRoute'
 
 interface IndexResourceRoute extends IndexRouteObject {
   label?: string
@@ -108,6 +109,11 @@ export const resources: ResourceRoute[] = [
       />
     ),
   },
+
+  {
+    path: '/orders/:direction/:orderID/line-items',
+    element: <OrderLineItemsRoute />,
+  },
   {
     path: '/orders/:direction/:orderID',
     element: (
@@ -148,16 +154,7 @@ export const resources: ResourceRoute[] = [
     ),
     children: [
       {
-        path: `/orders/:direction/:orderID/line-items`,
-        element: (
-          <ResourceList
-            resourceName="LineItems"
-            readOnly={true}
-          />
-        ),
-      },
-      {
-        path: `/orders/:direction/:orderID/promotions`,
+        path: `promotions`,
         element: (
           <ResourceList
             resourceName="OrderPromotions"
@@ -167,7 +164,7 @@ export const resources: ResourceRoute[] = [
         ),
       },
       {
-        path: `/orders/:direction/:orderID/approvers`,
+        path: `approvers`,
         element: (
           <ResourceList
             resourceName="OrderApprovers"
@@ -176,7 +173,7 @@ export const resources: ResourceRoute[] = [
         ),
       },
       {
-        path: '/orders/:direction/:orderID/approvals',
+        path: 'approvals',
         element: (
           <ResourceList
             resourceName="OrderApprovals"
@@ -185,7 +182,7 @@ export const resources: ResourceRoute[] = [
         ),
       },
       {
-        path: `/orders/:direction/:orderID/payments`,
+        path: `payments`,
         element: (
           <ResourceList
             resourceName="Payments"
@@ -194,7 +191,7 @@ export const resources: ResourceRoute[] = [
         ),
       },
       {
-        path: `/orders/:direction/:orderID/shipments`,
+        path: `shipments`,
         element: (
           <ResourceList
             resourceName="OrderShipments"
