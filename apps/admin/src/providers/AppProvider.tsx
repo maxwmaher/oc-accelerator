@@ -1,4 +1,4 @@
-import { FC, useCallback } from 'react'
+import { FC, useCallback, useEffect } from 'react'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { IOrderCloudErrorContext, OrderCloudProvider } from '@ordercloud/react-sdk'
 import {
@@ -13,6 +13,7 @@ import { OrderCloudError } from 'ordercloud-javascript-sdk'
 import GlobalLoadingIndicator from '../components/Shared/GlobalLoadingIndicator'
 import { schemaObject } from '../config/xpSchemas'
 import routes from '../routes'
+import axios from 'axios'
 
 const basename = import.meta.env.VITE_APP_CONFIG_BASE
 
@@ -37,6 +38,23 @@ const AppProvider: FC = () => {
     },
     [toast]
   )
+
+  useEffect(() => {
+    const requestInterceptorId = axios.interceptors.request.use((config) => {
+      if (config.url?.includes('/v1/')) {
+        console.log('AppProvider axios request interceptor', {
+          method: config.method,
+          url: config.url,
+          params: config.params,
+        })
+      }
+      return config
+    })
+
+    return () => {
+      axios.interceptors.request.eject(requestInterceptorId)
+    }
+  }, [])
 
   return (
     <OrderCloudProvider
