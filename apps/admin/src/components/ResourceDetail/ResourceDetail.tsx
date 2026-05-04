@@ -56,11 +56,43 @@ const ResourceDetail: FC<IResourceDetail> = ({
 
   const { isAdmin } = useHasAccess(resourceName)
 
+  const hasPlaceholderParam = useMemo(() => {
+    if (!params) return false
+    return Object.values(params).some(
+      (value) => typeof value === 'string' && /^\{.+\}$/.test(value)
+    )
+  }, [params])
+
+  const hasMissingParam = useMemo(() => {
+    if (!params) return false
+    return Object.values(params).some((value) => value === undefined)
+  }, [params])
+
+  const shouldRequestResource = !hasPlaceholderParam && !hasMissingParam
+
   const dataQuery = useOcResourceGet(
     resourceName,
     params as { [key: string]: string },
-    { staleTime: 300000 } // 5 min
+    {
+      staleTime: 300000, // 5 min
+      disabled: !shouldRequestResource,
+    }
   )
+
+  useEffect(() => {
+    if (resourceName !== 'Orders') return
+    console.trace('OrderCloud request attempted from ResourceDetail', {
+      resource: resourceName,
+      routeParams: params,
+      shouldRequestResource,
+      pathname,
+      queryState: {
+        isFetching: dataQuery.isFetching,
+        isError: dataQuery.isError,
+        isSuccess: dataQuery.isSuccess,
+      },
+    })
+  }, [dataQuery.isError, dataQuery.isFetching, dataQuery.isSuccess, params, pathname, resourceName, shouldRequestResource])
 
   const showOperationForm = useMemo(() => {
     return Boolean(
