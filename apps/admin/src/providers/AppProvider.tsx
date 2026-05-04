@@ -1,4 +1,5 @@
-import { FC, useCallback } from 'react'
+import { FC, useCallback, useEffect } from 'react'
+import axios, { AxiosError } from 'axios'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { IOrderCloudErrorContext, OrderCloudProvider } from '@ordercloud/react-sdk'
 import {
@@ -20,6 +21,36 @@ const router = createBrowserRouter(routes, { basename })
 
 const AppProvider: FC = () => {
   const toast = useToast()
+
+  useEffect(() => {
+    const interceptorId = axios.interceptors.request.use((config) => {
+      const requestUrl = config.url || ''
+      const hasTemplateParam = requestUrl.includes('{') || requestUrl.includes('}')
+
+      if (hasTemplateParam) {
+        console.warn('Blocked OrderCloud request with unresolved template params', {
+          method: config.method,
+          url: config.url,
+          params: config.params,
+          source: 'axios.interceptors.request (AppProvider)',
+        })
+
+        return Promise.reject(
+          new AxiosError(
+            `Blocked request with unresolved template params: ${requestUrl}`,
+            'OC_TEMPLATE_PARAM_BLOCKED',
+            config
+          )
+        )
+      }
+
+      return config
+    })
+
+    return () => {
+      axios.interceptors.request.eject(interceptorId)
+    }
+  }, [])
 
   const defaultErrorHandler = useCallback(
     (error: OrderCloudError, { logout }: IOrderCloudErrorContext) => {
