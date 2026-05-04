@@ -90,6 +90,27 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     : "Customer Portal / SPO";
   const sellerDisclosure = useDisclosure({ defaultIsOpen: false });
 
+  const sellerOptionMeta: Record<string, { label: string; description: string }> = {
+    [user?.Seller?.ID || "admin"]: {
+      label: "Scania Direct",
+      description: "Purchase directly from Scania-managed catalog and pricing.",
+    },
+  };
+
+  availableSuppliers.forEach((supplier) => {
+    const name = (supplier.Name || "").toLowerCase();
+    const isUsed = /used/.test(name);
+    const isAxles = /axle/.test(name);
+    sellerOptionMeta[supplier.SupplierID] = {
+      label: isUsed ? "Used Parts Supplier" : isAxles ? "Axles Supplier" : supplier.Name || supplier.SupplierID,
+      description: isUsed
+        ? "Browse available used and refurbished components."
+        : isAxles
+          ? "Shop axle-related parts and supplier-specific pricing."
+          : "Shop supplier catalog and supplier-specific pricing.",
+    };
+  });
+
   useEffect(() => {
     if (!selectedCatalog && catalogs?.length)
       setSelectedCatalog(catalogs[0].ID);
@@ -98,8 +119,6 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   useEffect(() => {
     if (isLoggedIn && !selectedSeller) {
       sellerDisclosure.onOpen();
-    } else if (selectedSeller && sellerDisclosure.isOpen) {
-      sellerDisclosure.onClose();
     }
   }, [isLoggedIn, selectedSeller, sellerDisclosure]);
 
@@ -223,7 +242,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               </Badge>
             )}
             {isLoggedIn && (
-              <Button size="xs" variant="outline" onClick={sellerDisclosure.onOpen}>
+              <Button type="button" size="xs" variant="outline" onClick={() => sellerDisclosure.onOpen()} aria-label="Change seller">
                 Change seller
               </Button>
             )}
@@ -297,58 +316,71 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
       </Container>
       <Modal
         isOpen={sellerDisclosure.isOpen}
-        onClose={selectedSeller ? sellerDisclosure.onClose : () => undefined}
-        closeOnOverlayClick={!!selectedSeller}
+        onClose={sellerDisclosure.onClose}
+        closeOnOverlayClick
       >
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Who would you like to buy from?</ModalHeader>
-          {selectedSeller && <ModalCloseButton />}
+          <ModalHeader>Change seller</ModalHeader>
+          <ModalCloseButton />
           <ModalBody pb={6}>
-            <HStack alignItems="stretch" flexDirection="column">
+            <Text fontSize="sm" color="gray.600" mb={4}>
+              Choose which seller catalog and pricing context you want to shop from.
+            </Text>
+            <HStack alignItems="stretch" flexDirection="column" spacing={3}>
               <Card
                 as="button"
                 textAlign="left"
-                onClick={() =>
-                  onSelectSeller("admin", user?.Seller?.ID || "admin", "Scania")
-                }
+                borderWidth={selectedSeller?.sellerType === "admin" ? "2px" : "1px"}
+                borderColor={selectedSeller?.sellerType === "admin" ? "blue.500" : "gray.200"}
+                onClick={() => onSelectSeller("admin", user?.Seller?.ID || "admin", "Scania Direct")}
               >
                 <CardBody>
-                  <Heading size="sm">Buy from Scania</Heading>
+                  <Heading size="sm">Scania Direct</Heading>
                   <Text fontSize="sm" color="chakra-subtle-text">
-                    Scania fulfillment
+                    Purchase directly from Scania-managed catalog and pricing.
                   </Text>
                 </CardBody>
               </Card>
               {loadingSuppliers ? (
                 <Spinner />
               ) : (
-                availableSuppliers.map((supplier) => (
-                  <Card
-                    key={supplier.SupplierID}
-                    as="button"
-                    textAlign="left"
-                    onClick={() =>
-                      onSelectSeller(
-                        "supplier",
-                        supplier.SupplierID,
-                        supplier.Name || supplier.SupplierID
-                      )
-                    }
-                  >
-                    <CardBody>
-                      <Heading size="sm">{supplier.Name || supplier.SupplierID}</Heading>
-                      <Text fontSize="sm" color="chakra-subtle-text">
-                        Supplier fulfillment
-                      </Text>
-                    </CardBody>
-                  </Card>
-                ))
+                availableSuppliers.map((supplier) => {
+                  const option = sellerOptionMeta[supplier.SupplierID];
+                  const isSelected =
+                    selectedSeller?.sellerType === "supplier" &&
+                    selectedSeller?.sellerID === supplier.SupplierID;
+
+                  return (
+                    <Card
+                      key={supplier.SupplierID}
+                      as="button"
+                      textAlign="left"
+                      borderWidth={isSelected ? "2px" : "1px"}
+                      borderColor={isSelected ? "blue.500" : "gray.200"}
+                      onClick={() =>
+                        onSelectSeller(
+                          "supplier",
+                          supplier.SupplierID,
+                          option?.label || supplier.Name || supplier.SupplierID
+                        )
+                      }
+                    >
+                      <CardBody>
+                        <Heading size="sm">{option?.label || supplier.Name || supplier.SupplierID}</Heading>
+                        <Text fontSize="sm" color="chakra-subtle-text">
+                          {option?.description || "Shop supplier catalog and supplier-specific pricing."}
+                        </Text>
+                      </CardBody>
+                    </Card>
+                  );
+                })
               )}
             </HStack>
           </ModalBody>
         </ModalContent>
       </Modal>
+
     </HStack>
   );
 };
