@@ -43,6 +43,19 @@ const ResourceDetail: FC<IResourceDetail> = ({
   readOnly,
   bodyFieldsToHide,
 }) => {
+  const hasInvalidRouteParam = useMemo(() => {
+    if (!params) return false
+    return Object.values(params).some((value) => {
+      if (!value) return true
+      const decoded = decodeURIComponent(value)
+      return (
+        decoded.startsWith('{') ||
+        decoded.endsWith('}') ||
+        value.includes('%7B') ||
+        value.includes('%7D')
+      )
+    })
+  }, [params])
   const [currentItem, setCurrentItem] = useState<any>()
 
   const primaryActionRef = useRef<HTMLDivElement>(null)
@@ -59,7 +72,7 @@ const ResourceDetail: FC<IResourceDetail> = ({
   const dataQuery = useOcResourceGet(
     resourceName,
     params as { [key: string]: string },
-    { staleTime: 300000 } // 5 min
+    { staleTime: 300000, disabled: hasInvalidRouteParam } // 5 min
   )
 
   const showOperationForm = useMemo(() => {
@@ -74,7 +87,7 @@ const ResourceDetail: FC<IResourceDetail> = ({
   }, [dataQuery])
 
   useEffect(() => {
-    if (dataQuery.isError) {
+    if (dataQuery.isError && !hasInvalidRouteParam) {
       const ocError = dataQuery.error?.response?.data?.Errors[0] as ApiError
       if (ocError && !toast.isActive(ocError.ErrorCode)) {
         toast({
@@ -84,7 +97,7 @@ const ResourceDetail: FC<IResourceDetail> = ({
         })
       }
     }
-  }, [dataQuery.error?.response?.data?.Errors, dataQuery.isError, toast])
+  }, [dataQuery.error?.response?.data?.Errors, dataQuery.isError, hasInvalidRouteParam, toast])
 
   const resourceDetailNameDisplay = useMemo(() => {
     return renderResourceDisplayName(currentItem)

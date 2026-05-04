@@ -148,7 +148,7 @@ export const resources: ResourceRoute[] = [
     ),
     children: [
       {
-        path: `/orders/:direction/:orderID/line-items`,
+        path: `line-items`,
         element: (
           <ResourceList
             resourceName="LineItems"
@@ -157,7 +157,7 @@ export const resources: ResourceRoute[] = [
         ),
       },
       {
-        path: `/orders/:direction/:orderID/promotions`,
+        path: `promotions`,
         element: (
           <ResourceList
             resourceName="OrderPromotions"
@@ -167,7 +167,7 @@ export const resources: ResourceRoute[] = [
         ),
       },
       {
-        path: `/orders/:direction/:orderID/approvers`,
+        path: `approvers`,
         element: (
           <ResourceList
             resourceName="OrderApprovers"
@@ -176,7 +176,7 @@ export const resources: ResourceRoute[] = [
         ),
       },
       {
-        path: '/orders/:direction/:orderID/approvals',
+        path: 'approvals',
         element: (
           <ResourceList
             resourceName="OrderApprovals"
@@ -185,7 +185,7 @@ export const resources: ResourceRoute[] = [
         ),
       },
       {
-        path: `/orders/:direction/:orderID/payments`,
+        path: `payments`,
         element: (
           <ResourceList
             resourceName="Payments"
@@ -194,7 +194,7 @@ export const resources: ResourceRoute[] = [
         ),
       },
       {
-        path: `/orders/:direction/:orderID/shipments`,
+        path: `shipments`,
         element: (
           <ResourceList
             resourceName="OrderShipments"
