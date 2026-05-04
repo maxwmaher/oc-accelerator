@@ -54,16 +54,14 @@ const BRAND_COLOR_ACCENT =
 const DASHBOARD_HERO_TAGLINE =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_HERO_TAGLINE ||
   `Welcome to ${APP_NAME} storefront app`;
-const DASHBOARD_HERO_IMAGE = import.meta.env
-  .VITE_APP_ORDERCLOUD_DASHBOARD_HERO_IMAGE;
+const DASHBOARD_HERO_IMAGE = 'https://www.scania.com/group/en/home/_jcr_content/root/responsivegrid/responsivegrid_19653/responsivegrid_20637/responsivegrid_1576025250/responsivegrid_26485/heroimage_copy.coreimg.85.1920.jpeg/1772548889282/annual-update-24141-012-16-7.jpeg';
 const DASHBOARD_HERO_CTA_TEXT =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_HERO_CTA_TEXT ||
   "Call to action";
 const DASHBOARD_HERO_CTA_LINK = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_HERO_CTA_LINK;
 
-const DASHBOARD_SECONDARY_IMAGE = import.meta.env
-  .VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_IMAGE;
+const DASHBOARD_SECONDARY_IMAGE = 'https://www.scania.com/group/en/home/_jcr_content/root/responsivegrid/responsivegrid_19653/responsivegrid_20637/responsivegrid_1407863776/responsivegrid_copy_/responsivegrid/heroimage_copy.coreimg.85.1920.jpeg/1773067352633/autonomous-trucks-scania.jpeg';
 const DASHBOARD_SECONDARY_HEADING =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_HEADING ||
   "Secondary heading text";
@@ -76,8 +74,7 @@ const DASHBOARD_SECONDARY_CTA_TEXT =
 const DASHBOARD_SECONDARY_CTA_LINK = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_CTA_LINK;
 
-const DASHBOARD_TERTIARY_IMAGE = import.meta.env
-  .VITE_APP_ORDERCLOUD_DASHBOARD_TERTIARY_IMAGE;
+const DASHBOARD_TERTIARY_IMAGE = 'https://www.scania.com/group/en/home/_jcr_content/root/responsivegrid/responsivegrid_19653/responsivegrid_19676/responsivegrid_10538/responsivegrid_copy_/heroimage.coreimg.85.1920.jpeg/1713527401857/join-scania-22060-035.jpeg';
 const DASHBOARD_TERTIARY_HEADING =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_TERTIARY_HEADING ||
   "Tertiary heading text";
