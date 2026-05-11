@@ -87,13 +87,13 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   );
   const portalLabel = isUsedPartsPortal
     ? "Outdoor Gear Buyer Portal"
-    : "Outdoor Storefront Demo";
+    : "Outdoor Living Store";
   const sellerDisclosure = useDisclosure({ defaultIsOpen: false });
 
   const sellerOptionMeta: Record<string, { label: string; description: string }> = {
     [user?.Seller?.ID || "admin"]: {
       label: "Dometic Direct",
-      description: "Shop Dometic-style outdoor living gear and demo pricing.",
+      description: "Shop Dometic outdoor living gear with curated pricing.",
     },
   };
 
@@ -338,7 +338,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                 <CardBody>
                   <Heading size="sm">Dometic Direct</Heading>
                   <Text fontSize="sm" color="chakra-subtle-text">
-                    Shop Dometic-style outdoor living gear and demo pricing.
+                    Shop Dometic outdoor living gear with curated pricing.
                   </Text>
                 </CardBody>
               </Card>

@@ -146,6 +146,9 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
   };
 
   const acceptPayment = async (orderID: string, paymentID: string) => {
+    if (!DEMO_FUNCTIONS_BASE_URL) {
+      throw new Error("Payment acceptance service is not configured.");
+    }
     const endpoint = `${DEMO_FUNCTIONS_BASE_URL}/api/payments/accept`;
     const response = await fetch(endpoint, {
       method: "POST",

@@ -12,7 +12,7 @@ import {
 } from "@chakra-ui/react";
 import { FC } from "react";
 import { Link as RouterLink } from "react-router-dom";
-// TODO: Replace these local Dometic-style demo placeholders with licensed Dometic Media Bank/press-kit downloads when available.
+// TODO: Replace these local Dometic-style placeholders with licensed Dometic Media Bank/press-kit downloads when available.
 // Recommended slots: hero = RV campsite meal lifestyle; secondary = RV/van road-trip comfort; tertiary = cooler or outdoor gear product promo.
 import heroCampsiteImage from "../assets/storefront/dometic-rv-campsite-meal.svg";
 import roadTripImage from "../assets/storefront/dometic-rv-road-trip.svg";
@@ -49,7 +49,7 @@ const DometicPortalMark: FC = () => (
       </svg>
     </Box>
     <Stack spacing={0}>
-      <Text fontSize="xs" letterSpacing="0.12em" color="gray.500" fontWeight="semibold">OUTDOOR STOREFRONT DEMO</Text>
+      <Text fontSize="xs" letterSpacing="0.12em" color="gray.500" fontWeight="semibold">OUTDOOR LIVING STORE</Text>
       <Text fontSize="xl" fontWeight="bold" color="#12352F" letterSpacing="0.08em">DOMETIC</Text>
     </Stack>
   </HStack>
@@ -61,11 +61,11 @@ const Dashboard: FC = () => (
       <Stack justifyContent="center" alignItems="flex-start" gap={6} px={{ base: 8, md: 12, lg: 20 }} py={{ base: 12, lg: 16 }}>
         <DometicPortalMark />
         <Badge colorScheme="green" variant="subtle" px={3} py={1} borderRadius="full">RV, Van & Outdoor Living</Badge>
-        <Heading maxW={{ lg: "lg" }} size="3xl" as="h1" color="gray.800">Gear for life beyond four walls</Heading>
-        <Text maxW="2xl" color="gray.600" fontSize="lg">Welcome to a fictional Dometic-style storefront demo for premium mobile comfort. Discover road-trip essentials, campsite-ready refrigeration, power and solar gear, and outdoor living products built for weekends away or seasons on the road.</Text>
+        <Heading maxW={{ lg: "lg" }} size="3xl" as="h1" color="gray.800">Gear for life beyond four walls.</Heading>
+        <Text maxW="2xl" color="gray.600" fontSize="lg">Explore premium solutions for mobile comfort, outdoor living, and every journey in between. From cooling and cooking to power, shade, and camp essentials, Dometic helps make the road feel more like home.</Text>
         <HStack spacing={4} pt={2} flexWrap="wrap">
-          <Button as={RouterLink} to="/products" colorScheme="green" size="md">Shop outdoor gear</Button>
-          <Button as={RouterLink} to="/orders" variant="outline" colorScheme="green" size="md">View orders</Button>
+          <Button as={RouterLink} to="/products" colorScheme="green" size="md">Shop Outdoor Living</Button>
+          <Button as={RouterLink} to="/orders" variant="outline" colorScheme="green" size="md">Build Your Setup</Button>
         </HStack>
       </Stack>
       <Image h={{ base: "45vh", lg: "72vh" }} w="full" objectFit="cover" objectPosition={{ base: "58% center", lg: "center" }} src={homepageImageSlots.hero.src} alt={homepageImageSlots.hero.alt} />

@@ -1,4 +1,4 @@
-# Storefront homepage demo imagery
+# Storefront homepage imagery
 
 These SVG files are local, original Dometic-style placeholders used because the official Dometic media/image gallery routes reviewed for this task either pointed to an expired Media Bank moodboard, Google Drive folders, or JavaScript/cookie-gated Brandfolder assets that should not be scraped around.
 
