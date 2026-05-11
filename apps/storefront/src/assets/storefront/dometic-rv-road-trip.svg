@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">RV parked for a road trip with outdoor living setup</title>
+  <desc id="desc">A premium illustrated RV and van travel setup beside a lake with an awning, camp chairs, compact kitchen, and open-road landscape.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#cfe1de"/><stop offset="0.55" stop-color="#f6dfb4"/><stop offset="1" stop-color="#f4f0e5"/></linearGradient>
+    <linearGradient id="road" x1="0" x2="1"><stop offset="0" stop-color="#594936"/><stop offset="1" stop-color="#1f302c"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#18231f" flood-opacity="0.24"/></filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <path d="M0 445 C220 330 440 345 640 455 C860 320 1080 320 1300 462 C1430 390 1525 400 1600 455 L1600 1000 L0 1000 Z" fill="#536e5a"/>
+  <path d="M0 560 C280 505 520 515 760 565 C1020 505 1300 510 1600 570 L1600 720 L0 720 Z" fill="#739293" opacity="0.82"/>
+  <path d="M0 705 C280 635 492 646 695 705 C980 610 1265 625 1600 708 L1600 1000 L0 1000 Z" fill="url(#road)"/>
+  <path d="M1090 728 C1220 760 1390 830 1600 940" stroke="#ead7a0" stroke-width="12" opacity="0.55" fill="none"/>
+  <g filter="url(#shadow)">
+    <path d="M250 440 H890 C942 440 996 482 1015 535 L1070 690 H260 C205 690 170 650 180 600 L210 482 C216 455 230 440 250 440 Z" fill="#f4efe6"/>
+    <path d="M248 452 H440 V690 H210 C188 660 184 636 190 600 L212 496 C218 468 230 452 248 452 Z" fill="#2d3e42"/>
+    <rect x="490" y="480" width="150" height="105" rx="16" fill="#263a43"/>
+    <rect x="680" y="480" width="150" height="105" rx="16" fill="#263a43"/>
+    <rect x="850" y="500" width="82" height="190" rx="10" fill="#d5c9b9"/>
+    <circle cx="375" cy="706" r="62" fill="#1f2428"/><circle cx="375" cy="706" r="32" fill="#bfc8c4"/>
+    <circle cx="875" cy="706" r="62" fill="#1f2428"/><circle cx="875" cy="706" r="32" fill="#bfc8c4"/>
+    <rect x="980" y="475" width="370" height="44" rx="22" fill="#c7773d"/>
+    <path d="M1010 520 L940 730" stroke="#4c3829" stroke-width="12" stroke-linecap="round"/>
+    <path d="M1320 520 L1370 730" stroke="#4c3829" stroke-width="12" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="1115" y="645" width="148" height="84" rx="14" fill="#273f3d"/>
+    <rect x="1135" y="620" width="108" height="34" rx="12" fill="#e4d9c4"/>
+    <path d="M1188 618 V580" stroke="#273f3d" stroke-width="10" stroke-linecap="round"/>
+    <path d="M1238 692 H1348" stroke="#e6d5ad" stroke-width="18" stroke-linecap="round"/>
+    <path d="M1276 670 L1225 790" stroke="#2c3028" stroke-width="12" stroke-linecap="round"/>
+    <path d="M1330 670 L1372 790" stroke="#2c3028" stroke-width="12" stroke-linecap="round"/>
+    <path d="M1028 676 L965 795" stroke="#2c3028" stroke-width="12" stroke-linecap="round"/>
+    <path d="M1078 676 L1122 795" stroke="#2c3028" stroke-width="12" stroke-linecap="round"/>
+    <path d="M990 675 H1100 L1080 730 H965 Z" fill="#9cb7b1"/>
+  </g>
+  <g opacity="0.55" fill="#f3e6bd">
+    <rect x="110" y="805" width="160" height="22" rx="11"/>
+    <rect x="310" y="825" width="105" height="18" rx="9"/>
+    <rect x="1410" y="790" width="115" height="18" rx="9"/>
+  </g>
+</svg>
