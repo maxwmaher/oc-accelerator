@@ -15,27 +15,40 @@ public class AcceptPaymentFunction(
 {
     [Function("acceptpayment")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "payments/accept")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", "options", Route = "payments/accept")] HttpRequestData req)
     {
-        logger.LogInformation("PAYMENT_ACCEPT_DEBUG_2026_05_12: payments/accept handler entered method={Method} url={Url}", req.Method, req.Url);
+        logger.LogInformation("PAYMENT_ACCEPT_DEBUG_2026_05_12: acceptpayment handler entered method={Method} url={Url}", req.Method, req.Url);
 
         if (string.Equals(req.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
         {
             return await WriteJsonResponseAsync(req, HttpStatusCode.NoContent);
         }
 
-        var body = await new StreamReader(req.Body).ReadToEndAsync();
-        var request = JsonConvert.DeserializeObject<AcceptPaymentRequest>(body);
-        var direction = ParseDirection(request?.Direction);
+        if (string.Equals(req.Method, "GET", StringComparison.OrdinalIgnoreCase))
+        {
+            return await WriteJsonResponseAsync(req, HttpStatusCode.OK, new
+            {
+                ok = true,
+                function = "acceptpayment",
+                message = "acceptpayment route reached"
+            });
+        }
+
+        AcceptPaymentRequest? request = null;
+        var direction = OrderDirection.All;
 
         try
         {
+            var body = await new StreamReader(req.Body).ReadToEndAsync();
+            request = JsonConvert.DeserializeObject<AcceptPaymentRequest>(body);
+            direction = ParseDirection(request?.Direction);
             if (request == null || string.IsNullOrWhiteSpace(request.OrderID) || string.IsNullOrWhiteSpace(request.PaymentID))
             {
                 logger.LogWarning("Demo payment acceptance request missing orderID/paymentID direction={Direction} body={Body}", request?.Direction, body);
                 return await WriteJsonResponseAsync(req, HttpStatusCode.BadRequest, new
                 {
                     error = "Request body must include orderID and paymentID.",
+                    expectedPayload = new { orderID = "string", paymentID = "string", direction = "All", amount = "number" },
                     receivedDirection = request?.Direction
                 });
             }
@@ -137,6 +150,15 @@ public class AcceptPaymentFunction(
                 acceptedPayment.Amount);
 
             return await WriteJsonResponseAsync(req, HttpStatusCode.OK, acceptedPayment);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(ex, "Demo payment acceptance request body was not valid JSON.");
+            return await WriteJsonResponseAsync(req, HttpStatusCode.BadRequest, new
+            {
+                error = "Request body must be valid JSON.",
+                expectedPayload = new { orderID = "string", paymentID = "string", direction = "All", amount = "number" }
+            });
         }
         catch (OrderCloudException ex)
         {
@@ -261,7 +283,7 @@ public class AcceptPaymentFunction(
     private static void AddCorsHeaders(HttpResponseData response)
     {
         response.Headers.Add("Access-Control-Allow-Origin", "*");
-        response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+        response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
         response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
         response.Headers.Add("Access-Control-Max-Age", "86400");
     }

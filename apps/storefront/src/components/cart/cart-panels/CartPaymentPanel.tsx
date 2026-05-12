@@ -19,7 +19,7 @@ import { useShopper } from "@ordercloud/react-sdk";
 import { Order, Orders, Payment, Payments } from "ordercloud-javascript-sdk";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import formatPrice from "../../../utils/formatPrice";
-import { DEMO_FUNCTIONS_BASE_URL } from "../../../config/demoFunctions";
+import { getDemoAcceptPaymentUrl } from "../../../config/demoFunctions";
 
 type CartPaymentPanelProps = {
   submitOrder: () => void;
@@ -67,13 +67,6 @@ type DemoPaymentXp = {
 
 type DemoPayment = Payment<DemoPaymentXp>;
 
-
-const getAcceptPaymentEndpoint = () => {
-  if (!DEMO_FUNCTIONS_BASE_URL) return "/api/payments/accept";
-  return DEMO_FUNCTIONS_BASE_URL.endsWith("/api")
-    ? `${DEMO_FUNCTIONS_BASE_URL}/payments/accept`
-    : `${DEMO_FUNCTIONS_BASE_URL}/api/payments/accept`;
-};
 
 const parseResponseBody = (responseText: string) => {
   if (!responseText) return null;
@@ -176,25 +169,34 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
 
   const acceptPayment = async (orderID: string, paymentID: string, amount: number) => {
     const direction = "All";
-    const endpoint = getAcceptPaymentEndpoint();
+    const endpoint = getDemoAcceptPaymentUrl();
     const requestBody = { orderID, paymentID, direction, amount };
-    console.info("Calling demo payment acceptance endpoint", { endpoint, ...requestBody });
+    console.info("PAYMENT_ACCEPT_DEBUG: resolved accept URL", endpoint);
+    console.info("PAYMENT_ACCEPT_DEBUG: calling acceptpayment with orderID/paymentID/direction/amount", requestBody);
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
-    });
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
 
-    const responseText = await response.text();
-    const responseBody = parseResponseBody(responseText);
-    if (!response.ok) {
-      console.error("Demo payment acceptance failed", { status: response.status, endpoint, requestBody, responseBody });
-      throw new Error(responseBody?.message || responseBody?.error || `Payment acceptance failed (${response.status})`);
+      const responseText = await response.text();
+      const responseBody = parseResponseBody(responseText);
+      console.info("PAYMENT_ACCEPT_DEBUG: acceptpayment response status", response.status);
+      console.info("PAYMENT_ACCEPT_DEBUG: acceptpayment response body", responseBody);
+
+      if (!response.ok) {
+        const error = new Error(responseBody?.message || responseBody?.error || `Payment acceptance failed (${response.status})`);
+        console.error("PAYMENT_ACCEPT_DEBUG: acceptpayment failed", { error, status: response.status, endpoint, requestBody, responseBody });
+        throw error;
+      }
+
+      return responseBody as DemoPayment;
+    } catch (error) {
+      console.error("PAYMENT_ACCEPT_DEBUG: acceptpayment failed", { error, endpoint, requestBody });
+      throw error;
     }
-
-    console.info("Demo payment acceptance succeeded", { orderID, paymentID, direction, responseBody });
-    return responseBody as DemoPayment;
   };
 
   const onSubmitDemoPayment = async (e: FormEvent) => {
@@ -250,7 +252,7 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
         : await Payments.Create("Outgoing", currentOrder.ID, createdPaymentRequest);
 
       if (!workingPayment?.ID) throw new Error("Payment was created or updated without an ID.");
-      console.info("Demo payment created or updated successfully", {
+      console.info("PAYMENT_ACCEPT_DEBUG: payment created", {
         orderID: currentOrder.ID,
         paymentID: workingPayment.ID,
         amount: workingPayment.Amount,
