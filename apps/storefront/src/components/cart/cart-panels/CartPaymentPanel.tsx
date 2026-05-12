@@ -170,31 +170,52 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
   const acceptPayment = async (orderID: string, paymentID: string, amount: number) => {
     const direction = "All";
     const endpoint = getDemoAcceptPaymentUrl();
+    const method = "POST";
     const requestBody = { orderID, paymentID, direction, amount };
-    console.info("PAYMENT_ACCEPT_DEBUG: resolved accept URL", endpoint);
-    console.info("PAYMENT_ACCEPT_DEBUG: calling acceptpayment with orderID/paymentID/direction/amount", requestBody);
 
     try {
+      if (!endpoint) {
+        throw new Error("PAYMENT_FLOW_DEBUG: missing functions base URL, cannot call acceptpayment");
+      }
+
+      console.info("PAYMENT_FLOW_DEBUG: about to accept payment", {
+        resolvedUrl: endpoint,
+        method,
+        requestPayload: requestBody,
+      });
+
       const response = await fetch(endpoint, {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
 
       const responseText = await response.text();
       const responseBody = parseResponseBody(responseText);
-      console.info("PAYMENT_ACCEPT_DEBUG: acceptpayment response status", response.status);
-      console.info("PAYMENT_ACCEPT_DEBUG: acceptpayment response body", responseBody);
+      console.info("PAYMENT_FLOW_DEBUG: accept payment response", {
+        status: response.status,
+        responseBody,
+      });
 
       if (!response.ok) {
         const error = new Error(responseBody?.message || responseBody?.error || `Payment acceptance failed (${response.status})`);
-        console.error("PAYMENT_ACCEPT_DEBUG: acceptpayment failed", { error, status: response.status, endpoint, requestBody, responseBody });
+        console.error("PAYMENT_FLOW_DEBUG: accept payment failed", {
+          error,
+          resolvedUrl: endpoint,
+          payload: requestBody,
+          status: response.status,
+          responseBody,
+        });
         throw error;
       }
 
       return responseBody as DemoPayment;
     } catch (error) {
-      console.error("PAYMENT_ACCEPT_DEBUG: acceptpayment failed", { error, endpoint, requestBody });
+      console.error("PAYMENT_FLOW_DEBUG: accept payment failed", {
+        error,
+        resolvedUrl: endpoint,
+        payload: requestBody,
+      });
       throw error;
     }
   };
@@ -247,16 +268,25 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
         paymentToUse = null;
       }
 
+      console.info("PAYMENT_FLOW_DEBUG: about to create payment", {
+        orderID: currentOrder.ID,
+        direction: "Outgoing",
+        amount: paymentAmount,
+        requestPayload: createdPaymentRequest,
+        existingPaymentID: paymentToUse?.ID || null,
+      });
+
       const workingPayment = paymentToUse?.ID
         ? await Payments.Patch("Outgoing", currentOrder.ID, paymentToUse.ID, createdPaymentRequest)
         : await Payments.Create("Outgoing", currentOrder.ID, createdPaymentRequest);
 
       if (!workingPayment?.ID) throw new Error("Payment was created or updated without an ID.");
-      console.info("PAYMENT_ACCEPT_DEBUG: payment created", {
+      console.info("PAYMENT_FLOW_DEBUG: payment created", {
         orderID: currentOrder.ID,
         paymentID: workingPayment.ID,
-        amount: workingPayment.Amount,
-        accepted: workingPayment.Accepted,
+        direction: "Outgoing",
+        amount: workingPayment.Amount ?? paymentAmount,
+        rawCreatedPaymentResponse: workingPayment,
       });
 
       const paymentCheck = await Payments.Get("Outgoing", currentOrder.ID, workingPayment.ID);
