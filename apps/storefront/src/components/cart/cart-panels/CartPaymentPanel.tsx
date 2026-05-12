@@ -174,10 +174,6 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
     const requestBody = { orderID, paymentID, direction, amount };
 
     try {
-      if (!endpoint) {
-        throw new Error("PAYMENT_FLOW_DEBUG: missing functions base URL, cannot call acceptpayment");
-      }
-
       console.info("PAYMENT_FLOW_DEBUG: about to accept payment", {
         resolvedUrl: endpoint,
         method,
