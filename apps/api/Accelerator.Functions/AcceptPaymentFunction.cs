@@ -13,6 +13,8 @@ public class AcceptPaymentFunction(
     IOrderCloudClient oc,
     IConfiguration configuration)
 {
+    private const string StorefrontOrigin = "https://vzafkx-storefront-k32htclyatsue.azurewebsites.net";
+
     [Function("acceptpayment")]
     public async Task<HttpResponseData> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", "options", Route = "payments/accept")] HttpRequestData req)
@@ -282,9 +284,9 @@ public class AcceptPaymentFunction(
 
     private static void AddCorsHeaders(HttpResponseData response)
     {
-        response.Headers.Add("Access-Control-Allow-Origin", "*");
-        response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.Headers.Add("Access-Control-Allow-Origin", StorefrontOrigin);
+        response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+        response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
         response.Headers.Add("Access-Control-Max-Age", "86400");
     }
 
