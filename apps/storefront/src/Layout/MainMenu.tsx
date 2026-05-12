@@ -86,14 +86,14 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     [selectedCatalogName]
   );
   const portalLabel = isUsedPartsPortal
-    ? "Used Parts Buyer Portal"
-    : "Customer Portal / SPO";
+    ? "Outdoor Gear Buyer Portal"
+    : "Outdoor Living Store";
   const sellerDisclosure = useDisclosure({ defaultIsOpen: false });
 
   const sellerOptionMeta: Record<string, { label: string; description: string }> = {
     [user?.Seller?.ID || "admin"]: {
-      label: "Scania Direct",
-      description: "Purchase directly from Scania-managed catalog and pricing.",
+      label: "Dometic Direct",
+      description: "Shop Dometic outdoor living gear with curated pricing.",
     },
   };
 
@@ -102,12 +102,12 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     const isUsed = /used/.test(name);
     const isAxles = /axle/.test(name);
     sellerOptionMeta[supplier.SupplierID] = {
-      label: isUsed ? "Used Parts Supplier" : isAxles ? "Axles Supplier" : supplier.Name || supplier.SupplierID,
+      label: isUsed ? "Certified Gear Partner" : isAxles ? "RV & Van Gear Partner" : supplier.Name || supplier.SupplierID,
       description: isUsed
-        ? "Browse available used and refurbished components."
+        ? "Browse curated camping, cooling, and mobile-living gear."
         : isAxles
-          ? "Shop axle-related parts and supplier-specific pricing."
-          : "Shop supplier catalog and supplier-specific pricing.",
+          ? "Shop RV and van comfort products with partner-specific pricing."
+          : "Shop partner gear and partner-specific pricing.",
     };
   });
 
@@ -229,7 +229,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                 variant="ghost"
                 onClick={megaMenuDisclosure.onToggle}
               >
-                {isUsedPartsPortal ? "Used Parts Categories" : "Categories"}
+                {isUsedPartsPortal ? "Gear Categories" : "Categories"}
               </Button>
             )}
             {renderCatalogMenu()}
@@ -333,12 +333,12 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                 textAlign="left"
                 borderWidth={selectedSeller?.sellerType === "admin" ? "2px" : "1px"}
                 borderColor={selectedSeller?.sellerType === "admin" ? "blue.500" : "gray.200"}
-                onClick={() => onSelectSeller("admin", user?.Seller?.ID || "admin", "Scania Direct")}
+                onClick={() => onSelectSeller("admin", user?.Seller?.ID || "admin", "Dometic Direct")}
               >
                 <CardBody>
-                  <Heading size="sm">Scania Direct</Heading>
+                  <Heading size="sm">Dometic Direct</Heading>
                   <Text fontSize="sm" color="chakra-subtle-text">
-                    Purchase directly from Scania-managed catalog and pricing.
+                    Shop Dometic outdoor living gear with curated pricing.
                   </Text>
                 </CardBody>
               </Card>
@@ -369,7 +369,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                       <CardBody>
                         <Heading size="sm">{option?.label || supplier.Name || supplier.SupplierID}</Heading>
                         <Text fontSize="sm" color="chakra-subtle-text">
-                          {option?.description || "Shop supplier catalog and supplier-specific pricing."}
+                          {option?.description || "Shop partner gear and partner-specific pricing."}
                         </Text>
                       </CardBody>
                     </Card>
