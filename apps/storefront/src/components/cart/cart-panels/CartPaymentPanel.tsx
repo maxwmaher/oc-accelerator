@@ -55,6 +55,35 @@ type DemoPaymentSummary = {
   amount: number;
 };
 
+type DemoPaymentXp = {
+  BillingZip?: string;
+  CardType?: string;
+  CardholderName?: string;
+  DemoPayment?: boolean;
+  ExpirationMonth?: number;
+  ExpirationYear?: number;
+  LastFour?: string;
+};
+
+type DemoPayment = Payment<DemoPaymentXp>;
+
+
+const getAcceptPaymentEndpoint = () => {
+  if (!DEMO_FUNCTIONS_BASE_URL) return "/api/payments/accept";
+  return DEMO_FUNCTIONS_BASE_URL.endsWith("/api")
+    ? `${DEMO_FUNCTIONS_BASE_URL}/payments/accept`
+    : `${DEMO_FUNCTIONS_BASE_URL}/api/payments/accept`;
+};
+
+const parseResponseBody = (responseText: string) => {
+  if (!responseText) return null;
+  try {
+    return JSON.parse(responseText);
+  } catch {
+    return { message: responseText };
+  }
+};
+
 const getCardType = (cardNumber: string) => {
   if (/^4/.test(cardNumber)) return "Visa";
   if (/^5[1-5]/.test(cardNumber)) return "Mastercard";
@@ -69,8 +98,8 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
   const [processingPayment, setProcessingPayment] = useState(false);
   const [formData, setFormData] = useState<DemoPaymentForm>(initialState);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof DemoPaymentForm, string>>>({});
-  const [acceptedPayment, setAcceptedPayment] = useState<Payment | null>(null);
-  const [existingPayment, setExistingPayment] = useState<Payment | null>(null);
+  const [acceptedPayment, setAcceptedPayment] = useState<DemoPayment | null>(null);
+  const [existingPayment, setExistingPayment] = useState<DemoPayment | null>(null);
   const [summary, setSummary] = useState<DemoPaymentSummary | null>(null);
   const [loadingPaymentState, setLoadingPaymentState] = useState(false);
 
@@ -88,17 +117,17 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
       try {
         setLoadingPaymentState(true);
         const paymentList = await Payments.List("Outgoing", orderID, { pageSize: 100, sortBy: ["DateCreated"] });
-        let accepted: Payment | null = (paymentList.Items?.find((payment) => payment.Accepted) as Payment | undefined) || null;
+        let accepted: DemoPayment | null = (paymentList.Items?.find((payment) => payment.Accepted) as DemoPayment | undefined) || null;
         const latest = paymentList.Items?.[paymentList.Items.length - 1] || null;
         if (accepted?.ID && amountsDiffer(accepted.Amount, total)) {
-          accepted = await acceptPayment(orderID, accepted.ID);
+          accepted = await acceptPayment(orderID, accepted.ID, total);
         }
 
         const selected = accepted || latest;
         setAcceptedPayment(accepted || null);
         setExistingPayment(selected);
         if (accepted) {
-          const xp = (accepted.xp || {}) as any;
+          const xp = accepted.xp || {};
           setSummary({
             cardholderName: xp.CardholderName || "Cardholder",
             cardType: xp.CardType || "Credit Card",
@@ -145,20 +174,27 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
     return Object.keys(nextErrors).length === 0;
   };
 
-  const acceptPayment = async (orderID: string, paymentID: string) => {
-    if (!DEMO_FUNCTIONS_BASE_URL) {
-      throw new Error("Payment acceptance service is not configured.");
-    }
-    const endpoint = `${DEMO_FUNCTIONS_BASE_URL}/api/payments/accept`;
+  const acceptPayment = async (orderID: string, paymentID: string, amount: number) => {
+    const direction = "All";
+    const endpoint = getAcceptPaymentEndpoint();
+    const requestBody = { orderID, paymentID, direction, amount };
+    console.info("Calling demo payment acceptance endpoint", { endpoint, ...requestBody });
+
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderID, paymentID }),
+      body: JSON.stringify(requestBody),
     });
+
+    const responseText = await response.text();
+    const responseBody = parseResponseBody(responseText);
     if (!response.ok) {
-      throw new Error(`Payment acceptance failed (${response.status})`);
+      console.error("Demo payment acceptance failed", { status: response.status, endpoint, requestBody, responseBody });
+      throw new Error(responseBody?.message || responseBody?.error || `Payment acceptance failed (${response.status})`);
     }
-    return (await response.json()) as Payment;
+
+    console.info("Demo payment acceptance succeeded", { orderID, paymentID, direction, responseBody });
+    return responseBody as DemoPayment;
   };
 
   const onSubmitDemoPayment = async (e: FormEvent) => {
@@ -191,7 +227,7 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
       }
 
       const createdPaymentRequest = {
-        Type: "CreditCard" as any,
+        Type: "CreditCard" as const,
         Amount: paymentAmount,
         xp: {
           CardholderName: formData.nameOnCard.trim(),
@@ -214,10 +250,23 @@ export const CartPaymentPanel = ({ submitOrder, submitting }: CartPaymentPanelPr
         : await Payments.Create("Outgoing", currentOrder.ID, createdPaymentRequest);
 
       if (!workingPayment?.ID) throw new Error("Payment was created or updated without an ID.");
+      console.info("Demo payment created or updated successfully", {
+        orderID: currentOrder.ID,
+        paymentID: workingPayment.ID,
+        amount: workingPayment.Amount,
+        accepted: workingPayment.Accepted,
+      });
+
       const paymentCheck = await Payments.Get("Outgoing", currentOrder.ID, workingPayment.ID);
       if (!paymentCheck?.ID) throw new Error("Unable to verify created payment before acceptance.");
+      console.info("Demo payment verified before acceptance", {
+        orderID: currentOrder.ID,
+        paymentID: paymentCheck.ID,
+        amount: paymentCheck.Amount,
+        accepted: paymentCheck.Accepted,
+      });
 
-      const accepted = await acceptPayment(currentOrder.ID, workingPayment.ID);
+      const accepted = await acceptPayment(currentOrder.ID, workingPayment.ID, paymentAmount);
       setAcceptedPayment(accepted);
       setExistingPayment(accepted);
       setSummary({
