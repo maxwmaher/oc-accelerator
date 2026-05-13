@@ -53,6 +53,9 @@ const toSellerDisplay = (sellerID?: string) => {
     .join(" ");
 };
 
+const isReorderEligible = (order: Order) =>
+  order.IsSubmitted || (order.Status || "").toLowerCase() === "submitted";
+
 const getOrderTotal = (order: Order) => {
   if (typeof order.Total === "number") return order.Total;
   return (order.Subtotal || 0) + (order.ShippingCost || 0) + (order.TaxCost || 0);
@@ -264,15 +267,29 @@ const MyOrders = () => {
                             <Text fontSize="xs" color="gray.500">Order total</Text>
                             <Text fontSize="2xl" fontWeight="bold" color="gray.900">{formatPrice(getOrderTotal(order))}</Text>
                           </Box>
-                          <Button
-                            size="sm"
-                            colorScheme="blue"
-                            variant={isExpanded ? "solid" : "outline"}
-                            onClick={() => toggleOrderDetails(orderID)}
-                            _focusVisible={{ boxShadow: "outline" }}
-                          >
-                            {isExpanded ? "Hide details" : "View details"}
-                          </Button>
+                          <HStack spacing={2}>
+                            {isReorderEligible(order) ? (
+                              <Button
+                                as={RouterLink}
+                                to={`/orders/${orderID}/reorder-preview`}
+                                size="sm"
+                                colorScheme="green"
+                                variant="outline"
+                                _focusVisible={{ boxShadow: "outline" }}
+                              >
+                                Reorder
+                              </Button>
+                            ) : null}
+                            <Button
+                              size="sm"
+                              colorScheme="blue"
+                              variant={isExpanded ? "solid" : "outline"}
+                              onClick={() => toggleOrderDetails(orderID)}
+                              _focusVisible={{ boxShadow: "outline" }}
+                            >
+                              {isExpanded ? "Hide details" : "View details"}
+                            </Button>
+                          </HStack>
                         </VStack>
                       </GridItem>
                     </Grid>
