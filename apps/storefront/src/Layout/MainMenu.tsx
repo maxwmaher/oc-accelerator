@@ -191,6 +191,28 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     return null;
   };
 
+  const renderToolsMenu = () => {
+    if (!isLoggedIn) return null;
+
+    return (
+      <Menu>
+        <MenuButton
+          as={Button}
+          variant="ghost"
+          size="sm"
+          rightIcon={<ChevronDownIcon />}
+        >
+          Tools
+        </MenuButton>
+        <MenuList>
+          <MenuItem as={RouterLink} to="/demo-import-orders">
+            Bulk Order Import
+          </MenuItem>
+        </MenuList>
+      </Menu>
+    );
+  };
+
   return (
     <HStack
       h="12"
@@ -236,6 +258,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
             <Button as={RouterLink} to="/orders" size="sm" variant="ghost">
               My Orders
             </Button>
+            {renderToolsMenu()}
             {isLoggedIn && (
               <Badge colorScheme="teal" px={2} py={1}>
                 Buying from: {selectedSeller?.displayName || "Not selected"}
