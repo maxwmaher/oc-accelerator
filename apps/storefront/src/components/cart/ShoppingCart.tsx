@@ -46,10 +46,11 @@ export const ShoppingCart = (): JSX.Element => {
     submitCart,
     estimateShipping,
     calculateOrder,
+    setShippingAddress: persistShippingAddress,
   } = useShopper();
   const { selectedSeller, ensureOrderSellerContext } = useSellerContext();
 
-  const [shippingAddress, setShippingAddress] = useState<Address>({
+  const [shippingAddress, setShippingAddressState] = useState<Address>({
     FirstName: "",
     LastName: "",
     CompanyName: "",
@@ -128,7 +129,7 @@ export const ShoppingCart = (): JSX.Element => {
         isClosable: true,
       });
     }
-  }, [calculateOrder, ensureOrderSellerContext, navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
+  }, [calculateOrder, ensureOrderSellerContext, fallbackShippingMode, navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
 
   const deleteOrder = useCallback(async () => {
     if (!orderWorksheet?.Order?.ID) return;
@@ -154,7 +155,8 @@ export const ShoppingCart = (): JSX.Element => {
 
     try {
       await ensureOrderSellerContext();
-      await setShippingAddress(shippingAddress);
+      // Persist to the OrderCloud cart before estimating so shipping services receive the latest address.
+      await persistShippingAddress(shippingAddress);
       const estimatedWorksheet = await estimateShipping();
       const response = estimatedWorksheet?.ShipEstimateResponse;
 
@@ -242,7 +244,7 @@ export const ShoppingCart = (): JSX.Element => {
                         <TabPanel>
                           <CartInformationPanel
                             shippingAddress={shippingAddress}
-                            setShippingAddress={setShippingAddress}
+                            setShippingAddress={setShippingAddressState}
                             handleSaveShippingAddress={
                               handleSaveShippingAddress
                             }
