@@ -120,6 +120,8 @@ export const processDemoImportedOrder = async (
   let submittedOrderID: string | undefined;
   let shipping: DemoSelectedShippingMethod | undefined;
   let total: number | undefined;
+  let paymentStatus: DemoOrderImportOrderResult["paymentStatus"] = "NOT_CREATED";
+  let submitStatus: DemoOrderImportOrderResult["submitStatus"] = "NOT_SUBMITTED";
   let currentStage: DemoOrderImportFailureStage = "VALIDATION";
 
   const fail = (
@@ -140,6 +142,8 @@ export const processDemoImportedOrder = async (
       completedAt,
       shipping,
       total,
+      paymentStatus,
+      submitStatus,
       lineResults,
       errors,
     };
@@ -257,6 +261,7 @@ export const processDemoImportedOrder = async (
     );
     if (!workingPayment.ID)
       throw new Error("Payment was created or updated without an ID.");
+    paymentStatus = "CREATED";
 
     currentStage = "VERIFY_PAYMENT";
     const paymentCheck = await api.verifyPayment(
@@ -265,9 +270,11 @@ export const processDemoImportedOrder = async (
     );
     if (!paymentCheck.ID)
       throw new Error("Unable to verify created payment before acceptance.");
+    paymentStatus = "VERIFIED";
 
     currentStage = "ACCEPT_PAYMENT";
     await api.acceptPayment(calculatedOrder.ID, workingPayment.ID, total);
+    paymentStatus = "ACCEPTED";
 
     currentStage = "CALCULATE_ORDER";
     const recalculatedWorksheet = await api.calculateOrder();
@@ -276,6 +283,7 @@ export const processDemoImportedOrder = async (
     currentStage = "SUBMIT_ORDER";
     const submittedOrder = await api.submitCart();
     submittedOrderID = submittedOrder.ID || calculatedOrder.ID;
+    submitStatus = "SUBMITTED";
 
     return {
       externalOrderID: order.externalOrderID,
@@ -288,6 +296,8 @@ export const processDemoImportedOrder = async (
       completedAt: nowIso(),
       shipping,
       total,
+      paymentStatus,
+      submitStatus,
       lineResults,
       errors,
     };
@@ -320,7 +330,9 @@ export const runDemoOrderImportBatch = async (
   const orderResults: DemoOrderImportOrderResult[] = [];
 
   for (const order of groupedOrders) {
-    orderResults.push(await processDemoImportedOrder(order, api, options));
+    const result = await processDemoImportedOrder(order, api, options);
+    orderResults.push(result);
+    options.onOrderComplete?.(result);
   }
 
   return summarizeBatchResults(batchID, startedAt, nowIso(), orderResults);
@@ -338,7 +350,9 @@ export const runDemoOrderImportBatchFromRawRows = async (
   const orderResults: DemoOrderImportOrderResult[] = [];
 
   for (const order of groupedOrders) {
-    orderResults.push(await processDemoImportedOrder(order, api, options));
+    const result = await processDemoImportedOrder(order, api, options);
+    orderResults.push(result);
+    options.onOrderComplete?.(result);
   }
 
   return summarizeBatchResults(
