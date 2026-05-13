@@ -113,6 +113,14 @@ export type DemoOrderImportLineResult = {
 
 export type DemoOrderImportOrderStatus = "SUCCESS" | "FAILED";
 
+export type DemoOrderImportPaymentStatus =
+  | "NOT_CREATED"
+  | "CREATED"
+  | "VERIFIED"
+  | "ACCEPTED";
+
+export type DemoOrderImportSubmitStatus = "NOT_SUBMITTED" | "SUBMITTED";
+
 export type DemoOrderImportOrderResult = {
   externalOrderID: string;
   orderIndex: number;
@@ -124,6 +132,8 @@ export type DemoOrderImportOrderResult = {
   completedAt: string;
   shipping?: DemoSelectedShippingMethod;
   total?: number;
+  paymentStatus?: DemoOrderImportPaymentStatus;
+  submitStatus?: DemoOrderImportSubmitStatus;
   lineResults: DemoOrderImportLineResult[];
   errors: DemoOrderImportError[];
 };
@@ -144,6 +154,7 @@ export type DemoOrderImportRuntimeOptions = {
   strictShipping?: boolean;
   batchID?: string;
   now?: Date;
+  onOrderComplete?: (result: DemoOrderImportOrderResult) => void;
 };
 
 export type DemoValidatedProductLine = {

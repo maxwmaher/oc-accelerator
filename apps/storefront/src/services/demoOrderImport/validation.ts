@@ -85,9 +85,20 @@ export const normalizeImportedRow = (
 export const normalizeImportedRows = (rows: DemoOrderImportRawRow[]) => {
   const normalizedRows: DemoOrderImportNormalizedRow[] = [];
   const errors: DemoOrderImportError[] = [];
+  const lineNumbersByExternalOrder = new Map<string, number>();
 
   rows.forEach((row, index) => {
-    const result = normalizeImportedRow(row, index);
+    const externalOrderID = toStringValue(row.ExternalOrderID) || `row-${index}`;
+    const nextLineNumber = (lineNumbersByExternalOrder.get(externalOrderID) || 0) + 1;
+    lineNumbersByExternalOrder.set(externalOrderID, nextLineNumber);
+
+    const result = normalizeImportedRow(
+      {
+        ...row,
+        LineNumber: toPositiveInteger(row.LineNumber) || nextLineNumber,
+      },
+      index,
+    );
     if (result.row) normalizedRows.push(result.row);
     errors.push(...result.errors);
   });

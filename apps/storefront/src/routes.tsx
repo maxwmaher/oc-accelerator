@@ -7,6 +7,7 @@ import CategoryList from "./components/category/CategoryList";
 import ProductDetailWrapper from "./components/product/ProductDetailWrapper";
 import ProductList from "./components/product/ProductList";
 import MyOrders from "./components/orders/MyOrders";
+import DemoOrderImportPage from "./components/demoImport/DemoOrderImportPage";
 
 const routes: RouteObject[] = [
   {
@@ -49,6 +50,10 @@ const routes: RouteObject[] = [
       {
         path: "/orders",
         element: <MyOrders />,
+      },
+      {
+        path: "/demo-import-orders",
+        element: <DemoOrderImportPage />,
       },
     ],
   },

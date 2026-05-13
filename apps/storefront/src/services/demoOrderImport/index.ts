@@ -4,3 +4,4 @@ export * from "./results";
 export * from "./shipping";
 export * from "./types";
 export * from "./validation";
+export * from "./fileParser";
