@@ -2,12 +2,13 @@ import {
   Address,
   BuyerProduct,
   InventoryRecord,
-  LineItem,
-  Order,
-  Payment,
-  ShipEstimateResponse,
 } from "ordercloud-javascript-sdk";
-import { DemoPaymentFormData, DemoPaymentXp } from "../demoPayment";
+import { DemoPaymentFormData } from "../demoPayment";
+import {
+  DemoCartCheckoutApi,
+  DemoCartCheckoutFailureStage,
+  DemoSelectedShippingMethod,
+} from "../demoCartCheckout";
 
 export type DemoOrderImportRawRow = {
   ExternalOrderID?: string | number | null;
@@ -64,31 +65,9 @@ export type DemoGeneratedCustomerData = {
   payment: DemoPaymentFormData;
 };
 
-export type DemoSelectedShippingMethod = {
-  ShipEstimateID: string;
-  ShipMethodID: string;
-  ShipMethodName: string;
-  Cost: number;
-};
-
 export type DemoOrderImportFailureStage =
   | "NORMALIZATION"
-  | "VALIDATION"
-  | "CLEAN_CART"
-  | "SELLER_CONTEXT"
-  | "PRODUCT_VALIDATION"
-  | "INVENTORY_RESOLUTION"
-  | "ADD_LINE_ITEM"
-  | "SHIPPING_ADDRESS"
-  | "ESTIMATE_SHIPPING"
-  | "NO_SHIPPING_RATES"
-  | "SELECT_SHIPPING"
-  | "CALCULATE_ORDER"
-  | "CREATE_PAYMENT"
-  | "VERIFY_PAYMENT"
-  | "ACCEPT_PAYMENT"
-  | "SUBMIT_ORDER"
-  | "CLEANUP";
+  | DemoCartCheckoutFailureStage;
 
 export type DemoOrderImportError = {
   stage: DemoOrderImportFailureStage;
@@ -164,40 +143,4 @@ export type DemoValidatedProductLine = {
   inventoryRecord?: InventoryRecord;
 };
 
-export type DemoOrderImportApi = {
-  cleanCart: () => Promise<void>;
-  setSellerContext: (sellerID: string) => Promise<unknown>;
-  getProduct: (productID: string, sellerID?: string) => Promise<BuyerProduct>;
-  resolveInventoryRecord: (
-    productID: string,
-    quantity: number,
-    requestedInventoryRecordID?: string,
-  ) => Promise<InventoryRecord | undefined>;
-  createLineItem: (lineItem: LineItem) => Promise<LineItem>;
-  setShippingAddress: (address: Address) => Promise<Order>;
-  estimateShipping: () => Promise<{
-    ShipEstimateResponse?: ShipEstimateResponse;
-    Order?: Order;
-  }>;
-  selectShipMethod: (selection: DemoSelectedShippingMethod) => Promise<unknown>;
-  calculateOrder: () => Promise<{
-    Order?: Order;
-    ShipEstimateResponse?: ShipEstimateResponse;
-  }>;
-  listPayments: (orderID: string) => Promise<Payment<DemoPaymentXp>[]>;
-  createOrPatchPayment: (
-    order: Order,
-    payment: Payment<DemoPaymentXp>,
-    existingPayment?: Payment<DemoPaymentXp> | null,
-  ) => Promise<Payment<DemoPaymentXp>>;
-  verifyPayment: (
-    orderID: string,
-    paymentID: string,
-  ) => Promise<Payment<DemoPaymentXp>>;
-  acceptPayment: (
-    orderID: string,
-    paymentID: string,
-    amount: number,
-  ) => Promise<Payment<DemoPaymentXp>>;
-  submitCart: () => Promise<Order>;
-};
+export type DemoOrderImportApi = DemoCartCheckoutApi;

@@ -8,6 +8,7 @@ import ProductDetailWrapper from "./components/product/ProductDetailWrapper";
 import ProductList from "./components/product/ProductList";
 import MyOrders from "./components/orders/MyOrders";
 import DemoOrderImportPage from "./components/demoImport/DemoOrderImportPage";
+import ReorderPreviewPage from "./components/orders/ReorderPreviewPage";
 
 const routes: RouteObject[] = [
   {
@@ -50,6 +51,10 @@ const routes: RouteObject[] = [
       {
         path: "/orders",
         element: <MyOrders />,
+      },
+      {
+        path: "/orders/:orderID/reorder-preview",
+        element: <ReorderPreviewPage />,
       },
       {
         path: "/demo-import-orders",
