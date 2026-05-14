@@ -1,4 +1,5 @@
 import {
+  Box,
   Container,
   Divider,
   Grid,
@@ -8,6 +9,8 @@ import {
   Icon,
   Spinner,
   Text,
+  ListItem,
+  UnorderedList,
   VStack,
 } from "@chakra-ui/react";
 import {
@@ -148,7 +151,18 @@ const OrderConfirmation = (): JSX.Element => {
       </GridItem>
       <GridItem bgColor="blackAlpha.100" h="full">
         <Container maxW="container.sm" mx="0" mr="auto" p={{ base: 6, lg: 12 }}>
-          <OrderSummary order={order} lineItems={lineItems} />
+          <VStack align="stretch" spacing={4}>
+            <OrderSummary order={order} lineItems={lineItems} />
+            <Box bg="white" borderWidth="1px" rounded="lg" p={4}>
+              <Heading size="sm" mb={2}>What happens next in a real implementation</Heading>
+              <UnorderedList spacing={1} fontSize="sm" color="gray.600">
+                <ListItem>OrderCloud has accepted and submitted this order.</ListItem>
+                <ListItem>Payment, shipping, tax, and order calculation can be integrated through APIs and integration events.</ListItem>
+                <ListItem>The submitted order can be handed off to ERP, OMS, fulfillment, customer service, email, or webhook-driven workflows.</ListItem>
+                <ListItem>The downstream system is implementation-specific, such as SAP, Dynamics, NetSuite, a custom ERP, middleware, SendGrid, or another service.</ListItem>
+              </UnorderedList>
+            </Box>
+          </VStack>
         </Container>
       </GridItem>
     </Grid>

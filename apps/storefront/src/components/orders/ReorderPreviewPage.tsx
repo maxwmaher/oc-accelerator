@@ -19,6 +19,8 @@ import {
   Td,
   Text,
   Th,
+  ListItem,
+  UnorderedList,
   Thead,
   Tr,
   VStack,
@@ -166,6 +168,15 @@ const ReorderPreviewPage = () => {
             The original order will not be changed. Final price, promotions, shipping, tax, and availability may differ from the previous order.
           </AlertDescription>
         </Alert>
+
+        <Box bg="gray.50" borderWidth="1px" rounded="lg" p={4}>
+          <Heading size="sm" mb={2}>How reorder creates a new order</Heading>
+          <UnorderedList spacing={1} fontSize="sm" color="gray.600">
+            <ListItem>Reorder does not clone the old order; it uses the prior order as source data.</ListItem>
+            <ListItem>Before submit, it re-resolves current product availability, pricing, inventory, shipping, tax, promotions, and payment.</ListItem>
+            <ListItem>The result is a brand-new order, which is why final totals may differ from the previous order.</ListItem>
+          </UnorderedList>
+        </Box>
 
         <Grid templateColumns={{ base: "1fr", md: "repeat(4, 1fr)" }} gap={4}>
           <Box bg="white" borderWidth="1px" rounded="xl" p={4}>
