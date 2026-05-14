@@ -432,6 +432,15 @@ const DemoOrderImportPage: FC = () => {
                     <Button size="sm" onClick={() => downloadResultJson(result)}>Download JSON</Button>
                     <Button size="sm" variant="outline" onClick={() => downloadTextFile(`${result.batchID}.csv`, buildResultsCsv(result), "text/csv")}>Download CSV</Button>
                   </HStack>
+                  <Box bg="gray.50" borderWidth="1px" rounded="lg" p={4}>
+                    <Heading size="sm" mb={2}>Integration story for completed imports</Heading>
+                    <UnorderedList spacing={1} fontSize="sm" color="gray.600">
+                      <ListItem>The CSV rows were parsed, grouped, validated, and converted into real buyer-cart checkout flows.</ListItem>
+                      <ListItem>Each order went through product validation, shipping estimate and selection, payment acceptance, calculation, and submit steps.</ListItem>
+                      <ListItem>JSON and CSV result exports can support reconciliation or downstream operational review.</ListItem>
+                      <ListItem>In a real implementation, submitted orders can be handed off to ERP, OMS, or fulfillment systems.</ListItem>
+                    </UnorderedList>
+                  </Box>
                 </>
               )}
 
