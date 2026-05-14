@@ -1,16 +1,62 @@
 import { CheckIcon, CloseIcon, EmailIcon, PhoneIcon } from "@chakra-ui/icons";
 import {
   Badge,
+  Button,
   Card,
   Container,
   HStack,
   Heading,
   SimpleGrid,
   Text,
+  VStack,
 } from "@chakra-ui/react";
 import { useOrderCloudContext } from "@ordercloud/react-sdk";
 import { FC } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import { useCurrentUser } from "../../hooks/currentUser";
+
+const demoGuideItems = [
+  {
+    title: "Buyer Accounts & Users",
+    path: "/buyers",
+    description:
+      "Show buyer accounts, buyer users, user groups, addresses, catalogs, promotions, and approval rules.",
+  },
+  {
+    title: "Catalog & Product Visibility",
+    path: "/catalogs",
+    description:
+      "Show catalog, category, buyer, and product assignments that control what each account can browse.",
+  },
+  {
+    title: "Customer Pricing",
+    path: "/price-schedules",
+    description:
+      "Show price schedules and assignments that support account- or group-specific pricing.",
+  },
+  {
+    title: "Promotions",
+    path: "/promotions",
+    description: "Show promotion configuration and buyer or user-group eligibility.",
+  },
+  {
+    title: "Orders & Operations",
+    path: "/orders/Incoming",
+    description:
+      "Inspect submitted orders, line items, promotions, approvals, payments, and shipments.",
+  },
+  {
+    title: "Products & Inventory",
+    path: "/products",
+    description:
+      "Show product configuration and inventory records that can be synchronized from external systems.",
+  },
+  {
+    title: "Admin Permissions",
+    path: "/security-profiles",
+    description: "Show security profiles and assignments used to manage admin permissions.",
+  },
+];
 
 const Dashboard: FC = () => {
   const { data: user } = useCurrentUser();
@@ -26,6 +72,38 @@ const Dashboard: FC = () => {
         gap={6}
         mt={6}
       >
+        <Card variant="outline" p={6} gridColumn={{ base: "auto", xl: "span 2" }}>
+          <VStack align="stretch" spacing={4}>
+            <Heading as="h2" size="md">
+              B2B Commerce Demo Guide
+            </Heading>
+            <Text color="chakra-subtle-text">
+              Use these shortcuts to walk through the admin resources that support the storefront B2B demo.
+            </Text>
+            <SimpleGrid
+              gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))"
+              gap={4}
+            >
+              {demoGuideItems.map((item) => (
+                <Card key={item.path} variant="outline" p={4} gap={3}>
+                  <Button
+                    as={RouterLink}
+                    to={item.path}
+                    alignSelf="flex-start"
+                    colorScheme="primary"
+                    variant="outline"
+                    size="sm"
+                  >
+                    {item.title}
+                  </Button>
+                  <Text fontSize="sm" color="chakra-subtle-text">
+                    {item.description}
+                  </Text>
+                </Card>
+              ))}
+            </SimpleGrid>
+          </VStack>
+        </Card>
         <Card variant="outline" p={6}>
           <Text color="chakra-subtle-text">My User:</Text>
           <Text>
