@@ -94,8 +94,8 @@ const Layout: FC = () => {
             >
               <HeaderLogo width={['200px', 'auto']} />
               <HStack>
-                <Badge colorScheme="purple">Supplier Portal</Badge>
-                <Badge colorScheme="orange">Used Parts Supplier Portal</Badge>
+                <Badge colorScheme="purple">B2B Admin</Badge>
+                <Badge colorScheme="orange">Demo Environment</Badge>
                 <Text
                   fontSize="sm"
                   color="chakra-subtle-text"
@@ -143,7 +143,7 @@ const Layout: FC = () => {
               color="chakra-subtle-text"
               textTransform="uppercase"
             >
-              Supplier Portal Navigation
+              Admin Navigation
             </Text>
             {resources
               .filter((r) => !!r.label)
