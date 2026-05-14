@@ -33,12 +33,13 @@ import {
 import { Catalog, Category } from "ordercloud-javascript-sdk";
 import { FC, useEffect, useMemo, useState } from "react";
 import { TbShoppingCartFilled } from "react-icons/tb";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useLocation } from "react-router-dom";
 import { DEFAULT_BRAND } from "../assets/DEFAULT_BRAND";
 import { BRAND_LOGO_DARK, BRAND_LOGO_LIGHT } from "../constants";
 import { useCurrentUser } from "../hooks/currentUser";
 import { useSellerContext } from "../context/SellerContext";
 import MegaMenu from "../Layout/MegaMenu";
+import BuyerContextPopover from "../components/shared/BuyerContextPopover";
 
 interface MainMenuProps {
   loginDisclosure: UseDisclosureProps;
@@ -46,6 +47,7 @@ interface MainMenuProps {
 
 const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   const { data: user } = useCurrentUser();
+  const { pathname } = useLocation();
   const { isLoggedIn, logout } = useOrderCloudContext();
   const megaMenuDisclosure = useDisclosure();
   const [selectedCatalog, setSelectedCatalog] = useState<string>("");
@@ -62,7 +64,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     "Me.Catalogs",
     undefined,
     undefined,
-    { staleTime: 300000 }
+    { staleTime: 300000 },
   );
 
   const catalogs = useMemo(() => catalogData?.Items ?? [], [catalogData]);
@@ -73,24 +75,34 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     "Me.Categories",
     activeCatalogId ? { catalogId: activeCatalogId } : undefined,
     undefined,
-    { staleTime: 300000 }
+    { staleTime: 300000 },
   );
 
   const categories = useMemo(() => categoryData?.Items ?? [], [categoryData]);
-  const selectedCatalogName = useMemo(
-    () => catalogs.find((catalog) => catalog.ID === selectedCatalog)?.Name || "",
-    [catalogs, selectedCatalog]
+  const routeCatalogId = useMemo(() => {
+    const match = pathname.match(/^\/shop\/([^/]+)/);
+    return match?.[1];
+  }, [pathname]);
+  const activeContextCatalogId =
+    routeCatalogId || selectedCatalog || activeCatalogId;
+  const activeContextCatalog = useMemo(
+    () => catalogs.find((catalog) => catalog.ID === activeContextCatalogId),
+    [activeContextCatalogId, catalogs],
   );
+  const selectedCatalogName = activeContextCatalog?.Name || "";
   const isUsedPartsPortal = useMemo(
     () => /used/i.test(selectedCatalogName),
-    [selectedCatalogName]
+    [selectedCatalogName],
   );
   const portalLabel = isUsedPartsPortal
     ? "Outdoor Gear Buyer Portal"
     : "Outdoor Living Store";
   const sellerDisclosure = useDisclosure({ defaultIsOpen: false });
 
-  const sellerOptionMeta: Record<string, { label: string; description: string }> = {
+  const sellerOptionMeta: Record<
+    string,
+    { label: string; description: string }
+  > = {
     [user?.Seller?.ID || "admin"]: {
       label: "Dometic Direct",
       description: "Shop Dometic outdoor living gear with curated pricing.",
@@ -102,7 +114,11 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     const isUsed = /used/.test(name);
     const isAxles = /axle/.test(name);
     sellerOptionMeta[supplier.SupplierID] = {
-      label: isUsed ? "Certified Gear Partner" : isAxles ? "RV & Van Gear Partner" : supplier.Name || supplier.SupplierID,
+      label: isUsed
+        ? "Certified Gear Partner"
+        : isAxles
+          ? "RV & Van Gear Partner"
+          : supplier.Name || supplier.SupplierID,
       description: isUsed
         ? "Browse curated camping, cooling, and mobile-living gear."
         : isAxles
@@ -122,15 +138,20 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     }
   }, [isLoggedIn, selectedSeller, sellerDisclosure]);
 
-  const onSelectSeller = async (sellerType: "admin" | "supplier", sellerID: string, displayName: string) => {
+  const onSelectSeller = async (
+    sellerType: "admin" | "supplier",
+    sellerID: string,
+    displayName: string,
+  ) => {
     const hasExistingCartItems = Boolean(orderWorksheet?.LineItems?.length);
     const hasChangedSeller =
       selectedSeller &&
-      (selectedSeller.sellerID !== sellerID || selectedSeller.sellerType !== sellerType);
+      (selectedSeller.sellerID !== sellerID ||
+        selectedSeller.sellerType !== sellerType);
 
     if (hasExistingCartItems && hasChangedSeller) {
       const shouldSwitch = window.confirm(
-        "Changing who you buy from will clear your current cart. Continue?"
+        "Changing who you buy from will clear your current cart. Continue?",
       );
       if (!shouldSwitch) return;
       await deleteCart();
@@ -144,7 +165,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     return (
       orderWorksheet?.LineItems?.reduce(
         (sum, item) => sum + item.Quantity,
-        0
+        0,
       ) || 0
     );
   }, [orderWorksheet?.LineItems]);
@@ -241,7 +262,11 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
             )}
           </RouterLink>
           <HStack as="nav" flexGrow="1" ml={3}>
-            <Badge colorScheme={isUsedPartsPortal ? "orange" : "blue"} px={2} py={1}>
+            <Badge
+              colorScheme={isUsedPartsPortal ? "orange" : "blue"}
+              px={2}
+              py={1}
+            >
               {portalLabel}
             </Badge>
             {categories.length > 0 && (
@@ -265,16 +290,32 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               </Badge>
             )}
             {isLoggedIn && (
-              <Button type="button" size="xs" variant="outline" onClick={() => sellerDisclosure.onOpen()} aria-label="Change seller">
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => sellerDisclosure.onOpen()}
+                aria-label="Change seller"
+              >
                 Change seller
               </Button>
             )}
           </HStack>
           <HStack>
             {isLoggedIn && (
-              <Heading size="sm">
-                {`Welcome, ${user?.FirstName} ${user?.LastName}`}
-              </Heading>
+              <>
+                <Heading size="sm">
+                  {`Welcome, ${user?.FirstName} ${user?.LastName}`}
+                </Heading>
+                <BuyerContextPopover
+                  user={user}
+                  selectedSeller={selectedSeller}
+                  activeCatalog={{
+                    id: activeContextCatalog?.ID,
+                    name: activeContextCatalog?.Name,
+                  }}
+                />
+              </>
             )}
             <Button
               as={RouterLink}
@@ -348,15 +389,28 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
           <ModalCloseButton />
           <ModalBody pb={6}>
             <Text fontSize="sm" color="gray.600" mb={4}>
-              Choose which seller catalog and pricing context you want to shop from.
+              Choose which seller catalog and pricing context you want to shop
+              from.
             </Text>
             <HStack alignItems="stretch" flexDirection="column" spacing={3}>
               <Card
                 as="button"
                 textAlign="left"
-                borderWidth={selectedSeller?.sellerType === "admin" ? "2px" : "1px"}
-                borderColor={selectedSeller?.sellerType === "admin" ? "blue.500" : "gray.200"}
-                onClick={() => onSelectSeller("admin", user?.Seller?.ID || "admin", "Dometic Direct")}
+                borderWidth={
+                  selectedSeller?.sellerType === "admin" ? "2px" : "1px"
+                }
+                borderColor={
+                  selectedSeller?.sellerType === "admin"
+                    ? "blue.500"
+                    : "gray.200"
+                }
+                onClick={() =>
+                  onSelectSeller(
+                    "admin",
+                    user?.Seller?.ID || "admin",
+                    "Dometic Direct",
+                  )
+                }
               >
                 <CardBody>
                   <Heading size="sm">Dometic Direct</Heading>
@@ -385,14 +439,19 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                         onSelectSeller(
                           "supplier",
                           supplier.SupplierID,
-                          option?.label || supplier.Name || supplier.SupplierID
+                          option?.label || supplier.Name || supplier.SupplierID,
                         )
                       }
                     >
                       <CardBody>
-                        <Heading size="sm">{option?.label || supplier.Name || supplier.SupplierID}</Heading>
+                        <Heading size="sm">
+                          {option?.label ||
+                            supplier.Name ||
+                            supplier.SupplierID}
+                        </Heading>
                         <Text fontSize="sm" color="chakra-subtle-text">
-                          {option?.description || "Shop partner gear and partner-specific pricing."}
+                          {option?.description ||
+                            "Shop partner gear and partner-specific pricing."}
                         </Text>
                       </CardBody>
                     </Card>
@@ -403,7 +462,6 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
           </ModalBody>
         </ModalContent>
       </Modal>
-
     </HStack>
   );
 };
