@@ -495,7 +495,43 @@ const log = (message: string) => console.log(message);
 const warn = (message: string) => console.warn(`[WARN] ${message}`);
 const errorLog = (message: string) => console.error(`[ERROR] ${message}`);
 const actionLog = (resource: string, id: string) => log(`${DRY_RUN ? "[DRY RUN] would save" : "[SAVE]"} ${resource} ${id}`);
+const skipLog = (resource: string, id: string) => log(`[SKIP] ${resource} ${id} already exists`);
 const verifyLog = (message: string) => log(`[VERIFY] ${message}`);
+
+const getErrorStatus = (error: unknown): number | undefined => {
+  if (!error || typeof error !== "object") return undefined;
+  const maybeStatus = error as { status?: unknown; statusCode?: unknown; response?: { status?: unknown } };
+  const status = maybeStatus.status ?? maybeStatus.statusCode ?? maybeStatus.response?.status;
+  if (typeof status === "number") return status;
+  if (typeof status === "string") {
+    const parsedStatus = Number.parseInt(status, 10);
+    return Number.isNaN(parsedStatus) ? undefined : parsedStatus;
+  }
+  return undefined;
+};
+
+const collectErrorText = (value: unknown, seen = new WeakSet<object>()): string[] => {
+  if (typeof value === "string" || typeof value === "number") return [String(value)];
+  if (!value || typeof value !== "object" || seen.has(value)) return [];
+
+  seen.add(value);
+  if (Array.isArray(value)) return value.flatMap((item) => collectErrorText(item, seen));
+
+  return Object.entries(value).flatMap(([key, nestedValue]) =>
+    ["message", "Message", "error", "Error", "errorCode", "ErrorCode", "code", "Code", "statusText"].includes(key)
+      ? collectErrorText(nestedValue, seen)
+      : [],
+  );
+};
+
+const isAlreadyExistsError = (error: unknown): boolean => {
+  const status = getErrorStatus(error);
+  const text = collectErrorText(error).join(" ").toLowerCase();
+  const hasAlreadyExistsText = /\balready exists\b|\bobject already exists\b/.test(text);
+  const hasConflictText = /\bconflict\b/.test(text);
+
+  return hasAlreadyExistsText || status === 409 || (status === undefined && hasConflictText && hasAlreadyExistsText);
+};
 
 const requireConfig = () => {
   const missing = Object.entries(requiredConfig)
@@ -553,6 +589,18 @@ const saveIfEnabled = async <T>(resource: string, id: string, saver: () => Promi
   return saver();
 };
 
+const saveIdempotentAssignmentIfEnabled = async <T>(resource: string, id: string, saver: () => Promise<T>) => {
+  try {
+    return await saveIfEnabled(resource, id, saver);
+  } catch (error) {
+    if (isAlreadyExistsError(error)) {
+      skipLog(resource, id);
+      return undefined;
+    }
+    throw error;
+  }
+};
+
 const preflight = async () => {
   log("[PREFLIGHT] verifying admin authentication and configured resources");
   const me = await Me.Get();
@@ -597,7 +645,7 @@ const saveProducts = async () => {
   for (const offer of offerProducts) {
     await saveIfEnabled("product", offer.product.ID || "unknown", () => Products.Save(offer.product.ID || "", offer.product));
     if (offer.supplierID) {
-      await saveIfEnabled("product supplier", `${offer.product.ID}/${offer.supplierID}`, () =>
+      await saveIdempotentAssignmentIfEnabled("product supplier link", `${offer.product.ID}/${offer.supplierID}`, () =>
         Products.SaveSupplier(offer.product.ID || "", offer.supplierID || "", {
           defaultPriceScheduleID: offer.priceSchedule.ID,
         }),
@@ -607,7 +655,7 @@ const saveProducts = async () => {
 };
 
 const saveAssignments = async () => {
-  await saveIfEnabled("catalog assignment", `${CATALOG_ID}/${BUYER_ID}`, () =>
+  await saveIdempotentAssignmentIfEnabled("catalog assignment", `${CATALOG_ID}/${BUYER_ID}`, () =>
     Catalogs.SaveAssignment({
       CatalogID: CATALOG_ID,
       BuyerID: BUYER_ID,
@@ -616,7 +664,7 @@ const saveAssignments = async () => {
     }),
   );
 
-  await saveIfEnabled("category assignment", `${CATALOG_ID}/${CATEGORY_ID}/${BUYER_ID}`, () =>
+  await saveIdempotentAssignmentIfEnabled("category assignment", `${CATALOG_ID}/${CATEGORY_ID}/${BUYER_ID}`, () =>
     Categories.SaveAssignment(CATALOG_ID, {
       CategoryID: CATEGORY_ID,
       BuyerID: BUYER_ID,
@@ -629,21 +677,21 @@ const saveAssignments = async () => {
     const productID = offer.product.ID || "";
     const priceScheduleID = offer.priceSchedule.ID || "";
 
-    await saveIfEnabled("catalog product assignment", `${CATALOG_ID}/${productID}`, () =>
+    await saveIdempotentAssignmentIfEnabled("catalog product assignment", `${CATALOG_ID}/${productID}`, () =>
       Catalogs.SaveProductAssignment({
         CatalogID: CATALOG_ID,
         ProductID: productID,
       }),
     );
 
-    await saveIfEnabled("category product assignment", `${CATALOG_ID}/${CATEGORY_ID}/${productID}`, () =>
+    await saveIdempotentAssignmentIfEnabled("category product assignment", `${CATALOG_ID}/${CATEGORY_ID}/${productID}`, () =>
       Categories.SaveProductAssignment(CATALOG_ID, {
         CategoryID: CATEGORY_ID,
         ProductID: productID,
       }),
     );
 
-    await saveIfEnabled("product assignment", `${productID}/${BUYER_ID}/${priceScheduleID}`, () =>
+    await saveIdempotentAssignmentIfEnabled("product assignment", `${productID}/${BUYER_ID}/${priceScheduleID}`, () =>
       Products.SaveAssignment({
         ProductID: productID,
         BuyerID: BUYER_ID,
@@ -656,10 +704,10 @@ const saveAssignments = async () => {
 
 const saveBuyerSupplierEligibility = async () => {
   log("[INFO] configuring buyer-supplier eligibility with Suppliers.SaveBuyer(supplierID, buyerID)");
-  await saveIfEnabled("supplier buyer eligibility", `${SUPPLIER_ABC_ID}/${BUYER_ID}`, () =>
+  await saveIdempotentAssignmentIfEnabled("supplier buyer eligibility", `${SUPPLIER_ABC_ID}/${BUYER_ID}`, () =>
     Suppliers.SaveBuyer(SUPPLIER_ABC_ID, BUYER_ID),
   );
-  await saveIfEnabled("supplier buyer eligibility", `${SUPPLIER_NORDIC_ID}/${BUYER_ID}`, () =>
+  await saveIdempotentAssignmentIfEnabled("supplier buyer eligibility", `${SUPPLIER_NORDIC_ID}/${BUYER_ID}`, () =>
     Suppliers.SaveBuyer(SUPPLIER_NORDIC_ID, BUYER_ID),
   );
   warn(
@@ -688,20 +736,12 @@ const saveInventoryRecords = async () => {
     }
 
     if (ASSIGN_INVENTORY_RECORDS_TO_BUYER) {
-      try {
-        await saveIfEnabled("inventory record assignment", `${productID}/${inventoryRecordID}/${BUYER_ID}`, () =>
-          InventoryRecords.SaveAssignment(productID, {
-            InventoryRecordID: inventoryRecordID,
-            BuyerID: BUYER_ID,
-          }),
-        );
-      } catch (error) {
-        warn(
-          `inventory record assignment failed for ${productID}/${inventoryRecordID}; buyer verification will rely on product-level inventory. ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
+      await saveIdempotentAssignmentIfEnabled("inventory record assignment", `${productID}/${inventoryRecordID}/${BUYER_ID}`, () =>
+        InventoryRecords.SaveAssignment(productID, {
+          InventoryRecordID: inventoryRecordID,
+          BuyerID: BUYER_ID,
+        }),
+      );
     } else {
       warn(`skipping inventory record buyer assignment for ${inventoryRecordID}; OC_DEMO_ASSIGN_INVENTORY_RECORDS_TO_BUYER=false`);
     }
