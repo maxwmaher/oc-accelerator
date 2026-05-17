@@ -30,11 +30,35 @@ const formatValue = (value: unknown): string | undefined => {
   return String(value);
 };
 
-const normalizeSummary = (value: unknown): string | undefined => {
+const getRecordValue = (record: Record<string, unknown>, ...keys: string[]) => {
+  for (const key of keys) {
+    const foundKey = Object.keys(record).find(
+      (recordKey) => recordKey.toLowerCase() === key.toLowerCase()
+    );
+    if (foundKey) return record[foundKey];
+  }
+  return undefined;
+};
+
+export const normalizeSupplierOfferSummary = (value: unknown): string | undefined => {
   if (!value) return undefined;
   if (typeof value === "string") return value;
   if (Array.isArray(value)) return value.map(formatValue).filter(Boolean).join(", ");
-  return formatValue(value);
+  if (typeof value !== "object") return formatValue(value);
+
+  const record = value as Record<string, unknown>;
+  const summary = formatValue(getRecordValue(record, "summary"));
+  const vehicleVariants = formatValue(getRecordValue(record, "vehicleVariants"));
+  const modelYears = formatValue(getRecordValue(record, "modelYears"));
+  const fitmentNotes = formatValue(getRecordValue(record, "fitmentNotes"));
+  const compatibilityParts = [
+    summary,
+    vehicleVariants ? `Vehicle variants: ${vehicleVariants}` : undefined,
+    modelYears ? `Model years: ${modelYears}` : undefined,
+    fitmentNotes ? `Fitment notes: ${fitmentNotes}` : undefined,
+  ].filter(Boolean);
+
+  return compatibilityParts.length ? compatibilityParts.join("; ") : formatValue(value);
 };
 
 const asRecord = (value: unknown): Record<string, unknown> =>
@@ -153,9 +177,9 @@ export const normalizeSupplierOffer = ({
     warehouseName: getString(offer, "warehouseName", "warehouse"),
     stockQuantity: product.Inventory?.QuantityAvailable,
     badges: normalizeBadges(offer.badges, source.sellerType),
-    conditionSummary: normalizeSummary(xp.condition),
-    catalogUpdateSummary: normalizeSummary(xp.catalogUpdate),
-    compatibilitySummary: normalizeSummary(xp.compatibility),
+    conditionSummary: normalizeSupplierOfferSummary(xp.condition),
+    catalogUpdateSummary: normalizeSupplierOfferSummary(xp.catalogUpdate),
+    compatibilitySummary: normalizeSupplierOfferSummary(xp.compatibility),
     technicalSpecs: normalizeSpecs(xp.technicalSpecs),
     inventoryRecordID: defaultInventoryRecord?.ID,
     inventoryLocations: normalizeInventoryLocations(inventoryRecords),

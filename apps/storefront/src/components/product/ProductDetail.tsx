@@ -40,6 +40,7 @@ import { useOcResourceList, useShopper } from "@ordercloud/react-sdk";
 import { useSellerContext } from "../../context/SellerContext";
 import {
   getSupplierOffers,
+  normalizeSupplierOfferSummary,
   SupplierOfferViewModel,
 } from "../../services/supplierOffers";
 
@@ -234,11 +235,18 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const [product, setProduct] = useState<BuyerProduct>();
   const [productSellerSource, setProductSellerSource] = useState<ProductSellerSource>();
   const [loading, setLoading] = useState(true);
+  const inventorySellerID =
+    productSellerSource?.sellerType === "supplier"
+      ? productSellerSource.sellerID
+      : scopedSellerID;
   const { data: inventoryRecords } = useOcResourceList<InventoryRecord>(
     "Me.ProductInventoryRecords",
     undefined,
-    { productID: productId },
-    { disabled: !IS_MULTI_LOCATION_INVENTORY }
+    {
+      productID: productId,
+      ...(inventorySellerID ? { sellerID: inventorySellerID } : {}),
+    },
+    { disabled: !IS_MULTI_LOCATION_INVENTORY || !product }
   );
 
   const [addingToCart, setAddingToCart] = useState(false);
@@ -257,7 +265,19 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   );
   const { addCartLineItem, deleteCart, orderWorksheet } = useShopper();
   const soldBy = useMemo(() => resolveSellerLabel(product || {}), [product]);
-  const usedPartsMeta = useMemo(() => resolveUsedPartsMeta(product || {}), [product]);
+  const usedPartsMeta = useMemo(
+    () =>
+      resolveUsedPartsMeta(product || {}).filter(
+        (item) =>
+          item.label.toLowerCase() !== "compatibility" &&
+          item.value !== "[object Object]"
+      ),
+    [product]
+  );
+  const compatibilitySummary = useMemo(() => {
+    const xp = product?.xp as Record<string, unknown> | undefined;
+    return normalizeSupplierOfferSummary(xp?.compatibility);
+  }, [product]);
   const productXp = product?.xp as { canonicalPartNumber?: string } | undefined;
   const canonicalPartNumber = productXp?.canonicalPartNumber;
   const offerSellerSources = useMemo(
@@ -576,7 +596,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           <Text fontSize="3xl" fontWeight="medium">
             {formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}
           </Text>
-          {usedPartsMeta.length > 0 && (
+          {(usedPartsMeta.length > 0 || compatibilitySummary) && (
             <VStack alignItems="flex-start" gap={1} mt={1}>
               {usedPartsMeta.map((item) => (
                 <Text key={item.label} fontSize="sm" color="chakra-subtle-text">
@@ -586,6 +606,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   {item.value}
                 </Text>
               ))}
+              {compatibilitySummary && (
+                <Text fontSize="sm" color="chakra-subtle-text">
+                  <Text as="span" fontWeight="semibold" color="chakra-body-text">
+                    Compatibility:
+                  </Text>{" "}
+                  {compatibilitySummary}
+                </Text>
+              )}
             </VStack>
           )}
           <HStack alignItems="center" gap={4} my={3}>
