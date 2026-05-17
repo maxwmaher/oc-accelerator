@@ -1,10 +1,15 @@
 import {
+  Alert,
+  AlertIcon,
+  Badge,
+  Box,
   Button,
   Card,
   CardBody,
   CardFooter,
   Center,
   Container,
+  Divider,
   Heading,
   HStack,
   SimpleGrid,
@@ -12,11 +17,15 @@ import {
   Text,
   useToast,
   VStack,
+  Wrap,
+  WrapItem,
 } from "@chakra-ui/react";
 import {
   BuyerProduct,
+  Cart,
   InventoryRecord,
   Me,
+  Order,
   OrderCloudError,
 } from "ordercloud-javascript-sdk";
 import pluralize from "pluralize";
@@ -29,6 +38,183 @@ import OcQuantityInput from "../cart/OcQuantityInput";
 import ProductImageGallery from "./product-detail/ProductImageGallery";
 import { useOcResourceList, useShopper } from "@ordercloud/react-sdk";
 import { useSellerContext } from "../../context/SellerContext";
+import {
+  getSupplierOffers,
+  SupplierOfferViewModel,
+} from "../../services/supplierOffers";
+
+
+const formatOfferFallback = (value?: string | number) => value || "—";
+
+interface AvailableOffersProps {
+  offers: SupplierOfferViewModel[];
+  warnings: Array<{ source: string; message: string }>;
+  isLoading: boolean;
+  quantity: number;
+  addingOfferProductID?: string;
+  onAddOffer: (offer: SupplierOfferViewModel) => void;
+}
+
+interface ProductSellerSource {
+  sellerType: "admin" | "supplier";
+  sellerID?: string;
+  displayName: string;
+}
+
+const AvailableOffers: React.FC<AvailableOffersProps> = ({
+  offers,
+  warnings,
+  isLoading,
+  quantity,
+  addingOfferProductID,
+  onAddOffer,
+}) => (
+  <Box w="full" mt={6}>
+    <Divider mb={6} />
+    <VStack alignItems="stretch" gap={4}>
+      <Box>
+        <Heading size="md">Available Offers</Heading>
+        <Text color="chakra-subtle-text" fontSize="sm">
+          Buyer-accessible offers for this canonical part from Scania Direct and
+          connected suppliers.
+        </Text>
+      </Box>
+
+      {isLoading && (
+        <HStack color="chakra-subtle-text">
+          <Spinner size="sm" />
+          <Text fontSize="sm">Loading available offers...</Text>
+        </HStack>
+      )}
+
+      {warnings.map((warning) => (
+        <Alert key={`${warning.source}-${warning.message}`} status="warning" rounded="md">
+          <AlertIcon />
+          <Text fontSize="sm">
+            {warning.source}: {warning.message}
+          </Text>
+        </Alert>
+      ))}
+
+      {!isLoading && offers.length === 0 && (
+        <Alert status="info" rounded="md">
+          <AlertIcon />
+          No related supplier offers are currently visible for this buyer.
+        </Alert>
+      )}
+
+      {offers.map((offer) => {
+        const inStock = (offer.stockQuantity ?? 0) > 0;
+        return (
+          <Card key={`${offer.sellerID || "admin"}-${offer.productID}`} variant="outline">
+            <CardBody>
+              <VStack alignItems="stretch" gap={4}>
+                <HStack justifyContent="space-between" alignItems="flex-start" gap={4}>
+                  <Box>
+                    <Heading size="sm">{offer.supplierDisplayName}</Heading>
+                    <Text fontSize="xs" color="chakra-subtle-text">
+                      {offer.productName} · {offer.productID}
+                    </Text>
+                    {offer.pricingModelLabel && (
+                      <Text fontSize="xs" color="chakra-subtle-text">
+                        {offer.pricingModelLabel}
+                      </Text>
+                    )}
+                  </Box>
+                  <VStack alignItems="flex-end" gap={1}>
+                    <Text fontSize="2xl" fontWeight="semibold">
+                      {formatPrice(offer.price)}
+                    </Text>
+                    <Badge colorScheme={inStock ? "green" : "red"}>
+                      {inStock ? `${offer.stockQuantity} in stock` : "Out of stock"}
+                    </Badge>
+                  </VStack>
+                </HStack>
+
+                {offer.badges.length > 0 && (
+                  <Wrap spacing={2}>
+                    {offer.badges.map((badge) => (
+                      <WrapItem key={badge}>
+                        <Badge colorScheme={badge === "Lowest Offer" ? "green" : "blue"}>
+                          {badge}
+                        </Badge>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
+                )}
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} fontSize="sm">
+                  <Text><Text as="span" fontWeight="semibold">Delivery:</Text> {formatOfferFallback(offer.deliveryEstimate)}</Text>
+                  <Text><Text as="span" fontWeight="semibold">Warranty:</Text> {formatOfferFallback(offer.warranty)}</Text>
+                  <Text><Text as="span" fontWeight="semibold">Shipping:</Text> {formatOfferFallback(offer.shippingLabel)}</Text>
+                  <Text><Text as="span" fontWeight="semibold">Warehouse:</Text> {formatOfferFallback(offer.warehouseName || offer.inventoryLocations[0]?.name)}</Text>
+                  <Text><Text as="span" fontWeight="semibold">Region:</Text> {formatOfferFallback(offer.warehouseRegion || offer.inventoryLocations[0]?.state)}</Text>
+                  <Text><Text as="span" fontWeight="semibold">Seller context:</Text> {offer.sellerType === "supplier" ? offer.sellerID : "Scania Direct"}</Text>
+                </SimpleGrid>
+
+                {offer.inventoryLocations.length > 0 && (
+                  <Box bg="chakra-subtle-bg" rounded="md" p={3}>
+                    <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                      Inventory locations
+                    </Text>
+                    <VStack alignItems="stretch" gap={1}>
+                      {offer.inventoryLocations.map((location) => (
+                        <Text key={location.id} fontSize="xs" color="chakra-subtle-text">
+                          {location.name || location.id}: {location.quantityAvailable ?? 0} available
+                          {location.city || location.state ? ` · ${[location.city, location.state].filter(Boolean).join(", ")}` : ""}
+                        </Text>
+                      ))}
+                    </VStack>
+                  </Box>
+                )}
+
+                {offer.conditionSummary && (
+                  <Text fontSize="sm">
+                    <Text as="span" fontWeight="semibold">Condition / certification:</Text> {offer.conditionSummary}
+                  </Text>
+                )}
+                {offer.catalogUpdateSummary && (
+                  <Text fontSize="sm">
+                    <Text as="span" fontWeight="semibold">Catalog sync:</Text> {offer.catalogUpdateSummary}
+                  </Text>
+                )}
+                {offer.compatibilitySummary && (
+                  <Text fontSize="sm">
+                    <Text as="span" fontWeight="semibold">Compatibility:</Text> {offer.compatibilitySummary}
+                  </Text>
+                )}
+                {offer.technicalSpecs.length > 0 && (
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold" mb={2}>Technical specs</Text>
+                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={2}>
+                      {offer.technicalSpecs.map((spec) => (
+                        <Text key={spec.label} fontSize="xs" color="chakra-subtle-text">
+                          <Text as="span" fontWeight="semibold" color="chakra-body-text">{spec.label}:</Text> {spec.value}
+                        </Text>
+                      ))}
+                    </SimpleGrid>
+                  </Box>
+                )}
+              </VStack>
+            </CardBody>
+            <CardFooter pt={0}>
+              <Button
+                colorScheme="primary"
+                onClick={() => onAddOffer(offer)}
+                isDisabled={!inStock || Boolean(addingOfferProductID)}
+                isLoading={addingOfferProductID === offer.productID}
+              >
+                {inStock
+                  ? `Add ${quantity} ${pluralize("item", quantity)}`
+                  : "Out of stock"}
+              </Button>
+            </CardFooter>
+          </Card>
+        );
+      })}
+    </VStack>
+  </Box>
+);
 
 export interface ProductDetailProps {
   productId: string;
@@ -41,11 +227,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 }) => {
   const navigate = useNavigate();
   const toast = useToast();
-  const { selectedSeller, ensureOrderSellerContext } = useSellerContext();
+  const { selectedSeller, availableSuppliers, ensureOrderSellerContext } = useSellerContext();
   const scopedSellerID =
     selectedSeller?.sellerType === "supplier" ? selectedSeller.sellerID : undefined;
   const [activeRecordId, setActiveRecordId] = useState<string>();
   const [product, setProduct] = useState<BuyerProduct>();
+  const [productSellerSource, setProductSellerSource] = useState<ProductSellerSource>();
   const [loading, setLoading] = useState(true);
   const { data: inventoryRecords } = useOcResourceList<InventoryRecord>(
     "Me.ProductInventoryRecords",
@@ -55,6 +242,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   );
 
   const [addingToCart, setAddingToCart] = useState(false);
+  const [addingOfferProductID, setAddingOfferProductID] = useState<string>();
+  const [offers, setOffers] = useState<SupplierOfferViewModel[]>([]);
+  const [offerWarnings, setOfferWarnings] = useState<
+    Array<{ source: string; message: string }>
+  >([]);
+  const [offersLoading, setOffersLoading] = useState(false);
   const [quantity, setQuantity] = useState(
     product?.PriceSchedule?.MinQuantity ?? 1
   );
@@ -63,24 +256,76 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     [product?.Inventory?.QuantityAvailable]
   );
   const { addCartLineItem, deleteCart, orderWorksheet } = useShopper();
-  const soldBy = useMemo(() => resolveSellerLabel(product as any), [product]);
-  const usedPartsMeta = useMemo(() => resolveUsedPartsMeta(product as any), [product]);
+  const soldBy = useMemo(() => resolveSellerLabel(product || {}), [product]);
+  const usedPartsMeta = useMemo(() => resolveUsedPartsMeta(product || {}), [product]);
+  const productXp = product?.xp as { canonicalPartNumber?: string } | undefined;
+  const canonicalPartNumber = productXp?.canonicalPartNumber;
+  const offerSellerSources = useMemo(
+    () => [
+      { sellerType: "admin" as const, displayName: "Scania Direct" },
+      ...availableSuppliers.map((seller) => ({
+        sellerType: "supplier" as const,
+        sellerID: seller.SupplierID,
+        displayName: seller.Name || seller.SupplierID || "Supplier",
+      })),
+    ],
+    [availableSuppliers]
+  );
 
   useEffect(() => {
+    let ignore = false;
     const fetchProduct = async () => {
       setLoading(true);
+      const productSources: ProductSellerSource[] = scopedSellerID
+        ? [
+            {
+              sellerType: "supplier",
+              sellerID: scopedSellerID,
+              displayName: selectedSeller?.displayName || scopedSellerID,
+            },
+          ]
+        : [
+            { sellerType: "admin", displayName: "Scania Direct" },
+            ...availableSuppliers.map((seller) => ({
+              sellerType: "supplier" as const,
+              sellerID: seller.SupplierID,
+              displayName: seller.Name || seller.SupplierID || "Supplier",
+            })),
+          ];
+
       try {
-        const result = await Me.GetProduct(
-          productId,
-          scopedSellerID ? { sellerID: scopedSellerID } : undefined
-        );
-        setProduct(result as BuyerProduct);
+        for (const source of productSources) {
+          try {
+            const result = await Me.GetProduct(
+              productId,
+              source.sellerID ? { sellerID: source.sellerID } : undefined
+            );
+            if (!ignore) {
+              setProduct(result as BuyerProduct);
+              setProductSellerSource(source);
+            }
+            return;
+          } catch (error) {
+            // Continue trying buyer-visible supplier contexts for direct URL loads.
+          }
+        }
+
+        if (!ignore) {
+          setProduct(undefined);
+          setProductSellerSource(undefined);
+        }
       } finally {
-        setLoading(false);
+        if (!ignore) {
+          setLoading(false);
+        }
       }
     };
+
     fetchProduct();
-  }, [productId, scopedSellerID]);
+    return () => {
+      ignore = true;
+    };
+  }, [availableSuppliers, productId, scopedSellerID, selectedSeller?.displayName]);
 
   useEffect(() => {
     const availableRecord = inventoryRecords?.Items.find(
@@ -90,6 +335,124 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       setActiveRecordId(availableRecord.ID);
     }
   }, [inventoryRecords?.Items]);
+
+  useEffect(() => {
+    if (!product || !canonicalPartNumber) {
+      setOffers([]);
+      setOfferWarnings([]);
+      setOffersLoading(false);
+      return;
+    }
+
+    let ignore = false;
+    const fetchOffers = async () => {
+      setOffersLoading(true);
+      try {
+        const result = await getSupplierOffers(product, {
+          sellerSources: offerSellerSources,
+        });
+        if (!ignore) {
+          setOffers(result.offers);
+          setOfferWarnings(result.warnings);
+        }
+      } catch (error) {
+        console.error("Failed to load supplier offers:", error);
+        if (!ignore) {
+          setOffers([]);
+          setOfferWarnings([
+            {
+              source: "Available Offers",
+              message: "Offers could not be loaded right now.",
+            },
+          ]);
+        }
+      } finally {
+        if (!ignore) {
+          setOffersLoading(false);
+        }
+      }
+    };
+
+    fetchOffers();
+    return () => {
+      ignore = true;
+    };
+  }, [canonicalPartNumber, offerSellerSources, product]);
+
+  const ensureOfferSellerContext = useCallback(
+    async (offer: SupplierOfferViewModel) => {
+      const currentCart = await Cart.Get().catch(() => undefined);
+      const currentToCompanyID = currentCart?.ToCompanyID;
+      const hasLineItems = Boolean(
+        currentCart?.LineItemCount || orderWorksheet?.LineItems?.length
+      );
+      const targetSellerID =
+        offer.sellerType === "supplier" ? offer.sellerID : undefined;
+
+      if (targetSellerID) {
+        if (currentToCompanyID !== targetSellerID && hasLineItems) {
+          await deleteCart();
+        }
+        if (currentToCompanyID !== targetSellerID) {
+          await Cart.Save({ ToCompanyID: targetSellerID } as Order);
+        }
+        return;
+      }
+
+      if (currentToCompanyID && hasLineItems) {
+        await deleteCart();
+      } else if (currentToCompanyID) {
+        await Cart.Delete();
+      }
+    },
+    [deleteCart, orderWorksheet?.LineItems?.length]
+  );
+
+  const handleAddOfferToCart = useCallback(
+    async (offer: SupplierOfferViewModel) => {
+      try {
+        setAddingOfferProductID(offer.productID);
+        await ensureOfferSellerContext(offer);
+        await addCartLineItem({
+          ProductID: offer.productID,
+          Quantity: quantity,
+          InventoryRecordID: offer.inventoryRecordID,
+        });
+        toast({
+          title: `${quantity} ${pluralize("item", quantity)} added to cart`,
+          description: `Added ${offer.productName} from ${offer.supplierDisplayName}.`,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        navigate("/cart");
+      } catch (error) {
+        if (error instanceof OrderCloudError) {
+          toast({
+            title: "Error adding offer to cart",
+            description:
+              error.message ||
+              "Please ensure all required specifications are filled out.",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        } else {
+          console.error("Failed to add offer item to cart:", error);
+          toast({
+            title: "Error",
+            description: "An unexpected error occurred. Please try again.",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        }
+      } finally {
+        setAddingOfferProductID(undefined);
+      }
+    },
+    [addCartLineItem, ensureOfferSellerContext, navigate, quantity, toast]
+  );
 
   const handleAddToCart = useCallback(async () => {
     if (!product) {
@@ -109,14 +472,24 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
     try {
       setAddingToCart(true);
+      const productSellerID =
+        productSellerSource?.sellerType === "supplier"
+          ? productSellerSource.sellerID
+          : selectedSeller?.sellerType === "supplier"
+            ? selectedSeller.sellerID
+            : undefined;
       const orderSellerMismatch =
-        selectedSeller?.sellerType === "supplier" &&
+        Boolean(productSellerID) &&
         Boolean(orderWorksheet?.Order?.ToCompanyID) &&
-        orderWorksheet?.Order?.ToCompanyID !== selectedSeller.sellerID;
+        orderWorksheet?.Order?.ToCompanyID !== productSellerID;
       if (orderSellerMismatch && orderWorksheet?.LineItems?.length) {
         await deleteCart();
       }
-      await ensureOrderSellerContext();
+      if (productSellerID) {
+        await Cart.Save({ ToCompanyID: productSellerID } as Order);
+      } else {
+        await ensureOrderSellerContext();
+      }
       await addCartLineItem({
         ProductID: productId,
         Quantity: quantity,
@@ -159,12 +532,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     deleteCart,
     ensureOrderSellerContext,
     navigate,
-    orderWorksheet?.Order?.ID,
     orderWorksheet?.Order?.ToCompanyID,
     orderWorksheet?.LineItems?.length,
     product,
     productId,
+    productSellerSource?.sellerID,
+    productSellerSource?.sellerType,
     quantity,
+    selectedSeller?.sellerID,
+    selectedSeller?.sellerType,
     toast,
   ]);
 
@@ -192,9 +568,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             {product.ID}
           </Text>
           <Text maxW="prose">{product.Description}</Text>
-          {soldBy && (
+          {(productSellerSource || soldBy) && (
             <Text fontSize="sm" color="chakra-subtle-text">
-              Buying from {selectedSeller?.displayName || soldBy}
+              Buying from {productSellerSource?.displayName || selectedSeller?.displayName || soldBy}
             </Text>
           )}
           <Text fontSize="3xl" fontWeight="medium">
@@ -270,6 +646,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   ))}
               </HStack>
             </>
+          )}
+          {canonicalPartNumber && (
+            <AvailableOffers
+              offers={offers}
+              warnings={offerWarnings}
+              isLoading={offersLoading}
+              quantity={quantity}
+              addingOfferProductID={addingOfferProductID}
+              onAddOffer={handleAddOfferToCart}
+            />
           )}
         </VStack>
       </SimpleGrid>
