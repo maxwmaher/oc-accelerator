@@ -88,9 +88,20 @@ const normalizeSpecs = (value: unknown) => {
     .filter((spec): spec is { label: string; value: string } => Boolean(spec.value));
 };
 
-const normalizeBadges = (value: unknown) => {
+const normalizeBadges = (value: unknown, sellerType: SupplierOfferViewModel["sellerType"]) => {
   const badges = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
-  return Array.from(new Set(badges.map(String).filter(Boolean)));
+  return Array.from(
+    new Set(
+      badges
+        .map(String)
+        .filter(Boolean)
+        .map((badge) =>
+          sellerType === "admin" && badge.toLowerCase() === "best offer"
+            ? "Scania Direct"
+            : badge
+        )
+    )
+  );
 };
 
 const getPrice = (product: SupplierOfferNormalizeOptions["product"]) =>
@@ -141,7 +152,7 @@ export const normalizeSupplierOffer = ({
     warehouseRegion: getString(offer, "warehouseRegion", "region"),
     warehouseName: getString(offer, "warehouseName", "warehouse"),
     stockQuantity: product.Inventory?.QuantityAvailable,
-    badges: normalizeBadges(offer.badges),
+    badges: normalizeBadges(offer.badges, source.sellerType),
     conditionSummary: normalizeSummary(xp.condition),
     catalogUpdateSummary: normalizeSummary(xp.catalogUpdate),
     compatibilitySummary: normalizeSummary(xp.compatibility),

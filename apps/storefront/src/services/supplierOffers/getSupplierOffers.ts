@@ -16,6 +16,11 @@ interface SupplierOfferProductXp {
   categoryID?: string;
   catalog?: { ID?: string };
   category?: { ID?: string };
+  supplier?: {
+    id?: string;
+    sellerID?: string;
+    sellerType?: string;
+  };
 }
 
 type InventoryRecordListOptions = { pageSize: number; sellerID?: string };
@@ -34,6 +39,51 @@ const getCatalogID = (product: BuyerProduct, context: SupplierOfferQueryContext)
 const getCategoryID = (product: BuyerProduct, context: SupplierOfferQueryContext) => {
   const xp = getProductXp(product);
   return context.categoryID || xp?.categoryID || xp?.category?.ID;
+};
+
+const getProductSupplierSellerID = (product: BuyerProduct) => {
+  const xp = getProductXp(product);
+  return xp?.supplier?.sellerID || xp?.supplier?.id || product.DefaultSupplierID;
+};
+
+const isSupplierOwnedProduct = (product: BuyerProduct) => {
+  const xp = getProductXp(product);
+  return Boolean(product.DefaultSupplierID || xp?.supplier?.sellerType === "supplier");
+};
+
+const productMatchesSource = (
+  product: BuyerProduct,
+  source: SupplierOfferSellerSource
+) => {
+  if (source.sellerType === "admin") {
+    return !isSupplierOwnedProduct(product);
+  }
+
+  const productSupplierSellerID = getProductSupplierSellerID(product);
+  return !productSupplierSellerID || productSupplierSellerID === source.sellerID;
+};
+
+const preferOffer = (
+  current: ReturnType<typeof normalizeSupplierOffer> | undefined,
+  next: ReturnType<typeof normalizeSupplierOffer> | undefined
+) => {
+  if (!current) return next;
+  if (!next) return current;
+
+  const currentMatchesOwnership =
+    current.sellerType === "supplier" && current.sellerID === getProductSupplierSellerID(current.product);
+  const nextMatchesOwnership =
+    next.sellerType === "supplier" && next.sellerID === getProductSupplierSellerID(next.product);
+
+  if (currentMatchesOwnership !== nextMatchesOwnership) {
+    return nextMatchesOwnership ? next : current;
+  }
+
+  if (current.sellerType !== next.sellerType) {
+    return next.sellerType === "supplier" ? next : current;
+  }
+
+  return current;
 };
 
 const fetchInventoryRecords = async (
@@ -71,8 +121,12 @@ export const getSupplierOffers = async (
           filters: { "xp.canonicalPartNumber": canonicalPartNumber },
         });
 
+        const sourceProducts = (productsResult.Items || []).filter((product) =>
+          productMatchesSource(product, source)
+        );
+
         const offers = await Promise.all(
-          (productsResult.Items || []).map(async (product) => {
+          sourceProducts.map(async (product) => {
             try {
               const inventoryRecords = product.ID
                 ? await fetchInventoryRecords(product.ID, source)
@@ -101,15 +155,15 @@ export const getSupplierOffers = async (
     })
   );
 
-  const uniqueOffers = new Map(
-    offersBySource.flat().map((offer) => [
-      `${offer?.sellerID || "admin"}:${offer?.productID}`,
-      offer,
-    ])
-  );
-  const offers = Array.from(uniqueOffers.values()).filter(
-    (offer): offer is NonNullable<typeof offer> => Boolean(offer)
-  );
+  const uniqueOffers = offersBySource.flat().reduce((offerMap, offer) => {
+    const existingOffer = offerMap.get(offer.productID);
+    const preferredOffer = preferOffer(existingOffer, offer);
+    if (preferredOffer) {
+      offerMap.set(offer.productID, preferredOffer);
+    }
+    return offerMap;
+  }, new Map<string, NonNullable<ReturnType<typeof normalizeSupplierOffer>>>());
+  const offers = Array.from(uniqueOffers.values());
 
   return {
     offers: sortSupplierOffers(applyComputedOfferBadges(offers)),
