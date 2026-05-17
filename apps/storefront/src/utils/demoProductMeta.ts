@@ -1,4 +1,5 @@
 import { BuyerProduct } from "ordercloud-javascript-sdk";
+import formatPrice from "./formatPrice";
 
 const USED_PARTS_KEYS = [
   "condition",
@@ -16,25 +17,57 @@ const toTitle = (value: string) =>
     .trim()
     .replace(/^./, (s) => s.toUpperCase());
 
-export const resolveSellerLabel = (product: Partial<BuyerProduct> & { [key: string]: any }) => {
-  const direct = product?.SellerName || product?.SupplierName || product?.SellerID;
-  if (direct) return String(direct);
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 
-  const xp = (product as any)?.xp;
-  const xpSeller =
-    xp?.SellerName ||
-    xp?.SupplierName ||
-    xp?.SellerID ||
-    xp?.sellerName ||
-    xp?.supplierName ||
-    xp?.sellerID;
-
-  return xpSeller ? String(xpSeller) : undefined;
+const getString = (source: Record<string, unknown>, keys: string[]) => {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "number") return String(value);
+  }
+  return undefined;
 };
 
-export const resolveUsedPartsMeta = (product: Partial<BuyerProduct> & { [key: string]: any }) => {
-  const xp = (product as any)?.xp || {};
-  const specs = Array.isArray((product as any)?.Specs) ? (product as any).Specs : [];
+const getNumber = (source: Record<string, unknown>, keys: string[]) => {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+};
+
+export const resolveSellerLabel = (product: Partial<BuyerProduct>) => {
+  const productRecord = asRecord(product);
+  const direct = getString(productRecord, [
+    "SellerName",
+    "SupplierName",
+    "SellerID",
+  ]);
+  if (direct) return direct;
+
+  const xp = asRecord(product.xp);
+  return getString(xp, [
+    "SellerName",
+    "SupplierName",
+    "SellerID",
+    "sellerName",
+    "supplierName",
+    "sellerID",
+  ]);
+};
+
+export const resolveUsedPartsMeta = (product: Partial<BuyerProduct>) => {
+  const xp = asRecord(product.xp);
+  const specs = Array.isArray(asRecord(product).Specs)
+    ? (asRecord(product).Specs as unknown[])
+    : [];
 
   const fromXp = USED_PARTS_KEYS.map((key) => {
     const value = xp[key] ?? xp[toTitle(key)] ?? xp[key.toUpperCase()];
@@ -47,14 +80,57 @@ export const resolveUsedPartsMeta = (product: Partial<BuyerProduct> & { [key: st
   }).filter(Boolean) as { label: string; value: string }[];
 
   const fromSpecs = specs
-    .filter((spec: any) =>
-      USED_PARTS_KEYS.some((key) => String(spec?.Name || "").toLowerCase().includes(key))
+    .map(asRecord)
+    .filter((spec) =>
+      USED_PARTS_KEYS.some((key) =>
+        String(spec.Name || "")
+          .toLowerCase()
+          .includes(key),
+      ),
     )
-    .map((spec: any) => ({
-      label: spec?.Name || "Detail",
-      value: String(spec?.Value || ""),
+    .map((spec) => ({
+      label: String(spec.Name || "Detail"),
+      value: String(spec.Value || ""),
     }))
-    .filter((spec: any) => Boolean(spec.value));
+    .filter((spec) => Boolean(spec.value));
 
   return [...fromXp, ...fromSpecs].slice(0, 5);
+};
+
+export const resolveMarketplaceOfferLabel = (
+  product: Partial<BuyerProduct>,
+) => {
+  const xp = asRecord(product.xp);
+  if (!xp.canonicalPartNumber) return undefined;
+
+  const summary = asRecord(
+    xp.marketplaceOffers || xp.availableOffers || xp.supplierOffers,
+  );
+  const offerCount =
+    getNumber(summary, [
+      "offerCount",
+      "availableOfferCount",
+      "supplierOfferCount",
+      "count",
+    ]) ??
+    getNumber(xp, ["offerCount", "availableOfferCount", "supplierOfferCount"]);
+
+  if (offerCount && offerCount > 1) {
+    return `${offerCount} offers available`;
+  }
+
+  const lowestPrice =
+    getNumber(summary, [
+      "lowestPrice",
+      "lowestOfferPrice",
+      "minPrice",
+      "fromPrice",
+    ]) ??
+    getNumber(xp, ["lowestPrice", "lowestOfferPrice", "minPrice", "fromPrice"]);
+
+  if (typeof lowestPrice === "number" && lowestPrice >= 0) {
+    return `From ${formatPrice(lowestPrice)}`;
+  }
+
+  return "Supplier offers available";
 };
