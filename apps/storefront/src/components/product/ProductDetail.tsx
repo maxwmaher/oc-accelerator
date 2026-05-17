@@ -47,6 +47,16 @@ import {
 
 const formatOfferFallback = (value?: string | number) => value || "—";
 
+const isInventoryDebugEnabled = () =>
+  typeof window !== "undefined" &&
+  window.localStorage.getItem("DEBUG_SUPPLIER_OFFERS_INVENTORY") === "true";
+
+const debugInventory = (message: string, data: Record<string, unknown>) => {
+  if (isInventoryDebugEnabled()) {
+    console.debug(`[AvailableOffers inventory] ${message}`, data);
+  }
+};
+
 interface AvailableOffersProps {
   offers: SupplierOfferViewModel[];
   warnings: Array<{ source: string; message: string }>;
@@ -239,13 +249,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     productSellerSource?.sellerType === "supplier"
       ? productSellerSource.sellerID
       : scopedSellerID;
+  const inventoryListOptions = inventorySellerID
+    ? { sellerID: inventorySellerID }
+    : undefined;
   const { data: inventoryRecords } = useOcResourceList<InventoryRecord>(
     "Me.ProductInventoryRecords",
-    undefined,
-    {
-      productID: productId,
-      ...(inventorySellerID ? { sellerID: inventorySellerID } : {}),
-    },
+    inventoryListOptions,
+    { productID: productId },
     { disabled: !IS_MULTI_LOCATION_INVENTORY || !product }
   );
 
@@ -291,6 +301,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     ],
     [availableSuppliers]
   );
+
+  useEffect(() => {
+    debugInventory("ProductDetail inventory list source", {
+      productID: productId,
+      resolvedSellerSource: productSellerSource,
+      sellerID: inventorySellerID || "omitted",
+      source: "buyer-visible Me.ProductInventoryRecords list",
+      disabled: !IS_MULTI_LOCATION_INVENTORY || !product,
+    });
+  }, [inventorySellerID, product, productId, productSellerSource]);
 
   useEffect(() => {
     let ignore = false;
@@ -348,13 +368,26 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   }, [availableSuppliers, productId, scopedSellerID, selectedSeller?.displayName]);
 
   useEffect(() => {
+    setActiveRecordId(undefined);
+  }, [inventorySellerID, productId]);
+
+  useEffect(() => {
     const availableRecord = inventoryRecords?.Items.find(
       (item) => item.QuantityAvailable > 0
     );
+    debugInventory("ProductDetail inventory list result", {
+      productID: productId,
+      sellerID: inventorySellerID || "omitted",
+      resultCount: inventoryRecords?.Items.length ?? 0,
+      selectedInventoryRecordID: availableRecord?.ID || "omitted",
+      inventoryRecordSource: availableRecord
+        ? "buyer-visible list response"
+        : "omitted: no buyer-visible available record",
+    });
     if (availableRecord) {
       setActiveRecordId(availableRecord.ID);
     }
-  }, [inventoryRecords?.Items]);
+  }, [inventoryRecords?.Items, inventorySellerID, productId]);
 
   useEffect(() => {
     if (!product || !canonicalPartNumber) {
@@ -433,10 +466,24 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       try {
         setAddingOfferProductID(offer.productID);
         await ensureOfferSellerContext(offer);
+        debugInventory("Offer add-to-cart inventory record", {
+          productID: offer.productID,
+          resolvedSellerSource: {
+            sellerType: offer.sellerType,
+            sellerID: offer.sellerID,
+          },
+          sellerID: offer.sellerID || "omitted",
+          selectedInventoryRecordID: offer.inventoryRecordID || "omitted",
+          inventoryRecordSource: offer.inventoryRecordID
+            ? "buyer-visible list response"
+            : "omitted: no buyer-visible available record",
+        });
         await addCartLineItem({
           ProductID: offer.productID,
           Quantity: quantity,
-          InventoryRecordID: offer.inventoryRecordID,
+          ...(offer.inventoryRecordID
+            ? { InventoryRecordID: offer.inventoryRecordID }
+            : {}),
         });
         toast({
           title: `${quantity} ${pluralize("item", quantity)} added to cart`,
@@ -474,13 +521,19 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     [addCartLineItem, ensureOfferSellerContext, navigate, quantity, toast]
   );
 
+  const activeRecordIsBuyerVisible = Boolean(
+    activeRecordId &&
+      inventoryRecords?.Items.some((record) => record.ID === activeRecordId)
+  );
+  const safeActiveRecordId = activeRecordIsBuyerVisible ? activeRecordId : undefined;
+
   const handleAddToCart = useCallback(async () => {
     if (!product) {
       console.warn("[ProductDetail.tsx] Product not found for ID:", productId);
       return <div>Product not found for ID: {productId}</div>;
     }
 
-    if (IS_MULTI_LOCATION_INVENTORY && !activeRecordId) {
+    if (IS_MULTI_LOCATION_INVENTORY && !safeActiveRecordId) {
       toast({
         title: "No Inventory Available",
         description: "Please select a store with available inventory.",
@@ -510,10 +563,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       } else {
         await ensureOrderSellerContext();
       }
+      if (activeRecordId && !safeActiveRecordId) {
+        debugInventory("Omitting unsafe current-product InventoryRecordID", {
+          productID: productId,
+          sellerID: productSellerID || "omitted",
+          unsafeInventoryRecordID: activeRecordId,
+          reason: "not present in current buyer-visible list response",
+        });
+      }
       await addCartLineItem({
         ProductID: productId,
         Quantity: quantity,
-        InventoryRecordID: activeRecordId,
+        ...(safeActiveRecordId
+          ? { InventoryRecordID: safeActiveRecordId }
+          : {}),
       });
       setAddingToCart(false);
       toast({
@@ -548,6 +611,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   }, [
     activeRecordId,
+    safeActiveRecordId,
     addCartLineItem,
     deleteCart,
     ensureOrderSellerContext,

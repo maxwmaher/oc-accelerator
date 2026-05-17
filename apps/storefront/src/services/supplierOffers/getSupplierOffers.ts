@@ -25,6 +25,16 @@ interface SupplierOfferProductXp {
 
 type InventoryRecordListOptions = { pageSize: number; sellerID?: string };
 
+const isInventoryDebugEnabled = () =>
+  typeof window !== "undefined" &&
+  window.localStorage.getItem("DEBUG_SUPPLIER_OFFERS_INVENTORY") === "true";
+
+const debugInventory = (message: string, data: Record<string, unknown>) => {
+  if (isInventoryDebugEnabled()) {
+    console.debug(`[AvailableOffers inventory] ${message}`, data);
+  }
+};
+
 const getProductXp = (product: BuyerProduct) =>
   product.xp as SupplierOfferProductXp | undefined;
 
@@ -94,7 +104,26 @@ const fetchInventoryRecords = async (
     pageSize: 100,
     ...(source.sellerID ? { sellerID: source.sellerID } : {}),
   };
+  debugInventory("Offer inventory list request", {
+    productID,
+    resolvedSellerSource: source,
+    sellerID: source.sellerID || "omitted",
+    source: "buyer-visible Me.ListProductInventoryRecords list",
+  });
   const result = await Me.ListProductInventoryRecords(productID, listOptions);
+  debugInventory("Offer inventory list response", {
+    productID,
+    sellerID: source.sellerID || "omitted",
+    resultCount: result.Items?.length ?? 0,
+    selectedInventoryRecordID:
+      result.Items?.find((record) => (record.QuantityAvailable ?? 0) > 0)?.ID ||
+      "omitted",
+    inventoryRecordSource: result.Items?.some(
+      (record) => (record.QuantityAvailable ?? 0) > 0
+    )
+      ? "buyer-visible list response"
+      : "omitted: no buyer-visible available record",
+  });
   return (result.Items || []) as InventoryRecord[];
 };
 
@@ -133,6 +162,13 @@ export const getSupplierOffers = async (
                 : [];
               return normalizeSupplierOffer({ product, source, inventoryRecords });
             } catch (error) {
+              debugInventory("Offer inventory list failed; omitting InventoryRecordID", {
+                productID: product.ID || "unknown",
+                resolvedSellerSource: source,
+                sellerID: source.sellerID || "omitted",
+                inventoryRecordSource: "omitted: buyer-visible list failed",
+                error,
+              });
               warnings.push({
                 source: source.displayName,
                 message: `Inventory records unavailable for ${product.ID || "offer"}.`,
