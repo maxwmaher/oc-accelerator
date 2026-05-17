@@ -1,4 +1,5 @@
 import {
+  Badge,
   Card,
   CardBody,
   Center,
@@ -13,15 +14,20 @@ import { FunctionComponent } from "react";
 import { TbPhoto } from "react-icons/tb";
 import { Link as RouterLink } from "react-router-dom";
 import formatPrice from "../../utils/formatPrice";
-import { resolveSellerLabel, resolveUsedPartsMeta } from "../../utils/demoProductMeta";
+import {
+  resolveMarketplaceOfferLabel,
+  resolveSellerLabel,
+  resolveUsedPartsMeta,
+} from "../../utils/demoProductMeta";
 
 interface ProductCardProps {
   product: BuyerProduct;
 }
 
 const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
-  const soldBy = resolveSellerLabel(product as any);
-  const usedPartsMeta = resolveUsedPartsMeta(product as any);
+  const soldBy = resolveSellerLabel(product);
+  const usedPartsMeta = resolveUsedPartsMeta(product);
+  const marketplaceOfferLabel = resolveMarketplaceOfferLabel(product);
 
   return (
     <>
@@ -109,16 +115,25 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                     Sold by {soldBy}
                   </Text>
                 )}
+                {marketplaceOfferLabel && (
+                  <Badge colorScheme="purple" variant="subtle">
+                    {marketplaceOfferLabel}
+                  </Badge>
+                )}
                 {product.PriceSchedule?.PriceBreaks && (
                   <Text fontSize="md" fontWeight="normal">
                     {formatPrice(
-                      product?.PriceSchedule?.PriceBreaks[0].Price ?? 0
+                      product?.PriceSchedule?.PriceBreaks[0].Price ?? 0,
                     )}
                   </Text>
                 )}
                 {usedPartsMeta.length > 0 &&
                   usedPartsMeta.map((item) => (
-                    <Text key={item.label} fontSize="xs" color="chakra-subtle-text">
+                    <Text
+                      key={item.label}
+                      fontSize="xs"
+                      color="chakra-subtle-text"
+                    >
                       <Text as="span" fontWeight="semibold">
                         {item.label}:
                       </Text>{" "}
