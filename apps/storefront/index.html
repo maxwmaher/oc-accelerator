@@ -1,19 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- favicon script -->
-    <script>
-      (function () {
-        const faviconUrl = import.meta.env.VITE_APP_FAVICON || "/src/assets/DEFAULT_FAVICON.svg";
-
-        const link = document.createElement("link");
-        link.rel = "icon";
-        link.href = faviconUrl;
-        link.type = faviconUrl.endsWith(".ico") ? "image/x-icon" : "image/svg+xml";
-
-        document.head.appendChild(link);
-      })();
-    </script>
+    <link rel="icon" type="image/svg+xml" href="/src/assets/DEFAULT_FAVICON.svg" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>%VITE_APP_NAME%</title>
