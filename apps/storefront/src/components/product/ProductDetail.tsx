@@ -466,6 +466,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       try {
         setAddingOfferProductID(offer.productID);
         await ensureOfferSellerContext(offer);
+        const safeOfferInventoryRecordID =
+          offer.sellerType === "admin" ? offer.inventoryRecordID : undefined;
         debugInventory("Offer add-to-cart inventory record", {
           productID: offer.productID,
           resolvedSellerSource: {
@@ -473,16 +475,18 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             sellerID: offer.sellerID,
           },
           sellerID: offer.sellerID || "omitted",
-          selectedInventoryRecordID: offer.inventoryRecordID || "omitted",
-          inventoryRecordSource: offer.inventoryRecordID
+          selectedInventoryRecordID: safeOfferInventoryRecordID || "omitted",
+          inventoryRecordSource: safeOfferInventoryRecordID
             ? "buyer-visible list response"
-            : "omitted: no buyer-visible available record",
+            : offer.inventoryRecordID
+              ? "omitted: supplier offer inventory record not verified against active cart seller context"
+              : "omitted: no buyer-visible available record",
         });
         await addCartLineItem({
           ProductID: offer.productID,
           Quantity: quantity,
-          ...(offer.inventoryRecordID
-            ? { InventoryRecordID: offer.inventoryRecordID }
+          ...(safeOfferInventoryRecordID
+            ? { InventoryRecordID: safeOfferInventoryRecordID }
             : {}),
         });
         toast({
