@@ -1,5 +1,4 @@
 import { BuyerProduct } from "ordercloud-javascript-sdk";
-import formatPrice from "./formatPrice";
 
 const USED_PARTS_KEYS = [
   "condition",
@@ -114,11 +113,6 @@ export const resolveMarketplaceOfferLabel = (
       "count",
     ]) ??
     getNumber(xp, ["offerCount", "availableOfferCount", "supplierOfferCount"]);
-
-  if (offerCount && offerCount > 1) {
-    return `${offerCount} offers available`;
-  }
-
   const lowestPrice =
     getNumber(summary, [
       "lowestPrice",
@@ -128,8 +122,8 @@ export const resolveMarketplaceOfferLabel = (
     ]) ??
     getNumber(xp, ["lowestPrice", "lowestOfferPrice", "minPrice", "fromPrice"]);
 
-  if (typeof lowestPrice === "number" && lowestPrice >= 0) {
-    return `From ${formatPrice(lowestPrice)}`;
+  if ((offerCount && offerCount > 0) || typeof lowestPrice === "number") {
+    return "Supplier offers available";
   }
 
   return "Supplier offers available";

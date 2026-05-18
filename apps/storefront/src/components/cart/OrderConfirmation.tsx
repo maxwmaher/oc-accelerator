@@ -58,7 +58,8 @@ const asRecord = (value: unknown): Record<string, unknown> =>
 const getString = (record: Record<string, unknown>, ...keys: string[]) => {
   for (const key of keys) {
     const value = record[key];
-    if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
   }
   return undefined;
 };
@@ -80,7 +81,7 @@ const getProductHandoffSignals = (lineItem: LineItem) => {
   const condition = xp.condition;
 
   return {
-    productName: product?.Name || lineItem.ProductID,
+    productName: product?.Name || "Selected product",
     supplierName: getString(
       supplier,
       "displayName",
@@ -192,7 +193,7 @@ const resolveHandoffPanelContent = (
       channel,
       description:
         "This order preserves the selected used-parts supplier offer, including supplier context, buyer eligibility, selected product, pricing, and fulfillment details for downstream routing.",
-      channelLabel: "Ad hoc/used-parts supplier",
+      channelLabel: "ABC Used Parts Supplier offer",
       metadata,
     };
   }
@@ -202,7 +203,7 @@ const resolveHandoffPanelContent = (
       channel,
       description:
         "This order preserves the selected catalog-sync/EDI supplier offer, including supplier context, selected product, pricing, and fulfillment details for downstream ERP processing.",
-      channelLabel: "Catalog-sync/EDI partner",
+      channelLabel: "Nordic EDI Supplier offer",
       metadata,
     };
   }
@@ -211,7 +212,7 @@ const resolveHandoffPanelContent = (
     channel,
     description:
       "This order was captured through the direct OEM channel with admin-managed product, pricing, and fulfillment context ready for downstream processing.",
-    channelLabel: "Direct OEM channel",
+    channelLabel: "Scania Direct",
     metadata,
   };
 };
@@ -219,6 +220,12 @@ const resolveHandoffPanelContent = (
 const metadataSupplierFallback = (channel: HandoffChannel) => {
   if (channel === "abc-used") return "ABC Used Parts Supplier";
   if (channel === "nordic-edi") return "Nordic EDI Supplier";
+  return undefined;
+};
+
+const formatMetadataValue = (value: unknown) => {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
   return undefined;
 };
 
@@ -230,7 +237,9 @@ const OrderHandoffPanel = ({ content }: { content: HandoffPanelContent }) => {
     ["Order ID", content.metadata.orderID],
     ["Payment status", content.metadata.paymentStatus],
     ["Downstream status", "Ready for handoff"],
-  ].filter((row): row is [string, string] => Boolean(row[1]));
+  ]
+    .map(([label, value]) => [label, formatMetadataValue(value)])
+    .filter((row): row is [string, string] => Boolean(row[1]));
 
   return (
     <Alert status="info" variant="subtle" rounded="md" alignItems="flex-start">
@@ -402,7 +411,7 @@ const OrderConfirmation = (): JSX.Element => {
               {order.ShippingCost > 0 ? "Standard Shipping" : "Free Shipping"}
             </Text>
             <Text>
-              Payment Method: {order.xp?.PaymentMethod || "Not specified"}
+              Payment Method: {formatMetadataValue(order.xp?.PaymentMethod) || "Not specified"}
             </Text>
           </VStack>
         </Container>

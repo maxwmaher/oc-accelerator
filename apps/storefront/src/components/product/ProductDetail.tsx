@@ -45,7 +45,10 @@ import {
 } from "../../services/supplierOffers";
 
 
-const formatOfferFallback = (value?: string | number) => value || "—";
+const formatOfferFallback = (value?: string | number) => {
+  if (value === undefined || value === null || value === "") return "—";
+  return String(value);
+};
 
 const isInventoryDebugEnabled = () =>
   typeof window !== "undefined" &&
@@ -124,7 +127,7 @@ const AvailableOffers: React.FC<AvailableOffersProps> = ({
                   <Box>
                     <Heading size="sm">{offer.supplierDisplayName}</Heading>
                     <Text fontSize="xs" color="chakra-subtle-text">
-                      {offer.productName} · {offer.productID}
+                      {offer.productName || "Supplier offer"}
                     </Text>
                     {offer.pricingModelLabel && (
                       <Text fontSize="xs" color="chakra-subtle-text">
@@ -160,7 +163,7 @@ const AvailableOffers: React.FC<AvailableOffersProps> = ({
                   <Text><Text as="span" fontWeight="semibold">Shipping:</Text> {formatOfferFallback(offer.shippingLabel)}</Text>
                   <Text><Text as="span" fontWeight="semibold">Warehouse:</Text> {formatOfferFallback(offer.warehouseName || offer.inventoryLocations[0]?.name)}</Text>
                   <Text><Text as="span" fontWeight="semibold">Region:</Text> {formatOfferFallback(offer.warehouseRegion || offer.inventoryLocations[0]?.state)}</Text>
-                  <Text><Text as="span" fontWeight="semibold">Seller context:</Text> {offer.sellerType === "supplier" ? offer.sellerID : "Scania Direct"}</Text>
+                  <Text><Text as="span" fontWeight="semibold">Fulfillment channel:</Text> {offer.supplierDisplayName || "Scania Direct"}</Text>
                 </SimpleGrid>
 
                 {offer.inventoryLocations.length > 0 && (
@@ -169,12 +172,19 @@ const AvailableOffers: React.FC<AvailableOffersProps> = ({
                       Inventory locations
                     </Text>
                     <VStack alignItems="stretch" gap={1}>
-                      {offer.inventoryLocations.map((location) => (
-                        <Text key={location.id} fontSize="xs" color="chakra-subtle-text">
-                          {location.name || location.id}: {location.quantityAvailable ?? 0} available
-                          {location.city || location.state ? ` · ${[location.city, location.state].filter(Boolean).join(", ")}` : ""}
-                        </Text>
-                      ))}
+                      {offer.inventoryLocations.map((location, index) => {
+                        const locationLabel = location.name || `Location ${index + 1}`;
+                        const locationRegion = [location.city, location.state]
+                          .filter(Boolean)
+                          .join(", ");
+
+                        return (
+                          <Text key={location.id || locationLabel} fontSize="xs" color="chakra-subtle-text">
+                            {locationLabel}: {location.quantityAvailable ?? 0} available
+                            {locationRegion ? ` · ${locationRegion}` : ""}
+                          </Text>
+                        );
+                      })}
                     </VStack>
                   </Box>
                 )}
