@@ -4,6 +4,7 @@ import {
   CardBody,
   Center,
   Heading,
+  HStack,
   Icon,
   Image,
   Text,
@@ -16,6 +17,7 @@ import { Link as RouterLink } from "react-router-dom";
 import formatPrice from "../../utils/formatPrice";
 import {
   resolveMarketplaceOfferLabel,
+  resolveProductSourceLabel,
   resolveSellerLabel,
   resolveUsedPartsMeta,
 } from "../../utils/demoProductMeta";
@@ -28,6 +30,7 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
   const soldBy = resolveSellerLabel(product);
   const usedPartsMeta = resolveUsedPartsMeta(product);
   const marketplaceOfferLabel = resolveMarketplaceOfferLabel(product);
+  const productSourceLabel = resolveProductSourceLabel(product);
 
   return (
     <>
@@ -115,10 +118,19 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                     Sold by {soldBy}
                   </Text>
                 )}
-                {marketplaceOfferLabel && (
-                  <Badge colorScheme="purple" variant="subtle">
-                    {marketplaceOfferLabel}
-                  </Badge>
+                {(marketplaceOfferLabel || productSourceLabel) && (
+                  <HStack spacing={2} flexWrap="wrap" alignItems="flex-start">
+                    {marketplaceOfferLabel && (
+                      <Badge colorScheme="purple" variant="subtle">
+                        {marketplaceOfferLabel}
+                      </Badge>
+                    )}
+                    {productSourceLabel && (
+                      <Badge colorScheme="gray" variant="subtle">
+                        {productSourceLabel}
+                      </Badge>
+                    )}
+                  </HStack>
                 )}
                 {product.PriceSchedule?.PriceBreaks && (
                   <Text fontSize="md" fontWeight="normal">
