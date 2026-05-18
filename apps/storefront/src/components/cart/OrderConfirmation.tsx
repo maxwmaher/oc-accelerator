@@ -71,6 +71,8 @@ const hasMeaningfulRecord = (record: Record<string, unknown>) =>
 
 const getProductHandoffSignals = (lineItem: LineItem) => {
   const product = lineItem.Product;
+  const productRecord = asRecord(product);
+  const lineItemRecord = asRecord(lineItem);
   const xp = asRecord(product?.xp);
   const supplier = asRecord(xp.supplier);
   const catalogUpdate = asRecord(xp.catalogUpdate);
@@ -79,17 +81,38 @@ const getProductHandoffSignals = (lineItem: LineItem) => {
 
   return {
     productName: product?.Name || lineItem.ProductID,
-    supplierName: getString(supplier, "displayName", "name"),
-    supplierID: getString(supplier, "id", "supplierID"),
-    sellerID: getString(supplier, "sellerID"),
-    sellerType: getString(supplier, "sellerType"),
-    catalogSource: getString(catalogUpdate, "source", "updateModel", "partnerType"),
-    catalogPartner: getString(catalogUpdate, "partner", "partnerName"),
-    offerType: getString(offer, "type", "offerType", "source"),
-    hasSupplierMetadata: hasMeaningfulRecord(supplier) || hasMeaningfulRecord(offer),
-    hasCatalogSyncMetadata: hasMeaningfulRecord(catalogUpdate),
+    supplierName: getString(
+      supplier,
+      "displayName",
+      "name",
+      "supplierName",
+      "sellerName",
+    ) || getString(xp, "SupplierName", "supplierName", "SellerName", "sellerName"),
+    supplierID:
+      getString(supplier, "id", "supplierID", "SupplierID") ||
+      getString(xp, "SupplierID", "supplierID", "SellerID", "sellerID") ||
+      getString(productRecord, "SupplierID", "SellerID") ||
+      getString(lineItemRecord, "SupplierID"),
+    sellerID: getString(supplier, "sellerID", "SellerID") || getString(xp, "sellerID", "SellerID"),
+    sellerType: getString(supplier, "sellerType", "SellerType") || getString(xp, "sellerType", "SellerType"),
+    catalogSource:
+      getString(catalogUpdate, "source", "updateModel", "partnerType") ||
+      getString(xp, "catalogSource", "catalogUpdateSource", "ediSource"),
+    catalogPartner:
+      getString(catalogUpdate, "partner", "partnerName") ||
+      getString(xp, "catalogPartner", "catalogPartnerName", "ediPartner"),
+    offerType: getString(offer, "type", "offerType", "source") || getString(xp, "offerType", "offerSource"),
+    hasSupplierMetadata:
+      hasMeaningfulRecord(supplier) ||
+      hasMeaningfulRecord(offer) ||
+      Boolean(getString(xp, "SupplierName", "supplierName", "SellerName", "sellerName")),
+    hasCatalogSyncMetadata:
+      hasMeaningfulRecord(catalogUpdate) ||
+      Boolean(getString(xp, "catalogSource", "catalogUpdateSource", "ediSource", "catalogPartner", "ediPartner")),
     hasConditionMetadata:
-      Boolean(condition) || getString(offer, "condition", "conditionSummary") !== undefined,
+      Boolean(condition) ||
+      getString(offer, "condition", "conditionSummary") !== undefined ||
+      getString(xp, "Condition", "condition", "partCondition") !== undefined,
   };
 };
 
