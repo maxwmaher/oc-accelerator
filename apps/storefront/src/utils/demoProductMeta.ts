@@ -128,3 +128,64 @@ export const resolveMarketplaceOfferLabel = (
 
   return "Supplier offers available";
 };
+
+const hasTruthyField = (source: Record<string, unknown>, keys: string[]) =>
+  keys.some((key) => {
+    const value = source[key];
+    if (typeof value === "string") return Boolean(value.trim());
+    if (Array.isArray(value)) return value.length > 0;
+    return Boolean(value);
+  });
+
+const getLowerValues = (source: Record<string, unknown>, keys: string[]) =>
+  keys
+    .map((key) => source[key])
+    .filter((value): value is string | number =>
+      ["string", "number"].includes(typeof value),
+    )
+    .map((value) => String(value).toLowerCase());
+
+const includesAny = (values: string[], terms: string[]) =>
+  values.some((value) => terms.some((term) => value.includes(term)));
+
+export const resolveProductSourceLabel = (product: Partial<BuyerProduct>) => {
+  const xp = asRecord(product.xp);
+  const textMeta = getLowerValues(xp, [
+    "supplier",
+    "supplierName",
+    "sellerName",
+    "offer",
+    "offerType",
+    "source",
+    "sourceType",
+    "updateModel",
+  ]);
+
+  const hasUsedCondition = hasTruthyField(xp, ["condition", "Condition"]);
+  const isAdHoc =
+    hasUsedCondition ||
+    includesAny(textMeta, ["used", "ad hoc", "adhoc", "abc"]);
+  if (isAdHoc) return "Ad hoc supplier product";
+
+  const hasCatalogUpdate = hasTruthyField(xp, [
+    "catalogUpdate",
+    "CatalogUpdate",
+    "catalogSync",
+    "CatalogSync",
+  ]);
+  const isEdiSync =
+    hasCatalogUpdate ||
+    includesAny(textMeta, ["edi", "catalog sync", "catalog-sync"]);
+  if (isEdiSync) return "EDI catalog sync";
+
+  const isOrderCloudManaged = includesAny(textMeta, [
+    "scania",
+    "direct",
+    "oem",
+    "ordercloud",
+    "admin",
+  ]);
+  if (isOrderCloudManaged) return "Scania Direct";
+
+  return undefined;
+};
