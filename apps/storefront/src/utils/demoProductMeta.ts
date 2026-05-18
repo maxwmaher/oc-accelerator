@@ -5,7 +5,6 @@ const USED_PARTS_KEYS = [
   "mileage",
   "vin",
   "grade",
-  "compatibility",
 ] as const;
 
 const toTitle = (value: string) =>
