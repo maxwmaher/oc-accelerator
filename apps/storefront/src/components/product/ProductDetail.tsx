@@ -93,6 +93,18 @@ const AvailableOffers: React.FC<AvailableOffersProps> = ({
           connected suppliers.
         </Text>
       </Box>
+      <Box bg="chakra-subtle-bg" borderWidth="1px" borderColor="chakra-border-color" rounded="md" p={3}>
+        <Text fontSize="sm" fontWeight="semibold">
+          Buyer-specific supplier access
+        </Text>
+        <Text color="chakra-subtle-text" fontSize="sm">
+          These offers are shown from suppliers this buyer is eligible to purchase from, using buyer/supplier
+          relationships, catalog assignments, product assignments, and supplier-specific pricing context.
+        </Text>
+        <Text color="chakra-subtle-text" fontSize="xs" mt={1}>
+          Admins can configure which buyers can access which suppliers and product catalogs.
+        </Text>
+      </Box>
 
       {isLoading && (
         <HStack color="chakra-subtle-text">
