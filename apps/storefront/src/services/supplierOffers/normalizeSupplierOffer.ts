@@ -69,7 +69,8 @@ const asRecord = (value: unknown): Record<string, unknown> =>
 const getString = (record: Record<string, unknown>, ...keys: string[]) => {
   for (const key of keys) {
     const value = record[key];
-    if (typeof value === "string" && value) return value;
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
   }
   return undefined;
 };
@@ -120,8 +121,10 @@ const normalizeBadges = (value: unknown, sellerType: SupplierOfferViewModel["sel
         .map(String)
         .filter(Boolean)
         .map((badge) =>
-          sellerType === "admin" && badge.toLowerCase() === "best offer"
-            ? "Scania Direct"
+          badge.toLowerCase() === "best offer"
+            ? sellerType === "admin"
+              ? "Scania Direct"
+              : "Supplier offer"
             : badge
         )
     )
@@ -161,7 +164,7 @@ export const normalizeSupplierOffer = ({
 
   return {
     productID: product.ID,
-    productName: product.Name || product.ID,
+    productName: product.Name || "Supplier offer",
     sellerType: source.sellerType,
     sellerID: source.sellerID,
     supplierDisplayName:

@@ -43,7 +43,8 @@ const asRecord = (value: unknown): Record<string, unknown> =>
 const getString = (record: Record<string, unknown>, ...keys: string[]) => {
   for (const key of keys) {
     const value = record[key];
-    if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
   }
   return undefined;
 };
@@ -88,7 +89,7 @@ const getLineItemFulfillmentContent = (lineItems?: LineItem[]) => {
       title: "Fulfilled by ABC Used Parts Supplier",
       description:
         "This supplier offer represents an ad hoc/used-parts supplier with its own pricing, availability, condition metadata, and buyer eligibility.",
-      channelLabel: "Ad hoc supplier offer",
+      channelLabel: "ABC Used Parts Supplier offer",
     };
   }
 
@@ -97,7 +98,7 @@ const getLineItemFulfillmentContent = (lineItems?: LineItem[]) => {
       title: "Fulfilled by Nordic EDI Supplier",
       description:
         "This supplier offer represents a catalog-sync/EDI-enabled partner with externally managed pricing and availability.",
-      channelLabel: "EDI/catalog-sync offer",
+      channelLabel: "Nordic EDI Supplier offer",
     };
   }
 
@@ -106,7 +107,7 @@ const getLineItemFulfillmentContent = (lineItems?: LineItem[]) => {
       title: "Fulfilled by Scania Direct",
       description:
         "This item is sold through the direct OEM channel with admin-managed pricing and inventory.",
-      channelLabel: "Direct OEM channel",
+      channelLabel: "Scania Direct",
     };
   }
 
@@ -133,7 +134,7 @@ const getCartFulfillmentContent = (
       title: "Fulfilled by ABC Used Parts Supplier",
       description:
         "This supplier offer represents an ad hoc/used-parts supplier with its own pricing, availability, condition metadata, and buyer eligibility.",
-      channelLabel: "Ad hoc supplier offer",
+      channelLabel: "ABC Used Parts Supplier offer",
     };
   }
 
@@ -146,7 +147,7 @@ const getCartFulfillmentContent = (
       title: "Fulfilled by Nordic EDI Supplier",
       description:
         "This supplier offer represents a catalog-sync/EDI-enabled partner with externally managed pricing and availability.",
-      channelLabel: "EDI/catalog-sync offer",
+      channelLabel: "Nordic EDI Supplier offer",
     };
   }
 
@@ -155,15 +156,15 @@ const getCartFulfillmentContent = (
       title: "Fulfilled by Scania Direct",
       description:
         "This item is sold through the direct OEM channel with admin-managed pricing and inventory.",
-      channelLabel: "Direct OEM channel",
+      channelLabel: "Scania Direct",
     };
   }
 
   return {
-    title: `Fulfilled by ${selectedSellerName || "Supplier"}`,
+    title: "Fulfilled by selected supplier",
     description:
       "This supplier cart is fulfilled by the selected marketplace seller with supplier-specific pricing and availability.",
-    channelLabel: "Supplier cart",
+    channelLabel: "Supplier offer",
   };
 };
 
