@@ -18,9 +18,40 @@ interface OrderSummaryProps {
   lineItems: LineItem[];
 }
 
+interface TotalRowProps {
+  label: string;
+  value: number | undefined;
+  fontWeight?: "normal" | "bold";
+  fontSize?: string;
+}
+
+const formatOrderAmount = (amount: number | undefined) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    currencyDisplay: "symbol",
+  }).format(typeof amount === "number" && Number.isFinite(amount) ? amount : 0);
+
+const TotalRow: React.FC<TotalRowProps> = ({
+  label,
+  value,
+  fontWeight = "normal",
+  fontSize,
+}) => (
+  <Flex align="baseline" justify="space-between" gap={4}>
+    <Text color="chakra-subtle-text" fontWeight={fontWeight}>
+      {label}
+    </Text>
+    <Text fontWeight={fontWeight} fontSize={fontSize} textAlign="right">
+      {formatOrderAmount(value)}
+    </Text>
+  </Flex>
+);
+
 const OrderSummary: React.FC<OrderSummaryProps> = ({ order, lineItems }) => {
   const navigate = useNavigate();
-  const {isLoggedIn, newAnonSession} = useOrderCloudContext();
+  const { isLoggedIn, newAnonSession } = useOrderCloudContext();
+  const hasTax = typeof order.TaxCost === "number" && Number.isFinite(order.TaxCost);
 
   const handleLineItemChange = (newLi: LineItem) => {
     // Implement the logic to update the line item
@@ -34,7 +65,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ order, lineItems }) => {
       await newAnonSession();
       navigate("/products");
     }
-  }, [isLoggedIn, navigate, newAnonSession])
+  }, [isLoggedIn, navigate, newAnonSession]);
 
   return (
     <VStack align="stretch" spacing={6}>
@@ -68,25 +99,17 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ order, lineItems }) => {
       />
       <Divider />
       <Stack spacing={3}>
-        <Flex justify="space-between">
-          <Text>Subtotal</Text>
-          <Text>${order.Subtotal?.toFixed(2)}</Text>
-        </Flex>
-        <Flex justify="space-between">
-          <Text>Promotion</Text>
-          <Text>${order.PromotionDiscount}</Text>
-        </Flex>
-        <Flex justify="space-between">
-          <Text>
-            {order.ShippingCost === 0
-              ? "FREE SHIPPING"
-              : "$" + order.ShippingCost}
-          </Text>
-        </Flex>
-        <Flex justify="space-between" fontWeight="bold" fontSize="lg">
-          <Text>Total</Text>
-          <Text>${order.Total?.toFixed(2)}</Text>
-        </Flex>
+        <TotalRow label="Subtotal" value={order.Subtotal} />
+        <TotalRow label="Promotion" value={order.PromotionDiscount} />
+        <TotalRow label="Shipping" value={order.ShippingCost} />
+        {hasTax && <TotalRow label="Tax" value={order.TaxCost} />}
+        <Divider />
+        <TotalRow
+          label="Total"
+          value={order.Total}
+          fontWeight="bold"
+          fontSize="lg"
+        />
       </Stack>
     </VStack>
   );
