@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import { chromium, Page } from "@playwright/test";
 import {
   HOME,
-  TARGETS,
   firstChildren,
   firstProducts,
   loose,
@@ -60,7 +59,26 @@ const RAI_HOST = "service.rai.nl";
 const DEVWORLD_PATH =
   "/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/";
 const CONSENT_TEXT_RE = /(?:consent|cookiebot|powered by|privacy|learn more)/i;
-const TARGET_CATEGORY_NAMES = ["fnb-main", "StandConstruciton", "Connections"];
+export const SEEDED_TARGETS = [
+  {
+    label: "Food | Beverages | Catering",
+    categoryName: "fnb-main",
+    url: "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=fnb-main",
+  },
+  {
+    label: "Stand construction items",
+    categoryName: "StandConstruciton",
+    url: "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=StandConstruciton",
+  },
+  {
+    label: "Power, internet & water",
+    categoryName: "Connections",
+    url: "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=Connections",
+  },
+] as const;
+const TARGET_LABELS_AND_SLUGS = new Set(
+  SEEDED_TARGETS.flatMap((t) => [loose(t.label), loose(t.categoryName)]),
+);
 const BLOCKED_URL_PARTS = [
   "ViewProductCompare",
   "ProductCompare",
@@ -307,7 +325,7 @@ export function rejectChildCategoryReasons(l: Link, currentUrl: string) {
     if (isProductActionUrl(u.href))
       reasons.push("cookie/banner/privacy/action URL");
     if (/RAIMasterCatalog/i.test(u.href))
-      reasons.push("RAIMasterCatalog/global catalog URL");
+      reasons.push("RAIMasterCatalog/global catalog URL"); // Added from incoming
     const cat = u.searchParams.get("CategoryName"),
       currentCat = cur.searchParams.get("CategoryName");
     if (!cat) reasons.push("missing CategoryName");
@@ -479,6 +497,46 @@ export async function childCategoryLinks(
   );
   return result.accepted;
 }
+export function isHomepageUrl(href: string) {
+  try {
+    return /ViewHomepage-Start/i.test(new URL(href).href);
+  } catch {
+    return false;
+  }
+}
+export function seededTargetForUrl(href: string) {
+  const cat = categoryNameOf(href);
+  return SEEDED_TARGETS.find((t) => t.categoryName === cat);
+}
+export function assertTraverseStartUrl(url: string, catPath: string[]) {
+  assertNonEmptyCategoryPath(catPath);
+  const allowed = raiUrlAllowlist(url);
+  if (!allowed.allowed)
+    throw new Error(`Blocked external navigation: ${url}`);
+  const normalized = allowed.url || url;
+  if (isProductDetailUrl(normalized))
+    throw new Error(
+      `Internal scraper error: product URL passed to category traversal; route to scrapeProduct() instead: ${normalized}`,
+    );
+  if (isHomepageUrl(normalized) && TARGET_LABELS_AND_SLUGS.has(loose(catPath[0] || "")))
+    throw new Error(
+      "Internal scraper error: target category traversal cannot start from homepage",
+    );
+  return normalized;
+}
+export function assertExpectedCategoryNavigation(
+  startUrl: string,
+  currentUrl: string,
+  label: string,
+) {
+  const target = seededTargetForUrl(startUrl);
+  if (!target) return;
+  const currentCategoryName = categoryNameOf(currentUrl);
+  if (currentCategoryName !== target.categoryName || isHomepageUrl(currentUrl))
+    throw new Error(
+      `Failed to navigate to target category ${label}: expected CategoryName=${target.categoryName}, got ${currentUrl}`,
+    );
+}
 export function debugPathForCategory(categoryName: string) {
   return path.join(
     debugDir,
@@ -505,7 +563,7 @@ export async function handleCookieBanner(page: Page) {
       const button = scope
         .getByRole("button", {
           name: new RegExp(
-            "^\\s*" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*$",
+            "^\\s*" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*$", // Corrected regex escaping
             "i",
           ),
         })
@@ -537,7 +595,7 @@ export async function scrapeProduct(
   href: string,
   card = "",
   catPath: string[],
-  cardRawPriceText?: string,
+  cardRawPriceText?: string, // Added from HEAD
 ): Promise<ProductSnapshot | null> {
   const allowed = raiUrlAllowlist(href);
   if (!allowed.allowed) throw new Error(`Blocked external navigation: ${href}`);
@@ -561,11 +619,11 @@ export async function scrapeProduct(
   let price = parseMoney(
     text.match(/(?:€|EUR)\s*[-+]?\d[\d.,\s]*/i)?.[0] || "",
   );
-  const inputUrl = new URL(allowed.url || href);
-  const sourceSkuFromUrl = inputUrl.searchParams.get("SKU") || undefined;
+  const inputUrl = new URL(allowed.url || href); // Added from HEAD
+  const sourceSkuFromUrl = inputUrl.searchParams.get("SKU") || undefined; // Added from HEAD
   const sourceCategoryName =
-    inputUrl.searchParams.get("CategoryName") || undefined;
-  let usedCardPriceFallback = false;
+    inputUrl.searchParams.get("CategoryName") || undefined; // Added from HEAD
+  let usedCardPriceFallback = false; // Added from HEAD
   if (
     !price &&
     cardRawPriceText &&
@@ -596,14 +654,14 @@ export async function scrapeProduct(
   const abs = [
     ...new Set(
       imgs
-        .map((u) => new URL(u, page.url()).href)
+        .map((u) => new URL(u, page.url()).href) // Corrected from location.href to page.url()
         .filter((u) => u.startsWith("https://")),
     ),
   ];
   const sku =
     text.match(
       /(?:SKU|Item number|Product ID)\s*[:#]?\s*([A-Z0-9._-]+)/i,
-    )?.[1] || sourceSkuFromUrl;
+    )?.[1] || sourceSkuFromUrl; // Integrated sourceSkuFromUrl from HEAD
   const base: any = {
     sourceSku: sku,
     name: title,
@@ -613,7 +671,7 @@ export async function scrapeProduct(
     images: abs.map((u) => ({ thumbnailUrl: u, url: u })),
     pricing: {
       basePrice: price,
-      rawPriceText: usedCardPriceFallback
+      rawPriceText: usedCardPriceFallback // Integrated from HEAD
         ? `Category card fallback: ${price.rawText}`
         : price.rawText,
       minQuantity: 1,
@@ -630,11 +688,11 @@ export async function scrapeProduct(
     xp: {
       RAI: {
         Source: {
-          CategoryName: sourceCategoryName,
-          ProductUrl: allowed.url || href,
+          CategoryName: sourceCategoryName, // Added from HEAD
+          ProductUrl: allowed.url || href, // Added from HEAD
         },
         Pricing: {
-          RawPriceText: usedCardPriceFallback
+          RawPriceText: usedCardPriceFallback // Added from HEAD
             ? `Category card fallback: ${price.rawText}`
             : price.rawText,
         },
@@ -669,19 +727,10 @@ export async function run() {
     await handleCookieBanner(page);
     requireAllowedRaiPage(page.url());
     const homeAll = await links(page);
-    const homeLinks = filterAllowedLinks(homeAll, "homepage", page.url());
-    for (const [i, target] of TARGETS.entries()) {
-      const targetCategory = TARGET_CATEGORY_NAMES[i];
-      const l = homeLinks.find(
-        (x) =>
-          loose(x.text).includes(loose(target)) ||
-          loose(target).includes(loose(x.text)) ||
-          categoryNameOf(x.href) === targetCategory,
-      );
-      if (!l) continue;
-      const name = norm(l.text) || categoryNameOf(l.href) || targetCategory;
-      assertNonEmptyCategoryPath([name]);
-      await traverse(l.href, [name], 0, new Set<string>());
+    filterAllowedLinks(homeAll, "homepage", page.url()); // Keep this, but the loop below uses SEEDED_TARGETS
+    for (const target of SEEDED_TARGETS) {
+      // Adopted from incoming
+      await traverse(target.url, [target.label], 0, new Set<string>());
     }
     snapshot.complete = snapshot.products.length > 0;
     snapshot.source.failure = snapshot.complete
@@ -706,25 +755,27 @@ export async function run() {
     seen: Set<string>,
   ) {
     assertNonEmptyCategoryPath(catPath);
-    assertNotProductTraversal(url);
-    const allowed = raiUrlAllowlist(url);
-    if (!allowed.allowed)
-      throw new Error(`Blocked external navigation: ${url}`);
-    url = allowed.url || url;
+    assertNotProductTraversal(url); // Added from HEAD
+    url = assertTraverseStartUrl(url, catPath); // Added from incoming
     if (depth > 12 || seen.has(url)) return;
     seen.add(url);
     console.log(`Visiting category path: ${catPath.join(" > ")}`);
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
     requireAllowedRaiPage(page.url());
+    assertExpectedCategoryNavigation(url, page.url(), catPath[0]); // Added from incoming
     await page
       .waitForLoadState("networkidle", { timeout: 10000 })
       .catch(() => {});
     requireAllowedRaiPage(page.url());
-    console.log(
-      `Current CategoryName: ${categoryNameOf(page.url()) || "(none)"}`,
-    );
-    const pd = await productLinksWithDebug(page);
-    const products = pd.acceptedProductLinks;
+    assertExpectedCategoryNavigation(url, page.url(), catPath[0]); // Added from incoming
+    const currentCategoryName = categoryNameOf(page.url()); // Integrated from incoming
+    console.log(`Current CategoryName: ${currentCategoryName || "(none)"}`);
+    if (!currentCategoryName)
+      throw new Error(
+        `Missing CategoryName on category traversal page ${page.url()}. See ${debugPathForCategory("unknown")}`,
+      ); // Added from incoming
+    const pd = await productLinksWithDebug(page); // Adopted from HEAD
+    const products = pd.acceptedProductLinks; // Adopted from HEAD
     snapshot.categories.push({
       name: catPath.at(-1) || "",
       path: catPath,
@@ -732,7 +783,7 @@ export async function run() {
       listOrder: snapshot.categories.length,
       ocId: ocId(["cat", ...catPath]),
     });
-    const children = await childCategoryLinks(page, catPath, pd);
+    const children = await childCategoryLinks(page, catPath, pd); // Adopted from HEAD
     console.log(`Accepted child count: ${children.length}`);
     console.log(`Accepted product count: ${products.length}`);
     if (products.length) {
@@ -741,9 +792,9 @@ export async function run() {
           const product = await scrapeProduct(
             page,
             pl.href,
-            pl.cardText || pl.text,
+            pl.cardText || pl.text, // Adopted from HEAD
             catPath,
-            pl.cardText?.match(/(?:€|EUR)\s*[-+]?\d[\d.,\s]*/i)?.[0],
+            pl.cardText?.match(/(?:€|EUR)\s*[-+]?\d[\d.,\s]*/i)?.[0], // Adopted from HEAD
           );
           if (product) snapshot.products.push(product);
         } catch (e) {

@@ -2,7 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  SEEDED_TARGETS,
+  assertExpectedCategoryNavigation,
   assertNonEmptyCategoryPath,
+  assertTraverseStartUrl,
   assertNotProductTraversal,
   childCategoryLinks,
   filterChildCategoryLinks,
@@ -243,6 +246,93 @@ describe("rai scraper child category filtering", () => {
     );
   });
 
+describe("rai scraper seeded target traversal", () => {
+  it("seeded fnb-main target starts from its category browse URL, not homepage", () => {
+    const target = SEEDED_TARGETS[0];
+    expect(target.categoryName).toBe("fnb-main");
+    expect(target.url).toContain("ViewStandardCatalog-Browse");
+    expect(target.url).toContain("CategoryName=fnb-main");
+    expect(target.url).not.toContain("ViewHomepage-Start");
+  });
+  it("seeded target path uses display label, not slug", () => {
+    const target = SEEDED_TARGETS[0];
+    expect(target.label).toBe("Food | Beverages | Catering");
+    expect(target.label).not.toBe(target.categoryName);
+    expect(assertTraverseStartUrl(target.url, [target.label])).toBe(target.url);
+  });
+  it("traverse refuses target category traversal from homepage", () => {
+    expect(() =>
+      assertTraverseStartUrl(base + "ViewHomepage-Start", [SEEDED_TARGETS[0].label]),
+    ).toThrow("Internal scraper error: target category traversal cannot start from homepage");
+    expect(() =>
+      assertTraverseStartUrl(base + "ViewHomepage-Start", [SEEDED_TARGETS[0].categoryName]),
+    ).toThrow("Internal scraper error: target category traversal cannot start from homepage");
+  });
+  it("fails clearly if target category navigation lands on homepage", () => {
+    const target = SEEDED_TARGETS[0];
+    expect(() =>
+      assertExpectedCategoryNavigation(target.url, base + "ViewHomepage-Start", target.label),
+    ).toThrow(
+      `Failed to navigate to target category ${target.label}: expected CategoryName=${target.categoryName}`,
+    );
+  });
+  it("product URL routing still works by refusing product URLs in traversal", () => {
+    expect(isProductDetailUrl(base + "ViewProduct-Start?SKU=ABC")).toBe(true);
+    expect(() =>
+      assertTraverseStartUrl(base + "ViewProduct-Start?SKU=ABC", [SEEDED_TARGETS[0].label]),
+    ).toThrow("route to scrapeProduct() instead");
+  });
+});
+
+describe("rai scraper child category filtering", () => {
+  const current =
+    "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CategoryName=fnb-main&CatalogID=1";
+  it("excludes Consent links", () => {
+    const r = filterChildCategoryLinks([{ text: "Consent", href: current + "#" }], current);
+    expect(r.accepted).toHaveLength(0);
+    expect(r.rejected[0].reasons).toContain("consent link text");
+  });
+  it("excludes same URL with #", () => {
+    const r = filterChildCategoryLinks([{ text: "Food", href: current + "#section" }], current);
+    expect(r.accepted).toHaveLength(0);
+    expect(r.rejected[0].reasons).toContain("only # fragment change");
+  });
+  it("excludes the same current CategoryName", () => {
+    const href =
+      "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=2&CategoryName=fnb-main";
+    const r = filterChildCategoryLinks([{ text: "Same category", href }], current);
+    expect(r.accepted).toHaveLength(0);
+    expect(r.rejected[0].reasons).toContain("same current CategoryName");
+  });
+  it("accepts a different CategoryName category link", () => {
+    const href =
+      "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=1&CategoryName=coffee";
+    const r = filterChildCategoryLinks([{ text: "Coffee", href }], current);
+    expect(r.rejected).toHaveLength(0);
+    expect(r.accepted).toHaveLength(1);
+    expect(new URL(r.accepted[0].href).searchParams.get("CategoryName")).toBe("coffee");
+  });
+  it("records rejected reasons in the category debug shape", () => {
+    const reasons = rejectChildCategoryReasons({ text: "Consent", href: current + "#" }, current);
+    expect(reasons).toEqual(
+      expect.arrayContaining(["consent link text", "same current CategoryName"]),
+    );
+  });
+  it("rejects Cookiebot consent links as categories", () => {
+    const href =
+      "https://www.cookiebot.com/us/what-is-behind-powered-by-cookiebot/?utm_source=banner_cb";
+    const r = filterChildCategoryLinks([{ text: "powered by Cookiebot", href }], current);
+    expect(r.accepted).toHaveLength(0);
+    expect(r.rejected[0].reasons.join(" ")).toMatch(/disallowed URL|cookie\/consent/);
+  });
+  it("refuses empty category paths", () => {
+    expect(() => assertNonEmptyCategoryPath([])).toThrow(
+      "Internal scraper error: refusing to traverse empty category path",
+    );
+    expect(() => assertNonEmptyCategoryPath([""])).toThrow(
+      "Internal scraper error: refusing to traverse empty category path",
+    );
+  });
   it("stops traversal child discovery when products are present before global nav links", async () => {
     const current =
       base + "ViewStandardCatalog-Browse?CategoryName=Power&CatalogID=1";
