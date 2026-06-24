@@ -11,6 +11,7 @@ import {
   filterChildCategoryLinks,
   filterProductLinks,
   handleCookieBanner,
+  preparePageForScraping,
   isAllowedRaiUrl,
   isExcludedUrl,
   isProductCardLink,
@@ -138,7 +139,9 @@ describe("rai scraper product/category split filtering", () => {
       current,
     );
     expect(categories.accepted).toHaveLength(0);
-    expect(categories.rejected[0].reasons).toContain("not a category browse URL");
+    expect(categories.rejected[0].reasons).toContain(
+      "not a category browse URL",
+    );
   });
 
   it("accepts ViewProduct-Start product links even when CategoryName equals current category", () => {
@@ -255,7 +258,10 @@ describe("rai scraper child category filtering", () => {
   it("rejects CategoryName=RAIMasterCatalog as global/root catalog", () => {
     const href =
       "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=RAIMasterCatalog";
-    const r = filterChildCategoryLinks([{ text: "All categories", href }], current);
+    const r = filterChildCategoryLinks(
+      [{ text: "All categories", href }],
+      current,
+    );
     expect(r.accepted).toHaveLength(0);
     expect(r.rejected[0].reasons).toContain(
       "CategoryName=RAIMasterCatalog global/root catalog",
@@ -264,7 +270,10 @@ describe("rai scraper child category filtering", () => {
   it("rejects CatalogID=RAIMasterCatalog with the same current CategoryName", () => {
     const href =
       "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=fnb-main";
-    const r = filterChildCategoryLinks([{ text: "Same category", href }], current);
+    const r = filterChildCategoryLinks(
+      [{ text: "Same category", href }],
+      current,
+    );
     expect(r.accepted).toHaveLength(0);
     expect(r.rejected[0].reasons).toContain("same current CategoryName");
     expect(r.rejected[0].reasons).not.toContain(
@@ -303,6 +312,7 @@ describe("rai scraper child category filtering", () => {
       "Internal scraper error: refusing to traverse empty category path",
     );
   });
+});
 
 describe("rai scraper seeded target traversal", () => {
   it("seeded fnb-main target starts from its category browse URL, not homepage", () => {
@@ -320,16 +330,28 @@ describe("rai scraper seeded target traversal", () => {
   });
   it("traverse refuses target category traversal from homepage", () => {
     expect(() =>
-      assertTraverseStartUrl(base + "ViewHomepage-Start", [SEEDED_TARGETS[0].label]),
-    ).toThrow("Internal scraper error: target category traversal cannot start from homepage");
+      assertTraverseStartUrl(base + "ViewHomepage-Start", [
+        SEEDED_TARGETS[0].label,
+      ]),
+    ).toThrow(
+      "Internal scraper error: target category traversal cannot start from homepage",
+    );
     expect(() =>
-      assertTraverseStartUrl(base + "ViewHomepage-Start", [SEEDED_TARGETS[0].categoryName]),
-    ).toThrow("Internal scraper error: target category traversal cannot start from homepage");
+      assertTraverseStartUrl(base + "ViewHomepage-Start", [
+        SEEDED_TARGETS[0].categoryName,
+      ]),
+    ).toThrow(
+      "Internal scraper error: target category traversal cannot start from homepage",
+    );
   });
   it("fails clearly if target category navigation lands on homepage", () => {
     const target = SEEDED_TARGETS[0];
     expect(() =>
-      assertExpectedCategoryNavigation(target.url, base + "ViewHomepage-Start", target.label),
+      assertExpectedCategoryNavigation(
+        target.url,
+        base + "ViewHomepage-Start",
+        target.label,
+      ),
     ).toThrow(
       `Failed to navigate to target category ${target.label}: expected CategoryName=${target.categoryName}`,
     );
@@ -337,7 +359,9 @@ describe("rai scraper seeded target traversal", () => {
   it("product URL routing still works by refusing product URLs in traversal", () => {
     expect(isProductDetailUrl(base + "ViewProduct-Start?SKU=ABC")).toBe(true);
     expect(() =>
-      assertTraverseStartUrl(base + "ViewProduct-Start?SKU=ABC", [SEEDED_TARGETS[0].label]),
+      assertTraverseStartUrl(base + "ViewProduct-Start?SKU=ABC", [
+        SEEDED_TARGETS[0].label,
+      ]),
     ).toThrow("route to scrapeProduct() instead");
   });
 });
@@ -346,19 +370,28 @@ describe("rai scraper child category filtering", () => {
   const current =
     "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CategoryName=fnb-main&CatalogID=1";
   it("excludes Consent links", () => {
-    const r = filterChildCategoryLinks([{ text: "Consent", href: current + "#" }], current);
+    const r = filterChildCategoryLinks(
+      [{ text: "Consent", href: current + "#" }],
+      current,
+    );
     expect(r.accepted).toHaveLength(0);
     expect(r.rejected[0].reasons).toContain("consent link text");
   });
   it("excludes same URL with #", () => {
-    const r = filterChildCategoryLinks([{ text: "Food", href: current + "#section" }], current);
+    const r = filterChildCategoryLinks(
+      [{ text: "Food", href: current + "#section" }],
+      current,
+    );
     expect(r.accepted).toHaveLength(0);
     expect(r.rejected[0].reasons).toContain("only # fragment change");
   });
   it("excludes the same current CategoryName", () => {
     const href =
       "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=2&CategoryName=fnb-main";
-    const r = filterChildCategoryLinks([{ text: "Same category", href }], current);
+    const r = filterChildCategoryLinks(
+      [{ text: "Same category", href }],
+      current,
+    );
     expect(r.accepted).toHaveLength(0);
     expect(r.rejected[0].reasons).toContain("same current CategoryName");
   });
@@ -368,20 +401,33 @@ describe("rai scraper child category filtering", () => {
     const r = filterChildCategoryLinks([{ text: "Coffee", href }], current);
     expect(r.rejected).toHaveLength(0);
     expect(r.accepted).toHaveLength(1);
-    expect(new URL(r.accepted[0].href).searchParams.get("CategoryName")).toBe("coffee");
+    expect(new URL(r.accepted[0].href).searchParams.get("CategoryName")).toBe(
+      "coffee",
+    );
   });
   it("records rejected reasons in the category debug shape", () => {
-    const reasons = rejectChildCategoryReasons({ text: "Consent", href: current + "#" }, current);
+    const reasons = rejectChildCategoryReasons(
+      { text: "Consent", href: current + "#" },
+      current,
+    );
     expect(reasons).toEqual(
-      expect.arrayContaining(["consent link text", "same current CategoryName"]),
+      expect.arrayContaining([
+        "consent link text",
+        "same current CategoryName",
+      ]),
     );
   });
   it("rejects Cookiebot consent links as categories", () => {
     const href =
       "https://www.cookiebot.com/us/what-is-behind-powered-by-cookiebot/?utm_source=banner_cb";
-    const r = filterChildCategoryLinks([{ text: "powered by Cookiebot", href }], current);
+    const r = filterChildCategoryLinks(
+      [{ text: "powered by Cookiebot", href }],
+      current,
+    );
     expect(r.accepted).toHaveLength(0);
-    expect(r.rejected[0].reasons.join(" ")).toMatch(/disallowed URL|cookie\/consent/);
+    expect(r.rejected[0].reasons.join(" ")).toMatch(
+      /disallowed URL|cookie\/consent/,
+    );
   });
   it("refuses empty category paths", () => {
     expect(() => assertNonEmptyCategoryPath([])).toThrow(
@@ -391,6 +437,119 @@ describe("rai scraper child category filtering", () => {
       "Internal scraper error: refusing to traverse empty category path",
     );
   });
+
+  it("keeps first valid duplicate and rejects later duplicate", () => {
+    const href =
+      base +
+      "ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=fnb-food";
+    const r = filterChildCategoryLinks(
+      [
+        { text: "Food", href, source: "card" },
+        { text: "Food duplicate", href: href + "#again", source: "card" },
+      ],
+      current,
+    );
+    expect(r.accepted).toHaveLength(1);
+    expect(r.accepted[0].text).toBe("Food");
+    expect(
+      r.rejected.some((x) =>
+        x.reasons.join(" ").includes("duplicate category"),
+      ),
+    ).toBe(true);
+  });
+  it("accepts fnb child category URLs even when duplicate variants exist", () => {
+    const names = [
+      "fnb-food",
+      "fnb-beverages",
+      "fnb-drinksreception",
+      "fnb-dietary",
+      "fnb-catering",
+      "fnb-materials",
+    ];
+    const candidates = names.flatMap((name) => [
+      {
+        text: name,
+        href:
+          base + `ViewStandardCatalog-Browse?CatalogID=1&CategoryName=${name}`,
+        source: "nav",
+      },
+      {
+        text: name + " local card",
+        href:
+          base +
+          `ViewStandardCatalog-Browse?CategoryName=${name}&CatalogID=RAIMasterCatalog`,
+        source: "card",
+      },
+    ]);
+    const r = filterChildCategoryLinks(candidates, current);
+    expect(
+      r.accepted.map((l) => new URL(l.href).searchParams.get("CategoryName")),
+    ).toEqual(names);
+    expect(r.duplicateGroups).toHaveLength(names.length);
+    expect(r.accepted.every((l) => l.source === "card")).toBe(true);
+  });
+  it("cleans Dietary description text to display name Dietary", () => {
+    const href =
+      base +
+      "ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=fnb-dietary";
+    const r = filterChildCategoryLinks(
+      [{ text: "Dietary Enjoy worry-free with diet-friendly options", href }],
+      current,
+    );
+    expect(r.accepted[0].text).toBe("Dietary");
+  });
+  it("has non-empty accepted children after dedupe for fnb fixture links", () => {
+    const r = filterChildCategoryLinks(
+      ["fnb-food", "fnb-beverages", "fnb-dietary"].map((name) => ({
+        text: name,
+        href:
+          base +
+          `ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=${name}`,
+      })),
+      current,
+    );
+    expect(r.acceptedBeforeDedupe).toHaveLength(3);
+    expect(r.acceptedAfterDedupe.length).toBeGreaterThan(0);
+  });
+  it("cookie/privacy/footer links do not enter category candidates", async () => {
+    const page: any = {
+      url: vi.fn(() => current),
+      setViewportSize: vi.fn().mockResolvedValue(undefined),
+      evaluate: vi.fn().mockResolvedValue(0),
+      locator: vi.fn((sel: string) => ({
+        evaluateAll: vi.fn(async (_fn: any, source?: string) =>
+          sel.includes("body")
+            ? [
+                {
+                  text: "Privacy",
+                  href: "https://www.cookiebot.com/privacy",
+                  source,
+                },
+                {
+                  text: "Food",
+                  href:
+                    base + "ViewStandardCatalog-Browse?CategoryName=fnb-food",
+                  source,
+                },
+              ]
+            : [],
+        ),
+      })),
+      getByRole: vi.fn(() => ({
+        first: () => ({ isVisible: vi.fn().mockResolvedValue(false) }),
+      })),
+    };
+    const children = await childCategoryLinks(page, ["Food"], {
+      productLinkCandidates: [],
+      acceptedProductLinks: [],
+      rejectedProductLinks: [],
+      isProductBearing: false,
+      stoppedBecauseProductsFound: false,
+    });
+    expect(children).toHaveLength(1);
+    expect(children[0].text).toBe("Food");
+  });
+
   it("stops traversal child discovery when products are present before global nav links", async () => {
     const current =
       base + "ViewStandardCatalog-Browse?CategoryName=Power&CatalogID=1";
@@ -466,5 +625,27 @@ describe("rai scraper cookie banner handling", () => {
     );
     expect(isAllowedRaiUrl(current)).toBe(true);
     warn.mockRestore();
+  });
+  it("sets large viewport and handles cookie banner before extraction helper completes", async () => {
+    const page: any = {
+      setViewportSize: vi.fn().mockResolvedValue(undefined),
+      evaluate: vi.fn().mockResolvedValue(0),
+      locator: vi.fn(() => ({
+        first: () => ({
+          getByRole: vi.fn(() => ({
+            first: () => ({ isVisible: vi.fn().mockResolvedValue(false) }),
+          })),
+        }),
+      })),
+      getByRole: vi.fn(() => ({
+        first: () => ({ isVisible: vi.fn().mockResolvedValue(false) }),
+      })),
+    };
+    await preparePageForScraping(page);
+    expect(page.setViewportSize).toHaveBeenCalledWith({
+      width: 1920,
+      height: 1080,
+    });
+    expect(page.evaluate).toHaveBeenCalled();
   });
 });

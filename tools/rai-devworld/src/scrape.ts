@@ -29,6 +29,17 @@ export type Link = {
   title?: string;
   source?: string;
 };
+export type CategoryCandidate = Link & {
+  normalizedUrl: string;
+  categoryName: string | null;
+  cleanedText: string;
+  scope: string;
+};
+export type DuplicateGroup = {
+  key: string;
+  selected?: CategoryCandidate;
+  candidates: CategoryCandidate[];
+};
 export type RejectedLink = Link & { reasons: string[] };
 export type ProductLinkDebug = {
   productLinkCandidates: Link[];
@@ -41,6 +52,10 @@ export type CategoryLinkDebug = {
   currentUrl: string;
   currentCategoryName: string | null;
   allCandidateCategoryLinks: Link[];
+  acceptedBeforeDedupe: CategoryCandidate[];
+  acceptedAfterDedupe: CategoryCandidate[];
+  duplicateGroups: DuplicateGroup[];
+  selectedFinalFirstThreeChildren: Link[];
   rejected: RejectedLink[];
   acceptedChildLinks: Link[];
   productLinkCandidates: Link[];
@@ -322,7 +337,10 @@ export function rejectChildCategoryReasons(l: Link, currentUrl: string) {
     if (rawSameExceptHash && u.hash && u.hash !== cur.hash)
       reasons.push("only # fragment change");
     if (rawSameExceptHash) reasons.push("same page URL without hash");
-    if (isProductActionUrl(u.href) || /ViewHomepage|Content|Login/i.test(u.href))
+    if (
+      isProductActionUrl(u.href) ||
+      /ViewHomepage|Content|Login/i.test(u.href)
+    )
       reasons.push("homepage/content/login/cart/compare/action URL");
     const cat = u.searchParams.get("CategoryName")?.trim() || "",
       currentCat = cur.searchParams.get("CategoryName")?.trim() || "";
@@ -336,43 +354,136 @@ export function rejectChildCategoryReasons(l: Link, currentUrl: string) {
   }
   return reasons;
 }
+function categoryDedupeKey(c: CategoryCandidate) {
+  return (c.categoryName || c.normalizedUrl).toLowerCase();
+}
+function scopeRank(source?: string) {
+  const s = (source || "").toLowerCase();
+  if (s.includes("card")) return 4;
+  if (s.includes("sidebar") || s.includes("aside")) return 3;
+  if (s.includes("body")) return 2;
+  if (s.includes("nav")) return 1;
+  return 0;
+}
+function cleanCategoryText(text: string, categoryName?: string | null) {
+  const cleaned = norm(text);
+  const known: Record<string, string> = {
+    "fnb-food": "Food",
+    "fnb-beverages": "Beverages",
+    "fnb-drinksreception": "Drinks reception",
+    "fnb-dietary": "Dietary",
+    "fnb-catering": "Catering - Services & Concepts",
+    "fnb-materials": "Materials",
+  };
+  if (categoryName && known[categoryName]) return known[categoryName];
+  if (!cleaned) return cleaned;
+  const firstSentence =
+    cleaned.split(/\s{2,}|\s[-–—:]\s/)[0]?.trim() || cleaned;
+  return (
+    firstSentence
+      .replace(
+        /\s+(Enjoy|Full-service|Materials and essentials|Discover|Find|Order)\b.*$/i,
+        "",
+      )
+      .trim() || firstSentence
+  );
+}
+function toCategoryCandidate(l: Link): CategoryCandidate {
+  let normalizedUrl = l.href;
+  let categoryName: string | null = null;
+  try {
+    const u = new URL(l.href);
+    normalizedUrl = sortedUrlWithoutHash(u.href);
+    categoryName = u.searchParams.get("CategoryName");
+  } catch {}
+  const scope = l.source || "unknown";
+  return {
+    ...l,
+    href: normalizedUrl,
+    normalizedUrl,
+    categoryName,
+    cleanedText: cleanCategoryText(l.text, categoryName),
+    text: cleanCategoryText(l.text, categoryName) || l.text,
+    scope,
+  };
+}
 export function filterChildCategoryLinks(
   candidates: Link[],
   currentUrl: string,
 ) {
-  const accepted: Link[] = [],
-    rejected: RejectedLink[] = [],
-    seen = new Set<string>();
+  const rejected: RejectedLink[] = [];
+  const acceptedBeforeDedupe: CategoryCandidate[] = [];
+  const duplicateBuckets = new Map<string, CategoryCandidate[]>();
+  const acceptedByCategory = new Map<string, CategoryCandidate>();
   for (const l of candidates) {
-    const reasons = rejectChildCategoryReasons(l, currentUrl);
-    let key = "";
-    try {
-      key = sortedUrlWithoutHash(l.href);
-    } catch {
-      key = l.href;
-    }
-    if (seen.has(key)) reasons.push("duplicate normalized URL");
-    const normalized = { ...l, href: key };
+    const candidate = toCategoryCandidate(l);
+    const reasons = rejectChildCategoryReasons(candidate, currentUrl);
     if (reasons.length) {
       console.log(
         `Rejected category link "${l.text || "(empty)"}" (${l.href}): ${reasons.join(", ")}`,
       );
-      rejected.push({ ...normalized, reasons });
+      rejected.push({ ...candidate, reasons });
       continue;
     }
-    seen.add(key);
+    acceptedBeforeDedupe.push(candidate);
+    const key = categoryDedupeKey(candidate);
+    duplicateBuckets.set(key, [
+      ...(duplicateBuckets.get(key) || []),
+      candidate,
+    ]);
+    const previous = acceptedByCategory.get(key);
+    if (!previous) {
+      acceptedByCategory.set(key, candidate);
+      console.log(
+        `Accepted category link "${candidate.text || "(empty)"}" (${candidate.normalizedUrl}): different valid CategoryName`,
+      );
+      continue;
+    }
+    const preferred =
+      scopeRank(candidate.scope) > scopeRank(previous.scope)
+        ? candidate
+        : previous;
+    const duplicate = preferred === candidate ? previous : candidate;
+    acceptedByCategory.set(key, preferred);
+    rejected.push({
+      ...duplicate,
+      reasons: [
+        preferred === candidate
+          ? "duplicate category; replaced by more local/scoped candidate"
+          : "duplicate category; first accepted candidate kept",
+      ],
+    });
     console.log(
-      `Accepted category link "${l.text || "(empty)"}" (${key}): different valid CategoryName`,
+      `Rejected category link "${duplicate.text || "(empty)"}" (${duplicate.href}): duplicate category`,
     );
-    accepted.push(normalized);
   }
-  return { accepted, rejected };
+  const accepted = [...acceptedByCategory.values()];
+  const duplicateGroups = [...duplicateBuckets.entries()]
+    .filter(([, group]) => group.length > 1)
+    .map(([key, group]) => ({
+      key,
+      selected: acceptedByCategory.get(key),
+      candidates: group,
+    }));
+  return {
+    accepted,
+    rejected,
+    acceptedBeforeDedupe,
+    acceptedAfterDedupe: accepted,
+    duplicateGroups,
+  };
 }
 async function visibleAnchors(locator: any, source = "all"): Promise<Link[]> {
   return locator.evaluateAll(
     (as: any[], source: string) =>
       as
         .filter((a) => {
+          if (
+            a.closest(
+              '[class*=\"cookie\" i], [id*=\"cookie\" i], [class*=\"consent\" i], [id*=\"consent\" i], footer',
+            )
+          )
+            return false;
           const r = a.getBoundingClientRect();
           const s = getComputedStyle(a);
           return (
@@ -461,19 +572,25 @@ export async function childCategoryLinks(
   catPath: string[],
   productDebug?: ProductLinkDebug,
 ) {
+  await preparePageForScraping(page);
   const currentUrl = page.url();
   const navSel =
-    'nav a[href], aside a[href], [role="navigation"] a[href], [class*="category" i] a[href], [class*="menu" i] a[href], [class*="tree" i] a[href], [class*="product-services" i] a[href]';
+    'nav a[href], [role="navigation"] a[href], [class*="menu" i] a[href], [class*="tree" i] a[href]';
+  const sidebarSel =
+    'aside a[href], [class*="sidebar" i] a[href], [class*="category" i] a[href]';
+  const cardSel =
+    'article a[href], li a[href], [class*="card" i] a[href], [class*="tile" i] a[href], [class*="product-services" i] a[href]';
   const nav = await visibleAnchors(page.locator(navSel), "nav");
+  const sidebar = await visibleAnchors(page.locator(sidebarSel), "sidebar");
+  const card = await visibleAnchors(page.locator(cardSel), "card");
+  const body = await visibleAnchors(
+    page.locator("main a[href], body a[href]"),
+    "body",
+  );
   const all = await links(page);
-  let candidates = nav.filter(
+  const candidates = [...nav, ...sidebar, ...card, ...body].filter(
     (l) => /ViewStandardCatalog-Browse/i.test(l.href) || categoryNameOf(l.href),
   );
-  if (!candidates.length)
-    candidates = all.filter(
-      (l) =>
-        /ViewStandardCatalog-Browse/i.test(l.href) || categoryNameOf(l.href),
-    );
   const pd = productDebug || (await productLinksWithDebug(page));
   let result = filterChildCategoryLinks(candidates, currentUrl);
   if (pd.isProductBearing) result = { ...result, accepted: [] };
@@ -481,6 +598,10 @@ export async function childCategoryLinks(
     currentUrl,
     currentCategoryName: categoryNameOf(currentUrl),
     allCandidateCategoryLinks: candidates,
+    acceptedBeforeDedupe: result.acceptedBeforeDedupe,
+    acceptedAfterDedupe: result.acceptedAfterDedupe,
+    duplicateGroups: result.duplicateGroups,
+    selectedFinalFirstThreeChildren: firstChildren(result.accepted),
     rejected: result.rejected,
     acceptedChildLinks: result.accepted,
     productLinkCandidates: pd.productLinkCandidates,
@@ -518,14 +639,16 @@ export function seededTargetForUrl(href: string) {
 export function assertTraverseStartUrl(url: string, catPath: string[]) {
   assertNonEmptyCategoryPath(catPath);
   const allowed = raiUrlAllowlist(url);
-  if (!allowed.allowed)
-    throw new Error(`Blocked external navigation: ${url}`);
+  if (!allowed.allowed) throw new Error(`Blocked external navigation: ${url}`);
   const normalized = allowed.url || url;
   if (isProductDetailUrl(normalized))
     throw new Error(
       `Internal scraper error: product URL passed to category traversal; route to scrapeProduct() instead: ${normalized}`,
     );
-  if (isHomepageUrl(normalized) && TARGET_LABELS_AND_SLUGS.has(loose(catPath[0] || "")))
+  if (
+    isHomepageUrl(normalized) &&
+    TARGET_LABELS_AND_SLUGS.has(loose(catPath[0] || ""))
+  )
     throw new Error(
       "Internal scraper error: target category traversal cannot start from homepage",
     );
@@ -556,6 +679,42 @@ export function writeCategoryDebug(debug: CategoryLinkDebug) {
     debugPathForCategory(debug.currentCategoryName || "unknown"),
     JSON.stringify(debug, null, 2),
   );
+}
+
+export async function preparePageForScraping(page: Page) {
+  await page.setViewportSize({ width: 1920, height: 1080 }).catch(() => {});
+  await handleCookieBanner(page);
+  await hideBlockingCookieOverlays(page);
+}
+
+export async function hideBlockingCookieOverlays(page: Page) {
+  return page
+    .evaluate(() => {
+      const selectors = [
+        '[class*="cookie" i]',
+        '[id*="cookie" i]',
+        '[class*="consent" i]',
+        '[id*="consent" i]',
+        '[aria-modal="true"]',
+      ];
+      let hidden = 0;
+      for (const el of Array.from(
+        document.querySelectorAll<HTMLElement>(selectors.join(",")),
+      )) {
+        const text = (el.innerText || el.textContent || "").toLowerCase();
+        const rect = el.getBoundingClientRect();
+        const coversMostPage =
+          rect.width * rect.height >
+          window.innerWidth * window.innerHeight * 0.35;
+        if (coversMostPage || /cookie|consent|privacy/.test(text)) {
+          el.dataset.raiScraperHidden = "true";
+          el.style.setProperty("display", "none", "important");
+          hidden += 1;
+        }
+      }
+      return hidden;
+    })
+    .catch(() => 0);
 }
 
 export async function handleCookieBanner(page: Page) {
@@ -712,7 +871,9 @@ export async function scrapeProduct(
 export async function run() {
   const headed = process.argv.includes("--headed");
   const browser = await chromium.launch({ headless: !headed });
-  const page = await browser.newPage();
+  const page = await browser.newPage({
+    viewport: { width: 1920, height: 1080 },
+  });
   const scrapedAtUtc = new Date().toISOString();
   const snapshot: RaiSnapshot = {
     schemaVersion: 1,
