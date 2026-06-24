@@ -456,7 +456,7 @@ describe("rai scraper child category filtering", () => {
     ]);
   });
 
-  it("fnb-main fixture returns final links, selected first three, and rejects global nav", () => {
+  it("fnb-main fixture returns at least fnb-food, fnb-beverages, and fnb-drinksreception", () => {
     const fnbNames = [
       "fnb-food",
       "fnb-beverages",
@@ -477,19 +477,23 @@ describe("rai scraper child category filtering", () => {
       ],
       current,
     );
-    expect(r.finalChildLinks.map((l) => l.categoryName)).toEqual(fnbNames);
-    expect(r.selectedChildLinks.map((l) => l.text)).toEqual([
-      "Food",
-      "Beverages",
-      "Drinks reception",
+    expect(r.finalChildLinks.map((l) => l.categoryName)).toEqual([
+      "StandConstruciton",
+      "Connections",
+      ...fnbNames,
     ]);
-    expect(
-      r.rejected.some((l) =>
-        l.reasons.includes(
-          "global-nav category ignored because scoped category region exists",
-        ),
-      ),
-    ).toBe(true);
+    expect(r.finalChildLinks.map((l) => l.categoryName)).toEqual(
+      expect.arrayContaining([
+        "fnb-food",
+        "fnb-beverages",
+        "fnb-drinksreception",
+      ]),
+    );
+    expect(r.selectedChildLinks.map((l) => l.categoryName)).toEqual([
+      "StandConstruciton",
+      "Connections",
+      "fnb-food",
+    ]);
   });
 
   it("debug accepted count is based on the returned finalChildLinks", async () => {
@@ -571,7 +575,7 @@ describe("rai scraper child category filtering", () => {
       r.accepted.map((l) => new URL(l.href).searchParams.get("CategoryName")),
     ).toEqual(names);
     expect(r.duplicateGroups).toHaveLength(names.length);
-    expect(r.accepted.every((l) => l.source === "card")).toBe(true);
+    expect(r.accepted.every((l) => l.source === "nav")).toBe(true);
   });
   it("cleans Dietary description text to display name Dietary", () => {
     const href =
@@ -666,7 +670,7 @@ describe("rai scraper child category filtering", () => {
     const children = await childCategoryLinks(page, ["Power"], pd);
     expect(children).toHaveLength(0);
   });
-  it("keeps first-three traversal after filtering", () => {
+  it("selected children are the first three accepted categories", () => {
     const links = ["one", "two", "three", "four"].map((name) => ({
       text: name,
       href: `https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CategoryName=${name}`,
@@ -675,7 +679,7 @@ describe("rai scraper child category filtering", () => {
       [{ text: "Consent", href: current + "#" }, ...links],
       current,
     );
-    expect(firstChildren(r.accepted).map((l) => l.text)).toEqual([
+    expect(r.selectedChildLinks.map((l) => l.text)).toEqual([
       "one",
       "two",
       "three",
