@@ -1,0 +1,1 @@
+import fs from 'node:fs';import {validateSnapshot}from'./lib.js';const path=process.argv[2]||'tools/rai-devworld/data/rai-devworld.snapshot.json';try{validateSnapshot(JSON.parse(fs.readFileSync(path,'utf8')));console.log(`Snapshot valid: ${path}`)}catch(e){console.error(e instanceof Error?e.message:e);process.exit(1)}

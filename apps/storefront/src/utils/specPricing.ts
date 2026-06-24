@@ -1,0 +1,7 @@
+export type MarkupType = 'NoMarkup' | 'AmountPerQuantity' | 'AmountTotal' | 'Percentage'
+export interface SpecOptionLike { ID?: string; Value?: string; PriceMarkupType?: MarkupType; PriceMarkup?: number }
+export interface SpecLike { ID?: string; Name?: string; Required?: boolean; AllowOpenText?: boolean; DefaultOptionID?: string; Options?: SpecOptionLike[]; ListOrder?: number }
+export interface SelectedSpec { SpecID: string; OptionID?: string; Value?: string }
+export function optionPriceImpact(basePrice: number, quantity: number, option?: SpecOptionLike): number { if (!option) return 0; const amount = option.PriceMarkup || 0; switch (option.PriceMarkupType) { case 'AmountPerQuantity': return amount * quantity; case 'AmountTotal': return amount; case 'Percentage': return basePrice * quantity * (amount / 100); default: return 0 } }
+export function estimateSelectedPrice(basePrice: number, quantity: number, specs: SpecLike[], selected: Record<string, SelectedSpec>): number { const optionTotal = specs.reduce((sum, spec) => { const sel = spec.ID ? selected[spec.ID] : undefined; const opt = spec.Options?.find(o => o.ID === sel?.OptionID); return sum + optionPriceImpact(basePrice, quantity, opt) }, 0); return basePrice * quantity + optionTotal }
+export function validateRequiredSpecs(specs: SpecLike[], selected: Record<string, SelectedSpec>): string[] { return specs.filter(s => s.Required).filter(s => { const sel = s.ID ? selected[s.ID] : undefined; return s.AllowOpenText ? !sel?.Value?.trim() : !sel?.OptionID }).map(s => s.Name || s.ID || 'Required spec') }

@@ -1,0 +1,8 @@
+export type Money={amount:number;currency:'EUR';rawText:string};
+export type PriceBreak={quantity:number;price:Money};
+export type MarkupType='NoMarkup'|'AmountPerQuantity'|'AmountTotal'|'Percentage';
+export type ProductOptionValue={id?:string;label:string;listOrder:number;isDefault?:boolean;priceImpact?:Money;absolutePrice?:Money;markupType?:MarkupType;openText?:boolean;provenance?:string};
+export type ProductOption={id?:string;name:string;listOrder:number;required:boolean;allowOpenText:boolean;defaultValue?:string;values:ProductOptionValue[];dependencies?:string[];provenance?:string};
+export type CategorySnapshot={sourceCategoryId?:string;name:string;path:string[];url:string;listOrder:number;productCountText?:string;ocId:string};
+export type ProductSnapshot={sourceProductId?:string;sourceSku?:string;name:string;cardDescription?:string;fullDescription?:string;canonicalUrl:string;images:{thumbnailUrl:string;url:string}[];pricing:{basePrice:Money;unitLabel?:string;minQuantity:number;maxQuantity?:number;quantityMultiplier:number;priceBreaks:PriceBreak[];vatText?:string;vatRate?:number;taxIncluded?:boolean;rawPriceText:string;options:ProductOption[]};ordering:{deadline?:string;leadTime?:string;availability?:string;notes:string[]};attributes:{name:string;value:string}[];sourceBreadcrumbs:string[];categoryPaths:string[][];sourceHash:string;ocId:string;priceScheduleId:string};
+export type RaiSnapshot={schemaVersion:1;complete:boolean;source:{system:string;event:'DevWorld';language:'en_US';currency:'EUR';homepageUrl:string;scrapedAtUtc:string;failure?:string};categories:CategorySnapshot[];products:ProductSnapshot[]};

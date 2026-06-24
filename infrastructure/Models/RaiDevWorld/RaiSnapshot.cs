@@ -1,0 +1,13 @@
+namespace OC_Accelerator.Models.RaiDevWorld;
+public record RaiSnapshot(int SchemaVersion,bool Complete,RaiSource Source,List<RaiCategory> Categories,List<RaiProduct> Products);
+public record RaiSource(string System,string Event,string Language,string Currency,string HomepageUrl,string ScrapedAtUtc,string? Failure);
+public record RaiCategory(string? SourceCategoryId,string Name,List<string> Path,string Url,int ListOrder,string? ProductCountText,string OcId);
+public record RaiProduct(string? SourceProductId,string? SourceSku,string Name,string? CardDescription,string? FullDescription,string CanonicalUrl,List<RaiImage> Images,RaiPricing Pricing,RaiOrdering Ordering,List<RaiAttribute> Attributes,List<string> SourceBreadcrumbs,List<List<string>> CategoryPaths,string SourceHash,string OcId,string PriceScheduleId);
+public record RaiImage(string ThumbnailUrl,string Url);
+public record RaiMoney(decimal Amount,string Currency,string RawText);
+public record RaiPriceBreak(int Quantity,RaiMoney Price);
+public record RaiPricing(RaiMoney BasePrice,string? UnitLabel,int MinQuantity,int? MaxQuantity,int QuantityMultiplier,List<RaiPriceBreak> PriceBreaks,string? VatText,decimal? VatRate,bool? TaxIncluded,string RawPriceText,List<RaiOption> Options);
+public record RaiOption(string? Id,string Name,int ListOrder,bool Required,bool AllowOpenText,string? DefaultValue,List<RaiOptionValue> Values,List<string>? Dependencies,string? Provenance);
+public record RaiOptionValue(string? Id,string Label,int ListOrder,bool? IsDefault,RaiMoney? PriceImpact,RaiMoney? AbsolutePrice,string? MarkupType,bool? OpenText,string? Provenance);
+public record RaiOrdering(string? Deadline,string? LeadTime,string? Availability,List<string> Notes);
+public record RaiAttribute(string Name,string Value);
