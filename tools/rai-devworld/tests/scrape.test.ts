@@ -124,6 +124,25 @@ describe("rai scraper product/category split filtering", () => {
     expect(isRaiProductPdpUrl(href)).toBe(true);
   });
 
+  it("classifies request/quote words inside SKU as product PDPs", () => {
+    for (const sku of ["request", "quote", "rigging-request", "POWER-DAY-230-3KW"]) {
+      const href = base + `ViewProduct-Start?SKU=${sku}`;
+      expect(isRaiProductPdpUrl(href)).toBe(true);
+      expect(classifyTraversalUrl(href)).toBe("product");
+    }
+  });
+
+  it("keeps compare/cart/login/wishlist URLs out of product PDP classification", () => {
+    for (const actionPath of [
+      "ViewProductCompare-Show?SKU=POWER-DAY-230-3KW",
+      "ViewCart-Start?SKU=POWER-DAY-230-3KW",
+      "Login-Show?SKU=POWER-DAY-230-3KW",
+      "Wishlist-Add?SKU=POWER-DAY-230-3KW",
+    ]) {
+      expect(isRaiProductPdpUrl(base + actionPath)).toBe(false);
+    }
+  });
+
   it("accepts ViewProduct-Start product links without CategoryName", () => {
     const href = base + "ViewProduct-Start?SKU=rigging-request";
     const r = filterProductLinks([
