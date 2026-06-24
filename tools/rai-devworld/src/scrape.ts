@@ -48,12 +48,23 @@ export type ProductLinkDebug = {
   isProductBearing: boolean;
   stoppedBecauseProductsFound: boolean;
 };
+export type ChildCategoryDiscoveryResult = {
+  currentCategoryName: string | null;
+  acceptedBeforeDedupe: CategoryCandidate[];
+  acceptedAfterDedupe: CategoryCandidate[];
+  finalChildLinks: CategoryCandidate[];
+  selectedChildLinks: Link[];
+  rejected: RejectedLink[];
+  duplicateGroups: DuplicateGroup[];
+};
 export type CategoryLinkDebug = {
   currentUrl: string;
   currentCategoryName: string | null;
   allCandidateCategoryLinks: Link[];
   acceptedBeforeDedupe: CategoryCandidate[];
   acceptedAfterDedupe: CategoryCandidate[];
+  finalChildLinks: CategoryCandidate[];
+  selectedChildLinks: Link[];
   duplicateGroups: DuplicateGroup[];
   selectedFinalFirstThreeChildren: Link[];
   rejected: RejectedLink[];
@@ -407,20 +418,29 @@ function toCategoryCandidate(l: Link): CategoryCandidate {
     scope,
   };
 }
-export function filterChildCategoryLinks(
+export function discoverChildCategoryLinks(
   candidates: Link[],
   currentUrl: string,
-) {
+  productDebug?: Pick<ProductLinkDebug, "isProductBearing">,
+): ChildCategoryDiscoveryResult & { accepted: CategoryCandidate[] } {
+  const currentCategoryName = categoryNameOf(currentUrl);
   const rejected: RejectedLink[] = [];
   const acceptedBeforeDedupe: CategoryCandidate[] = [];
   const duplicateBuckets = new Map<string, CategoryCandidate[]>();
   const acceptedByCategory = new Map<string, CategoryCandidate>();
-  for (const l of candidates) {
-    const candidate = toCategoryCandidate(l);
+  const normalizedCandidates = candidates.map(toCategoryCandidate);
+  const hasScopedCategoryRegion = normalizedCandidates.some((c) => {
+    const rank = scopeRank(c.scope);
+    return rank >= 2 && !rejectChildCategoryReasons(c, currentUrl).length;
+  });
+
+  for (const candidate of normalizedCandidates) {
     const reasons = rejectChildCategoryReasons(candidate, currentUrl);
+    if (hasScopedCategoryRegion && scopeRank(candidate.scope) <= 1)
+      reasons.push("global-nav category ignored because scoped category region exists");
     if (reasons.length) {
       console.log(
-        `Rejected category link "${l.text || "(empty)"}" (${l.href}): ${reasons.join(", ")}`,
+        `Rejected category link "${candidate.text || "(empty)"}" (${candidate.href}): ${reasons.join(", ")}`,
       );
       rejected.push({ ...candidate, reasons });
       continue;
@@ -439,25 +459,17 @@ export function filterChildCategoryLinks(
       );
       continue;
     }
-    const preferred =
-      scopeRank(candidate.scope) > scopeRank(previous.scope)
-        ? candidate
-        : previous;
-    const duplicate = preferred === candidate ? previous : candidate;
-    acceptedByCategory.set(key, preferred);
     rejected.push({
-      ...duplicate,
-      reasons: [
-        preferred === candidate
-          ? "duplicate category; replaced by more local/scoped candidate"
-          : "duplicate category; first accepted candidate kept",
-      ],
+      ...candidate,
+      reasons: ["duplicate category; first accepted candidate kept"],
     });
     console.log(
-      `Rejected category link "${duplicate.text || "(empty)"}" (${duplicate.href}): duplicate category`,
+      `Rejected category link "${candidate.text || "(empty)"}" (${candidate.href}): duplicate category`,
     );
   }
-  const accepted = [...acceptedByCategory.values()];
+  const acceptedAfterDedupe = [...acceptedByCategory.values()];
+  const finalChildLinks = productDebug?.isProductBearing ? [] : acceptedAfterDedupe;
+  const selectedChildLinks = firstChildren(finalChildLinks);
   const duplicateGroups = [...duplicateBuckets.entries()]
     .filter(([, group]) => group.length > 1)
     .map(([key, group]) => ({
@@ -466,12 +478,21 @@ export function filterChildCategoryLinks(
       candidates: group,
     }));
   return {
-    accepted,
-    rejected,
+    currentCategoryName,
     acceptedBeforeDedupe,
-    acceptedAfterDedupe: accepted,
+    acceptedAfterDedupe,
+    finalChildLinks,
+    selectedChildLinks,
+    rejected,
     duplicateGroups,
+    accepted: finalChildLinks,
   };
+}
+export function filterChildCategoryLinks(
+  candidates: Link[],
+  currentUrl: string,
+) {
+  return discoverChildCategoryLinks(candidates, currentUrl);
 }
 async function visibleAnchors(locator: any, source = "all"): Promise<Link[]> {
   return locator.evaluateAll(
@@ -588,22 +609,23 @@ export async function childCategoryLinks(
     "body",
   );
   const all = await links(page);
-  const candidates = [...nav, ...sidebar, ...card, ...body].filter(
+  const candidates = [...card, ...sidebar, ...body, ...nav].filter(
     (l) => /ViewStandardCatalog-Browse/i.test(l.href) || categoryNameOf(l.href),
   );
   const pd = productDebug || (await productLinksWithDebug(page));
-  let result = filterChildCategoryLinks(candidates, currentUrl);
-  if (pd.isProductBearing) result = { ...result, accepted: [] };
+  const result = discoverChildCategoryLinks(candidates, currentUrl, pd);
   const debug: CategoryLinkDebug = {
     currentUrl,
     currentCategoryName: categoryNameOf(currentUrl),
     allCandidateCategoryLinks: candidates,
     acceptedBeforeDedupe: result.acceptedBeforeDedupe,
     acceptedAfterDedupe: result.acceptedAfterDedupe,
+    finalChildLinks: result.finalChildLinks,
+    selectedChildLinks: result.selectedChildLinks,
     duplicateGroups: result.duplicateGroups,
-    selectedFinalFirstThreeChildren: firstChildren(result.accepted),
+    selectedFinalFirstThreeChildren: result.selectedChildLinks,
     rejected: result.rejected,
-    acceptedChildLinks: result.accepted,
+    acceptedChildLinks: result.finalChildLinks,
     productLinkCandidates: pd.productLinkCandidates,
     acceptedProductLinks: pd.acceptedProductLinks,
     rejectedProductLinks: pd.rejectedProductLinks,
@@ -620,10 +642,19 @@ export async function childCategoryLinks(
     console.log(
       `Skipped suspicious category link "${r.text || "(empty)"}" (${r.href}): ${r.reasons.join(", ")}`,
     );
-  console.log(
-    `Category debug written: ${debugPathForCategory(debug.currentCategoryName || loose(catPath.at(-1) || "category"))}`,
+  const debugPath = debugPathForCategory(
+    debug.currentCategoryName || loose(catPath.at(-1) || "category"),
   );
-  return result.accepted;
+  console.log(`Category debug written: ${debugPath}`);
+  if (
+    result.acceptedBeforeDedupe.length > 0 &&
+    result.finalChildLinks.length === 0 &&
+    !pd.isProductBearing
+  )
+    throw new Error(
+      `Internal scraper error: accepted category candidates were lost before traversal for current category ${result.currentCategoryName || "(none)"}. See ${debugPath}`,
+    );
+  return result.finalChildLinks;
 }
 export function isHomepageUrl(href: string) {
   try {
