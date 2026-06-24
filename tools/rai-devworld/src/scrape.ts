@@ -213,6 +213,11 @@ export function isProductActionUrl(href: string) {
     href.toLowerCase().includes(part.toLowerCase()),
   );
 }
+function isProductActionPath(pathname: string) {
+  return BLOCKED_PRODUCT_URL_PARTS.some((part) =>
+    pathname.toLowerCase().includes(part.toLowerCase()),
+  );
+}
 export function isProductDetailUrl(href: string) {
   if (
     isProductActionUrl(href) ||
@@ -231,7 +236,7 @@ export function isRaiProductPdpUrl(href: string, base?: string) {
     return (
       /ViewProduct-Start/i.test(u.pathname + u.search) &&
       Boolean(u.searchParams.get("SKU")) &&
-      !isProductActionUrl(u.href)
+      !isProductActionPath(u.pathname)
     );
   } catch {
     return false;
@@ -284,7 +289,7 @@ export function rejectProductLinkReasons(l: Link, base?: string) {
     reasons.push("invalid URL");
   }
   if (u) {
-    if (isProductActionUrl(u.href))
+    if (isProductActionPath(u.pathname))
       reasons.push("compare/cart/login/wishlist/cookie/privacy/action URL");
     if (!/ViewProduct-Start/i.test(u.pathname + u.search))
       reasons.push("not a ViewProduct-Start URL");
