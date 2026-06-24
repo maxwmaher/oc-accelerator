@@ -242,6 +242,14 @@ export function isRaiProductPdpUrl(href: string, base?: string) {
     return false;
   }
 }
+
+export function isLiteralProductStartUrl(href: string): boolean {
+  const u = new URL(href);
+  return (
+    /ViewProduct-Start/i.test(u.pathname + u.search) &&
+    !!u.searchParams.get("SKU")
+  );
+}
 export type TraversalUrlClassification = "category" | "product";
 export function classifyTraversalUrl(url: string): TraversalUrlClassification {
   return isRaiProductPdpUrl(url) ? "product" : "category";
@@ -971,14 +979,18 @@ export async function run() {
     const allowedAtStart = raiUrlAllowlist(url);
     if (!allowedAtStart.allowed) throw new Error(`Blocked external navigation: ${url}`);
     url = allowedAtStart.url || url;
-    if (classifyTraversalUrl(url) === "product") {
+    if (isLiteralProductStartUrl(url)) {
+      console.log(`Product URL reached traverse; routing to scrapeProduct instead: ${url}`);
       if (seen.has(url)) return;
       seen.add(url);
+
       const product = await scrapeProduct(page, url, catPath.at(-1) || "", catPath);
-      if (product) snapshot.products.push(product);
-      else {
+      if (product) {
+        snapshot.products.push(product);
+      } else {
         const u = new URL(url);
-        snapshot.source.skippedProducts?.push({
+        snapshot.source.skippedProducts ??= [];
+        snapshot.source.skippedProducts.push({
           url,
           sku: u.searchParams.get("SKU") || undefined,
           name: catPath.at(-1),
