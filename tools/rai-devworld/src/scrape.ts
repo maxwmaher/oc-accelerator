@@ -322,13 +322,13 @@ export function rejectChildCategoryReasons(l: Link, currentUrl: string) {
     if (rawSameExceptHash && u.hash && u.hash !== cur.hash)
       reasons.push("only # fragment change");
     if (rawSameExceptHash) reasons.push("same page URL without hash");
-    if (isProductActionUrl(u.href))
-      reasons.push("cookie/banner/privacy/action URL");
-    if (/RAIMasterCatalog/i.test(u.href))
-      reasons.push("RAIMasterCatalog/global catalog URL"); // Added from incoming
-    const cat = u.searchParams.get("CategoryName"),
-      currentCat = cur.searchParams.get("CategoryName");
+    if (isProductActionUrl(u.href) || /ViewHomepage|Content|Login/i.test(u.href))
+      reasons.push("homepage/content/login/cart/compare/action URL");
+    const cat = u.searchParams.get("CategoryName")?.trim() || "",
+      currentCat = cur.searchParams.get("CategoryName")?.trim() || "";
     if (!cat) reasons.push("missing CategoryName");
+    else if (/^RAIMasterCatalog$/i.test(cat))
+      reasons.push("CategoryName=RAIMasterCatalog global/root catalog");
     else if (currentCat && cat === currentCat)
       reasons.push("same current CategoryName");
     if (!/ViewStandardCatalog-Browse/i.test(u.href))
@@ -352,12 +352,19 @@ export function filterChildCategoryLinks(
       key = l.href;
     }
     if (seen.has(key)) reasons.push("duplicate normalized URL");
+    const normalized = { ...l, href: key };
     if (reasons.length) {
-      rejected.push({ ...l, reasons });
+      console.log(
+        `Rejected category link "${l.text || "(empty)"}" (${l.href}): ${reasons.join(", ")}`,
+      );
+      rejected.push({ ...normalized, reasons });
       continue;
     }
     seen.add(key);
-    accepted.push({ ...l, href: key });
+    console.log(
+      `Accepted category link "${l.text || "(empty)"}" (${key}): different valid CategoryName`,
+    );
+    accepted.push(normalized);
   }
   return { accepted, rejected };
 }

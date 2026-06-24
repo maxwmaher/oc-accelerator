@@ -112,6 +112,35 @@ describe("rai scraper product/category split filtering", () => {
     base + "ViewStandardCatalog-Browse?CategoryName=Power&CatalogID=1";
   const product =
     base + "ViewProduct-Start?SKU=POWER-DAY-230-3KW&CategoryName=Power";
+  it("accepts ViewProduct-Start with CatalogID=RAIMasterCatalog as a product but not a category", () => {
+    const href =
+      base +
+      "ViewProduct-Start?SKU=POWER-DAY-230-3KW&CategoryName=fnb-main&CatalogID=RAIMasterCatalog";
+    const products = filterProductLinks(
+      [
+        {
+          text: "Mandatory daytime power",
+          href,
+          cardText: "Mandatory daytime power € 335.63",
+          hasPrice: true,
+          title: "Mandatory daytime power",
+        },
+      ],
+      current,
+    );
+    expect(products.accepted).toHaveLength(1);
+    expect(new URL(products.accepted[0].href).searchParams.get("SKU")).toBe(
+      "POWER-DAY-230-3KW",
+    );
+
+    const categories = filterChildCategoryLinks(
+      [{ text: "Mandatory daytime power", href }],
+      current,
+    );
+    expect(categories.accepted).toHaveLength(0);
+    expect(categories.rejected[0].reasons).toContain("not a category browse URL");
+  });
+
   it("accepts ViewProduct-Start product links even when CategoryName equals current category", () => {
     const r = filterProductLinks(
       [
@@ -211,6 +240,35 @@ describe("rai scraper child category filtering", () => {
     expect(r.accepted).toHaveLength(1);
     expect(new URL(r.accepted[0].href).searchParams.get("CategoryName")).toBe(
       "coffee",
+    );
+  });
+  it("accepts CatalogID=RAIMasterCatalog category links with a different CategoryName", () => {
+    const href =
+      "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=fnb-food";
+    const r = filterChildCategoryLinks([{ text: "Food", href }], current);
+    expect(r.rejected).toHaveLength(0);
+    expect(r.accepted).toHaveLength(1);
+    expect(new URL(r.accepted[0].href).searchParams.get("CategoryName")).toBe(
+      "fnb-food",
+    );
+  });
+  it("rejects CategoryName=RAIMasterCatalog as global/root catalog", () => {
+    const href =
+      "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=RAIMasterCatalog";
+    const r = filterChildCategoryLinks([{ text: "All categories", href }], current);
+    expect(r.accepted).toHaveLength(0);
+    expect(r.rejected[0].reasons).toContain(
+      "CategoryName=RAIMasterCatalog global/root catalog",
+    );
+  });
+  it("rejects CatalogID=RAIMasterCatalog with the same current CategoryName", () => {
+    const href =
+      "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=fnb-main";
+    const r = filterChildCategoryLinks([{ text: "Same category", href }], current);
+    expect(r.accepted).toHaveLength(0);
+    expect(r.rejected[0].reasons).toContain("same current CategoryName");
+    expect(r.rejected[0].reasons).not.toContain(
+      "CategoryName=RAIMasterCatalog global/root catalog",
     );
   });
   it("records rejected reasons in the category debug shape", () => {
