@@ -1005,11 +1005,42 @@ export async function run() {
     console.log(`Visiting category path: ${catPath.join(" > ")}`);
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
     requireAllowedRaiPage(page.url());
-    assertExpectedCategoryNavigation(url, page.url(), catPath[0]); // Added from incoming
     await page
       .waitForLoadState("networkidle", { timeout: 10000 })
       .catch(() => {});
     requireAllowedRaiPage(page.url());
+    const navigatedUrl = page.url();
+
+    if (isLiteralProductStartUrl(navigatedUrl)) {
+      console.log(
+        `Category traversal resolved to product URL; routing to scrapeProduct instead: ${navigatedUrl}`,
+      );
+
+      if (seen.has(navigatedUrl)) return;
+      seen.add(navigatedUrl);
+
+      const product = await scrapeProduct(
+        page,
+        navigatedUrl,
+        catPath.at(-1) || "",
+        catPath,
+      );
+      if (product) {
+        snapshot.products.push(product);
+      } else {
+        const u = new URL(navigatedUrl);
+        snapshot.source.skippedProducts ??= [];
+        snapshot.source.skippedProducts.push({
+          url: navigatedUrl,
+          sku: u.searchParams.get("SKU") || undefined,
+          name: catPath.at(-1),
+          reason: "unpriced quote/request product",
+        });
+      }
+
+      return;
+    }
+
     assertExpectedCategoryNavigation(url, page.url(), catPath[0]); // Added from incoming
     const currentCategoryName = categoryNameOf(page.url()); // Integrated from incoming
     console.log(`Current CategoryName: ${currentCategoryName || "(none)"}`);

@@ -222,6 +222,56 @@ describe("rai scraper product/category split filtering", () => {
     expect(classifyRead === -1 || classifyRead > categoryNameRead).toBe(true);
   });
 
+  it("post-navigation product redirect guard runs before CategoryName failure", async () => {
+    const source = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../src/scrape.ts", import.meta.url), "utf8"),
+    );
+    const traverseStart = source.indexOf("async function traverse(");
+    const pageGoto = source.indexOf("await page.goto(url", traverseStart);
+    const loadState = source.indexOf(
+      'waitForLoadState("networkidle"',
+      pageGoto,
+    );
+    const navigatedUrl = source.indexOf(
+      "const navigatedUrl = page.url()",
+      loadState,
+    );
+    const postNavGuard = source.indexOf(
+      "if (isLiteralProductStartUrl(navigatedUrl))",
+      navigatedUrl,
+    );
+    const routeLog = source.indexOf(
+      "Category traversal resolved to product URL; routing to scrapeProduct instead",
+      postNavGuard,
+    );
+    const productHandler = source.indexOf(
+      "await scrapeProduct(page, navigatedUrl",
+      postNavGuard,
+    );
+    const skippedProducts = source.indexOf(
+      "snapshot.source.skippedProducts.push",
+      productHandler,
+    );
+    const categoryNameRead = source.indexOf(
+      "const currentCategoryName = categoryNameOf(page.url())",
+      postNavGuard,
+    );
+    const missingCategoryName = source.indexOf(
+      "Missing CategoryName",
+      postNavGuard,
+    );
+
+    expect(pageGoto).toBeGreaterThan(traverseStart);
+    expect(loadState).toBeGreaterThan(pageGoto);
+    expect(navigatedUrl).toBeGreaterThan(loadState);
+    expect(postNavGuard).toBeGreaterThan(navigatedUrl);
+    expect(routeLog).toBeGreaterThan(postNavGuard);
+    expect(productHandler).toBeGreaterThan(postNavGuard);
+    expect(skippedProducts).toBeGreaterThan(productHandler);
+    expect(postNavGuard).toBeLessThan(categoryNameRead);
+    expect(postNavGuard).toBeLessThan(missingCategoryName);
+  });
+
   it("accepts ViewProduct-Start with CatalogID=RAIMasterCatalog as a product but not a category", () => {
     const href =
       base +
