@@ -237,6 +237,14 @@ export function isRaiProductPdpUrl(href: string, base?: string) {
     return false;
   }
 }
+export type TraversalUrlClassification = "category" | "product";
+export function classifyTraversalUrl(url: string): TraversalUrlClassification {
+  return isRaiProductPdpUrl(url) ? "product" : "category";
+}
+export function isUnpricedQuoteRequestProduct(input: { sku?: string | null; title?: string | null; href?: string | null; text?: string | null; }) {
+  const haystack = norm(`${input.sku || ""} ${input.title || ""} ${input.href || ""} ${input.text || ""}`);
+  return /(?:^|[\s_-])(?:quote|request|quotation|offerte)(?:[\s_-]|$)|request\s+for|quote\s+request|rigging-request|request.*quote|quote.*request/i.test(haystack);
+}
 export function assertNotProductTraversal(url: string) {
   if (isRaiProductPdpUrl(url))
     throw new Error(
@@ -826,6 +834,17 @@ export async function scrapeProduct(
     return null;
   }
   if (!price) {
+    if (isUnpricedQuoteRequestProduct({
+      sku: sourceSkuFromUrl,
+      title,
+      href: allowed.url || href,
+      text: `${card} ${text.slice(0, 1000)}`,
+    })) {
+      console.warn(
+        `Skipped unpriced quote/request product: ${href}`,
+      );
+      return null;
+    }
     if (!isProductDetailUrl(href) || isExcludedUrl(href)) {
       console.warn(`Skipped non-product URL without parseable price: ${href}`);
       return null;
@@ -909,6 +928,7 @@ export async function run() {
     categories: [],
     products: [],
   };
+  snapshot.source.skippedProducts = [];
   try {
     await page.goto(HOME, { waitUntil: "domcontentloaded", timeout: 60000 });
     requireAllowedRaiPage(page.url());
@@ -943,7 +963,25 @@ export async function run() {
     seen: Set<string>,
   ) {
     assertNonEmptyCategoryPath(catPath);
-    assertNotProductTraversal(url); // Added from HEAD
+    const allowedAtStart = raiUrlAllowlist(url);
+    if (!allowedAtStart.allowed) throw new Error(`Blocked external navigation: ${url}`);
+    url = allowedAtStart.url || url;
+    if (classifyTraversalUrl(url) === "product") {
+      if (seen.has(url)) return;
+      seen.add(url);
+      const product = await scrapeProduct(page, url, catPath.at(-1) || "", catPath);
+      if (product) snapshot.products.push(product);
+      else {
+        const u = new URL(url);
+        snapshot.source.skippedProducts?.push({
+          url,
+          sku: u.searchParams.get("SKU") || undefined,
+          name: catPath.at(-1),
+          reason: "unpriced quote/request product",
+        });
+      }
+      return;
+    }
     url = assertTraverseStartUrl(url, catPath); // Added from incoming
     if (depth > 12 || seen.has(url)) return;
     seen.add(url);
@@ -983,8 +1021,20 @@ export async function run() {
             pl.cardText?.match(/(?:€|EUR)\s*[-+]?\d[\d.,\s]*/i)?.[0], // Adopted from HEAD
           );
           if (product) snapshot.products.push(product);
+          else if (isUnpricedQuoteRequestProduct({
+            sku: new URL(pl.href).searchParams.get("SKU"),
+            title: pl.title || pl.text,
+            href: pl.href,
+            text: pl.cardText,
+          })) snapshot.source.skippedProducts?.push({
+            url: pl.href,
+            sku: new URL(pl.href).searchParams.get("SKU") || undefined,
+            name: pl.title || pl.text,
+            reason: "unpriced quote/request product",
+          });
         } catch (e) {
           console.error(e);
+          throw e;
         }
       }
       return;

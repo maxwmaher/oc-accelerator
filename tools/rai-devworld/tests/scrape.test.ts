@@ -8,6 +8,8 @@ import {
   assertTraverseStartUrl,
   assertNotProductTraversal,
   childCategoryLinks,
+  categoryNameOf,
+  classifyTraversalUrl,
   discoverChildCategoryLinks,
   filterChildCategoryLinks,
   filterProductLinks,
@@ -22,6 +24,7 @@ import {
   raiUrlAllowlist,
   rejectChildCategoryReasons,
   scrapeProduct,
+  isUnpricedQuoteRequestProduct,
 } from "../src/scrape.js";
 import { firstChildren } from "../src/lib.js";
 const base =
@@ -114,6 +117,46 @@ describe("rai scraper product/category split filtering", () => {
     base + "ViewStandardCatalog-Browse?CategoryName=Power&CatalogID=1";
   const product =
     base + "ViewProduct-Start?SKU=POWER-DAY-230-3KW&CategoryName=Power";
+
+  it("classifies ViewProduct-Start with SKU and no CategoryName as a product", () => {
+    const href = base + "ViewProduct-Start?SKU=rigging-request";
+    expect(classifyTraversalUrl(href)).toBe("product");
+    expect(isRaiProductPdpUrl(href)).toBe(true);
+  });
+
+  it("accepts ViewProduct-Start product links without CategoryName", () => {
+    const href = base + "ViewProduct-Start?SKU=rigging-request";
+    const r = filterProductLinks([
+      {
+        text: "Request for rigging quote",
+        href,
+        cardText: "Request for rigging quote",
+        hasImage: true,
+        title: "Request for rigging quote",
+      },
+    ], current);
+    expect(r.accepted).toHaveLength(1);
+    expect(new URL(r.accepted[0].href).searchParams.get("CategoryName")).toBeNull();
+  });
+
+  it("does not return ViewProduct-Start without CategoryName as a child category", () => {
+    const href = base + "ViewProduct-Start?SKU=rigging-request";
+    const r = filterChildCategoryLinks(
+      [{ text: "Request for rigging quote", href }],
+      current,
+    );
+    expect(r.accepted).toHaveLength(0);
+    expect(r.rejected[0].reasons).toEqual(
+      expect.arrayContaining(["missing CategoryName", "not a category browse URL"]),
+    );
+  });
+
+  it("traverse classification happens before CategoryName requirements", () => {
+    const href = base + "ViewProduct-Start?SKU=rigging-request";
+    expect(categoryNameOf(href)).toBeNull();
+    expect(classifyTraversalUrl(href)).toBe("product");
+  });
+
   it("accepts ViewProduct-Start with CatalogID=RAIMasterCatalog as a product but not a category", () => {
     const href =
       base +
@@ -686,6 +729,47 @@ describe("rai scraper child category filtering", () => {
     ]);
   });
 });
+
+
+  it("skips unpriced quote/request products without fabricating a zero price", async () => {
+    const href = base + "ViewProduct-Start?SKU=rigging-request";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const page: any = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForLoadState: vi.fn().mockResolvedValue(undefined),
+      url: vi.fn(() => href),
+      locator: vi.fn((selector: string) =>
+        selector === "h1"
+          ? { first: () => ({ textContent: vi.fn().mockResolvedValue("Request for rigging quote") }) }
+          : selector === "img"
+            ? { evaluateAll: vi.fn().mockResolvedValue([]) }
+            : { innerText: vi.fn().mockResolvedValue("Request for rigging quote Contact us for pricing") },
+      ),
+    };
+    await expect(scrapeProduct(page, href, "Request for rigging quote", ["Rigging"])).resolves.toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Skipped unpriced quote/request product"));
+    expect(isUnpricedQuoteRequestProduct({ sku: "rigging-request", title: "Request for rigging quote" })).toBe(true);
+    warn.mockRestore();
+  });
+
+  it("ordinary products missing required prices still fail validation", async () => {
+    const href = base + "ViewProduct-Start?SKU=CHAIR-001";
+    const page: any = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForLoadState: vi.fn().mockResolvedValue(undefined),
+      url: vi.fn(() => href),
+      locator: vi.fn((selector: string) =>
+        selector === "h1"
+          ? { first: () => ({ textContent: vi.fn().mockResolvedValue("Conference chair") }) }
+          : selector === "img"
+            ? { evaluateAll: vi.fn().mockResolvedValue([]) }
+            : { innerText: vi.fn().mockResolvedValue("Conference chair without visible price") },
+      ),
+    };
+    await expect(scrapeProduct(page, href, "Conference chair", ["Furniture"])).rejects.toThrow(
+      "Unable to parse required price",
+    );
+  });
 
 describe("rai scraper cookie banner handling", () => {
   it("returns to the RAI homepage if cookie handling navigates away", async () => {
