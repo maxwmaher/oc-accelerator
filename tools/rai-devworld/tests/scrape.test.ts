@@ -8,6 +8,7 @@ import {
   assertTraverseStartUrl,
   assertNotProductTraversal,
   childCategoryLinks,
+  discoverChildCategoryLinks,
   filterChildCategoryLinks,
   filterProductLinks,
   handleCookieBanner,
@@ -436,6 +437,90 @@ describe("rai scraper child category filtering", () => {
     expect(() => assertNonEmptyCategoryPath([""])).toThrow(
       "Internal scraper error: refusing to traverse empty category path",
     );
+  });
+
+
+  it("accepted category candidates survive dedupe and appear in finalChildLinks", () => {
+    const r = discoverChildCategoryLinks(
+      [
+        { text: "Food", href: base + "ViewStandardCatalog-Browse?CategoryName=fnb-food", source: "card" },
+        { text: "Beverages", href: base + "ViewStandardCatalog-Browse?CategoryName=fnb-beverages", source: "card" },
+      ],
+      current,
+    );
+    expect(r.acceptedBeforeDedupe).toHaveLength(2);
+    expect(r.acceptedAfterDedupe).toHaveLength(2);
+    expect(r.finalChildLinks.map((l) => l.categoryName)).toEqual([
+      "fnb-food",
+      "fnb-beverages",
+    ]);
+  });
+
+  it("fnb-main fixture returns final links, selected first three, and rejects global nav", () => {
+    const fnbNames = [
+      "fnb-food",
+      "fnb-beverages",
+      "fnb-drinksreception",
+      "fnb-dietary",
+      "fnb-catering",
+      "fnb-materials",
+    ];
+    const r = discoverChildCategoryLinks(
+      [
+        { text: "Stand construction items", href: base + "ViewStandardCatalog-Browse?CategoryName=StandConstruciton", source: "nav" },
+        { text: "Power, internet & water", href: base + "ViewStandardCatalog-Browse?CategoryName=Connections", source: "nav" },
+        ...fnbNames.map((name) => ({
+          text: name,
+          href: base + `ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=${name}`,
+          source: "card",
+        })),
+      ],
+      current,
+    );
+    expect(r.finalChildLinks.map((l) => l.categoryName)).toEqual(fnbNames);
+    expect(r.selectedChildLinks.map((l) => l.text)).toEqual([
+      "Food",
+      "Beverages",
+      "Drinks reception",
+    ]);
+    expect(
+      r.rejected.some((l) =>
+        l.reasons.includes(
+          "global-nav category ignored because scoped category region exists",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("debug accepted count is based on the returned finalChildLinks", async () => {
+    const page: any = {
+      url: vi.fn(() => current),
+      setViewportSize: vi.fn().mockResolvedValue(undefined),
+      evaluate: vi.fn().mockResolvedValue(0),
+      locator: vi.fn((sel: string) => ({
+        evaluateAll: vi.fn(async (_fn: any, source?: string) =>
+          sel.includes("card")
+            ? ["fnb-food", "fnb-beverages", "fnb-drinksreception", "fnb-dietary"].map((name) => ({
+                text: name,
+                href: base + `ViewStandardCatalog-Browse?CategoryName=${name}`,
+                source,
+              }))
+            : [],
+        ),
+      })),
+      getByRole: vi.fn(() => ({
+        first: () => ({ isVisible: vi.fn().mockResolvedValue(false) }),
+      })),
+    };
+    const children = await childCategoryLinks(page, ["Food | Beverages | Catering"], {
+      productLinkCandidates: [],
+      acceptedProductLinks: [],
+      rejectedProductLinks: [],
+      isProductBearing: false,
+      stoppedBecauseProductsFound: false,
+    });
+    expect(children).toHaveLength(4);
+    expect(firstChildren(children)).toHaveLength(3);
   });
 
   it("keeps first valid duplicate and rejects later duplicate", () => {
