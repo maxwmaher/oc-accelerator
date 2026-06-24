@@ -20,6 +20,7 @@ import {
   isProductCardLink,
   isProductDetailUrl,
   isRaiProductPdpUrl,
+  isLiteralProductStartUrl,
   out,
   raiUrlAllowlist,
   rejectChildCategoryReasons,
@@ -174,6 +175,51 @@ describe("rai scraper product/category split filtering", () => {
     const href = base + "ViewProduct-Start?SKU=rigging-request";
     expect(categoryNameOf(href)).toBeNull();
     expect(classifyTraversalUrl(href)).toBe("product");
+  });
+
+  it("literal ViewProduct-Start SKU traversal guard runs before navigation and CategoryName reads", async () => {
+    const href = base + "ViewProduct-Start?SKU=rigging-request";
+    expect(isLiteralProductStartUrl(href)).toBe(true);
+
+    const source = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../src/scrape.ts", import.meta.url), "utf8"),
+    );
+    const traverseStart = source.indexOf("async function traverse(");
+    const guard = source.indexOf(
+      "if (isLiteralProductStartUrl(url))",
+      traverseStart,
+    );
+    const routeLog = source.indexOf(
+      "Product URL reached traverse; routing to scrapeProduct instead",
+      guard,
+    );
+    const productHandler = source.indexOf(
+      "await scrapeProduct(page, url",
+      guard,
+    );
+    const skippedProducts = source.indexOf(
+      "snapshot.source.skippedProducts",
+      guard,
+    );
+    const pageGoto = source.indexOf("await page.goto(url", traverseStart);
+    const categoryNameRead = source.indexOf(
+      "const currentCategoryName = categoryNameOf(page.url())",
+      traverseStart,
+    );
+    const classifyRead = source.indexOf(
+      "classifyTraversalUrl(url)",
+      traverseStart,
+    );
+
+    expect(guard).toBeGreaterThan(traverseStart);
+    expect(routeLog).toBeGreaterThan(guard);
+    expect(productHandler).toBeGreaterThan(guard);
+    expect(skippedProducts).toBeGreaterThan(productHandler);
+    expect(productHandler).toBeLessThan(pageGoto);
+    expect(skippedProducts).toBeLessThan(pageGoto);
+    expect(guard).toBeLessThan(pageGoto);
+    expect(guard).toBeLessThan(categoryNameRead);
+    expect(classifyRead === -1 || classifyRead > categoryNameRead).toBe(true);
   });
 
   it("accepts ViewProduct-Start with CatalogID=RAIMasterCatalog as a product but not a category", () => {
