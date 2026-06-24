@@ -9,6 +9,7 @@ using OC_Accelerator.Models;
 using OC_Accelerator.Services;
 using Sharprompt;
 using Action = OC_Accelerator.Models.Action;
+using OC_Accelerator.Services.RaiDevWorld;
 
 namespace OC_Accelerator
 {
@@ -17,6 +18,21 @@ namespace OC_Accelerator
 
         static async Task Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "seed-rai-devworld")
+            {
+                try
+                {
+                    var summary = await new RaiSeeder().RunAsync(RaiSeeder.Parse(args.Skip(1).ToArray()), Console.Out);
+                    Console.WriteLine($"RAI seed complete. DryRun={summary.DryRun}; Products={summary.Products}; Categories={summary.Categories}; PriceSchedules={summary.PriceSchedules}; Specs={summary.Specs}; Options={summary.Options}; CatalogAssignments={summary.CatalogAssignments}; CategoryAssignments={summary.CategoryAssignments}; Failed={summary.Failed}");
+                    Environment.ExitCode = summary.Failed == 0 ? 0 : 1;
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine(ex.Message);
+                    Environment.ExitCode = 1;
+                }
+                return;
+            }
             var logger = Console.Out;
             var stopwatch = new Stopwatch();
             stopwatch.Start();

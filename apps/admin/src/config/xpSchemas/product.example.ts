@@ -20,9 +20,23 @@ export const productXp : OpenAPIV3.SchemaObject = {
         }
       }
     },
-    "ProductType": {
-      "type": "string",
-      "enum": ["A", "B", "C"]
+    "RAI": {
+      "type": "object",
+      "properties": {
+        "Managed": { "type": "boolean" },
+        "SourceSystem": { "type": "string" },
+        "Event": { "type": "string" },
+        "SourceProductID": { "type": "string" },
+        "SourceSKU": { "type": "string" },
+        "SourceUrl": { "type": "string" },
+        "SourceCategoryPaths": { "type": "array", "items": { "type": "array", "items": { "type": "string" } } },
+        "Descriptions": { "type": "object" },
+        "Attributes": { "type": "array", "items": { "type": "object" } },
+        "Pricing": { "type": "object" },
+        "Ordering": { "type": "object" },
+        "ScrapedAtUtc": { "type": "string" },
+        "SourceHash": { "type": "string" }
+      }
     },
     "Tax": {
       "type": "object",
@@ -40,6 +54,5 @@ export const productXp : OpenAPIV3.SchemaObject = {
         }
       }
     }
-  },
-  "required": ["ProductType"]
+  }
 }

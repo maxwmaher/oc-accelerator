@@ -1,0 +1,3 @@
+import { describe, expect, it } from 'vitest'
+import { estimateSelectedPrice, validateRequiredSpecs } from '../specPricing'
+describe('spec pricing', () => { it('calculates selected price with markup types', () => { const specs:any[]=[{ID:'a',Options:[{ID:'ao',PriceMarkupType:'AmountPerQuantity',PriceMarkup:2}]},{ID:'b',Options:[{ID:'bo',PriceMarkupType:'AmountTotal',PriceMarkup:5}]},{ID:'c',Options:[{ID:'co',PriceMarkupType:'Percentage',PriceMarkup:10}]}]; expect(estimateSelectedPrice(10,3,specs,{a:{SpecID:'a',OptionID:'ao'},b:{SpecID:'b',OptionID:'bo'},c:{SpecID:'c',OptionID:'co'}})).toBe(44) }); it('validates required specs',()=>expect(validateRequiredSpecs([{ID:'s',Name:'Size',Required:true}],{})).toEqual(['Size'])) })

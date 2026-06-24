@@ -1,1 +1,10 @@
 node_modules
+# RAI DevWorld local scraper/seeder artifacts
+.tools-rai-devworld-user-data/
+tools/rai-devworld/.auth/
+tools/rai-devworld/.cache/
+tools/rai-devworld/test-results/
+tools/rai-devworld/playwright-report/
+tools/rai-devworld/data/*.local.json
+tools/rai-devworld/.env.local
+infrastructure/appSettings.local.json

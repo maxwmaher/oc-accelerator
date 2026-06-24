@@ -1,0 +1,3 @@
+using System.Security.Cryptography;using System.Text;using System.Text.RegularExpressions;
+namespace OC_Accelerator.Services.RaiDevWorld;
+public static class RaiId{public static string Hash(string input,int len=12)=>Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(input))).ToLowerInvariant()[..len];public static string Create(IEnumerable<string?> parts,int max=100){var raw="rai-devworld-"+string.Join('-',parts.Where(p=>!string.IsNullOrWhiteSpace(p)));var id=Regex.Replace(raw.ToLowerInvariant(),"[^a-z0-9_-]+","-");id=Regex.Replace(id,"-+","-").Trim('-');return id.Length<=max?id:id[..(max-13)].TrimEnd('-')+"-"+Hash(id);}}
