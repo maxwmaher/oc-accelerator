@@ -26,12 +26,103 @@ import {
   rejectChildCategoryReasons,
   scrapeProduct,
   isUnpricedQuoteRequestProduct,
+  productTitleFromPdpText,
   recordSkippedQuoteRequestProduct,
 } from "../src/scrape.js";
 import { firstChildren } from "../src/lib.js";
 const base =
   "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/";
 const pdp = base + "ViewProduct-Show?SKU=ABC";
+
+describe("rai scraper product title extraction", () => {
+  it("extracts the breadcrumb product segment from PDP body text", () => {
+    expect(
+      productTitleFromPdpText(
+        "Home/ Products & services/ Food | Beverages | Catering/ Food/ Breakfast/ Croissant in a bag You need to login to be able to order. Croissant in a bag Croissant wrapped in a paper bag € 3.15 per1 Product details...",
+      ),
+    ).toBe("Croissant in a bag");
+  });
+
+  it.each([
+    "French breakfast rolls",
+    "Farmhouse yoghurt with muesli and fresh fruit",
+    "Raised stand floor",
+    "Power configurator",
+    "Mandatory daytime power",
+    "Additional sockets",
+    "Optional continuous power",
+  ])("extracts real product name %s from PDP body text", (name) => {
+    expect(
+      productTitleFromPdpText(
+        `Home/ Products & services/ Category/ ${name} You need to login to be able to order. ${name} Details € 9.95 per1 Product details`,
+      ),
+    ).toBe(name);
+  });
+
+  it("ignores invalid Shopping cart heading and uses PDP body text", async () => {
+    const href = base + "ViewProduct-Start?SKU=CAT-FOOD-SAFE-CROISSTEEK";
+    const body =
+      "Home/ Products & services/ Food | Beverages | Catering/ Food/ Breakfast/ Croissant in a bag You need to login to be able to order. Croissant in a bag Croissant wrapped in a paper bag € 3.15 per1 Product details...";
+    const page: any = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForLoadState: vi.fn().mockResolvedValue(undefined),
+      url: vi.fn(() => href),
+      locator: vi.fn((selector: string) =>
+        selector === "img"
+          ? { evaluateAll: vi.fn().mockResolvedValue([]) }
+          : selector === "body"
+            ? { innerText: vi.fn().mockResolvedValue(body) }
+            : { first: () => ({ textContent: vi.fn().mockResolvedValue("Shopping cart") }) },
+      ),
+    };
+    const product = await scrapeProduct(page, href, "Shopping cart", [
+      "Food",
+      "Breakfast",
+    ]);
+    expect(product?.name).toBe("Croissant in a bag");
+    expect(product?.pricing.basePrice.amount).toBe(3.15);
+  });
+
+  it("uses card text fallback when PDP heading is invalid and body has no readable name", async () => {
+    const href = base + "ViewProduct-Start?SKU=CARD-001";
+    const page: any = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForLoadState: vi.fn().mockResolvedValue(undefined),
+      url: vi.fn(() => href),
+      locator: vi.fn((selector: string) =>
+        selector === "img"
+          ? { evaluateAll: vi.fn().mockResolvedValue([]) }
+          : selector === "body"
+            ? { innerText: vi.fn().mockResolvedValue("Shopping cart € 12.50 Product details") }
+            : { first: () => ({ textContent: vi.fn().mockResolvedValue("Shopping cart") }) },
+      ),
+    };
+    const product = await scrapeProduct(page, href, "Conference chair € 12.50", [
+      "Furniture",
+    ]);
+    expect(product?.name).toBe("Conference chair");
+  });
+
+  it("uses SKU fallback only when no readable heading, body, or card name exists", async () => {
+    const href = base + "ViewProduct-Start?SKU=CAT-FOOD-SAFE-CROISSTEEK";
+    const page: any = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForLoadState: vi.fn().mockResolvedValue(undefined),
+      url: vi.fn(() => href),
+      locator: vi.fn((selector: string) =>
+        selector === "img"
+          ? { evaluateAll: vi.fn().mockResolvedValue([]) }
+          : selector === "body"
+            ? { innerText: vi.fn().mockResolvedValue("Shopping cart € 3.15 Product details") }
+            : { first: () => ({ textContent: vi.fn().mockResolvedValue("Shopping cart") }) },
+      ),
+    };
+    const product = await scrapeProduct(page, href, "Shopping cart € 3.15", [
+      "Food",
+    ]);
+    expect(product?.name).toBe("Croisstiek");
+  });
+});
 
 describe("rai scraper URL allowlist", () => {
   it("rejects Cookiebot URLs", () => {

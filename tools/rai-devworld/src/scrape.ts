@@ -258,6 +258,75 @@ export function isUnpricedQuoteRequestProduct(input: { sku?: string | null; titl
   const haystack = norm(`${input.sku || ""} ${input.title || ""} ${input.href || ""} ${input.text || ""}`);
   return /(?:^|[\s_-])(?:quote|request|quotation|offerte)(?:[\s_-]|$)|request\s+for|quote\s+request|rigging-request|request.*quote|quote.*request/i.test(haystack);
 }
+const INVALID_PRODUCT_TITLE_CANDIDATES = new Set([
+  "",
+  "basket",
+  "cart",
+  "myaccount",
+  "productsservices",
+  "shoppingcart",
+]);
+export function isValidProductTitleCandidate(input?: string | null) {
+  return !INVALID_PRODUCT_TITLE_CANDIDATES.has(loose(norm(input || "")));
+}
+function cleanProductTitleCandidate(input?: string | null) {
+  return norm(input || "")
+    .replace(/(?:€|EUR)\s*[-+]?\d[\d.,\s]*.*$/i, "")
+    .replace(/\b(?:per\s*\d+|Product details|You need to login to be able to order)\b.*$/i, "")
+    .trim();
+}
+function productNameFromSku(sku?: string | null) {
+  return norm(sku || "")
+    .replace(/^[A-Z]+(?:-[A-Z]+)*-(?=[A-Z0-9]+$)/i, "")
+    .split(/[-_.\s]+/)
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+export function productTitleFromPdpText(text: string) {
+  const body = norm(text);
+  const loginMatch = body.match(/\/\s*([^/]+?)\s+You need to login to be able to order\./i);
+  const loginCandidate = cleanProductTitleCandidate(loginMatch?.[1]);
+  if (isValidProductTitleCandidate(loginCandidate)) return loginCandidate;
+  const repeatedMatch = body.match(
+    /You need to login to be able to order\.\s+(.+?)\s+(?=.+?(?:€|EUR)\s*[-+]?\d)/i,
+  );
+  const repeatedCandidate = cleanProductTitleCandidate(repeatedMatch?.[1]);
+  if (isValidProductTitleCandidate(repeatedCandidate)) return repeatedCandidate;
+  return "";
+}
+async function firstValidProductHeading(page: Page) {
+  const selectors = [
+    'main h1, main h2, [role="main"] h1, [role="main"] h2, [class*="product" i] h1, [class*="product" i] h2, [id*="product" i] h1, [id*="product" i] h2',
+    "h1",
+    "h2",
+  ];
+  for (const selector of selectors) {
+    const locator: any = page.locator(selector);
+    const first = typeof locator.first === "function" ? locator.first() : null;
+    if (!first || typeof first.textContent !== "function") continue;
+    const heading = cleanProductTitleCandidate(
+      await first.textContent().catch(() => ""),
+    );
+    if (isValidProductTitleCandidate(heading)) return heading;
+  }
+  return "";
+}
+export async function productTitleFromPage(
+  page: Page,
+  bodyText: string,
+  card = "",
+  sku?: string | null,
+) {
+  const heading = await firstValidProductHeading(page);
+  if (heading) return heading;
+  const bodyTitle = productTitleFromPdpText(bodyText);
+  if (bodyTitle) return bodyTitle;
+  const cardTitle = cleanProductTitleCandidate(card);
+  if (isValidProductTitleCandidate(cardTitle)) return cardTitle;
+  const skuTitle = productNameFromSku(sku);
+  return isValidProductTitleCandidate(skuTitle) ? skuTitle : "";
+}
 export function skippedProductKey(input: { url: string; sku?: string | null }) {
   return (input.sku && loose(input.sku)) || input.url;
 }
@@ -832,14 +901,6 @@ export async function scrapeProduct(
     .waitForLoadState("networkidle", { timeout: 10000 })
     .catch(() => {});
   requireAllowedRaiPage(page.url());
-  const title =
-    norm(
-      await page
-        .locator("h1")
-        .first()
-        .textContent()
-        .catch(() => ""),
-    ) || card;
   const text = norm(await page.locator("body").innerText({ timeout: 5000 }));
   let price = parseMoney(
     text.match(/(?:€|EUR)\s*[-+]?\d[\d.,\s]*/i)?.[0] || "",
@@ -848,6 +909,7 @@ export async function scrapeProduct(
   const sourceSkuFromUrl = inputUrl.searchParams.get("SKU") || undefined; // Added from HEAD
   const sourceCategoryName =
     inputUrl.searchParams.get("CategoryName") || undefined; // Added from HEAD
+  const title = await productTitleFromPage(page, text, card, sourceSkuFromUrl);
   let usedCardPriceFallback = false; // Added from HEAD
   if (
     !price &&
