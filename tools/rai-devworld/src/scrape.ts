@@ -344,6 +344,78 @@ export function recordSkippedQuoteRequestProduct(
     reason: "unpriced quote/request product",
   });
 }
+export function isNavigationTimeoutError(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.name === "TimeoutError" ||
+    /(?:TimeoutError|Timeout \d+ms exceeded|page\.goto: Timeout)/i.test(
+      error.message,
+    )
+  );
+}
+export function isQuoteRequestCategory(input: {
+  url?: string | null;
+  categoryPath?: string[] | null;
+  title?: string | null;
+  sku?: string | null;
+}) {
+  const text = norm(
+    [
+      input.url || "",
+      ...(input.categoryPath || []),
+      input.title || "",
+      input.sku || "",
+    ].join(" "),
+  );
+  return (
+    /(?:^|[?&])CategoryName=Rigging(?:&|$)/i.test(input.url || "") ||
+    /\brigging\b/i.test(text) ||
+    /\brigging-request\b/i.test(text) ||
+    /\bquote\b|\brequest\b/i.test(text)
+  );
+}
+export function recordSkippedQuoteRequestCategory(
+  snapshot: RaiSnapshot,
+  input: { url: string; categoryPath: string[] },
+) {
+  snapshot.source.skippedCategories ??= [];
+  if (
+    snapshot.source.skippedCategories.some(
+      (c) =>
+        c.url === input.url &&
+        c.categoryPath.join("\u0000") === input.categoryPath.join("\u0000"),
+    )
+  )
+    return;
+  snapshot.source.skippedCategories.push({
+    url: input.url,
+    categoryPath: input.categoryPath,
+    reason: "navigation timeout for quote/request category",
+  });
+}
+export async function gotoCategoryOrSkip(
+  page: Pick<Page, "goto">,
+  snapshot: RaiSnapshot,
+  url: string,
+  categoryPath: string[],
+) {
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+    return true;
+  } catch (e) {
+    if (isNavigationTimeoutError(e) && isQuoteRequestCategory({ url, categoryPath })) {
+      recordSkippedQuoteRequestCategory(snapshot, { url, categoryPath });
+      console.warn(
+        `Skipped quote/request category after navigation timeout: ${categoryPath.join(" > ")} (${url})`,
+      );
+      return false;
+    }
+    const detail = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    throw new Error(
+      `Category navigation failed for "${categoryPath.join(" > ")}" at ${url}: ${detail}`,
+    );
+  }
+}
 export function assertNotProductTraversal(url: string) {
   if (isRaiProductPdpUrl(url))
     throw new Error(
@@ -1038,6 +1110,7 @@ export async function run() {
     products: [],
   };
   snapshot.source.skippedProducts = [];
+  snapshot.source.skippedCategories = [];
   try {
     await page.goto(HOME, { waitUntil: "domcontentloaded", timeout: 60000 });
     requireAllowedRaiPage(page.url());
@@ -1098,7 +1171,8 @@ export async function run() {
     if (depth > 12 || seen.has(url)) return;
     seen.add(url);
     console.log(`Visiting category path: ${catPath.join(" > ")}`);
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+    const navigated = await gotoCategoryOrSkip(page, snapshot, url, catPath);
+    if (!navigated) return;
     requireAllowedRaiPage(page.url());
     await page
       .waitForLoadState("networkidle", { timeout: 10000 })
