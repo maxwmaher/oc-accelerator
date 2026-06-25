@@ -1,5 +1,6 @@
 import {
   Badge,
+  Box,
   Button,
   Card,
   CardBody,
@@ -15,6 +16,14 @@ import {
   Text,
   Alert,
   AlertIcon,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  useDisclosure,
   useToast,
   VStack,
 } from "@chakra-ui/react";
@@ -406,6 +415,155 @@ const RaiServiceDetailsForm: React.FC<RaiServiceDetailsFormProps> = ({
   );
 };
 
+interface RaiStandPlacementMockProps {
+  details: RaiServiceDetails;
+  onChange: (details: RaiServiceDetails) => void;
+  context: ReturnType<typeof getRaiDemoContextById>;
+}
+
+const RaiStandPlacementMock: React.FC<RaiStandPlacementMockProps> = ({
+  details,
+  onChange,
+  context,
+}) => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const toast = useToast();
+  const selectedLocation = details.standGridLocation || "";
+  const setGridLocation = (location: string) =>
+    onChange({ ...details, standGridLocation: location });
+
+  const returnPlacement = () => {
+    onClose();
+    toast({
+      title: "Placement returned from configurator",
+      description: `Grid location ${selectedLocation || "not selected"} captured for supplier execution.`,
+      status: "success",
+      duration: 5000,
+      isClosable: true,
+    });
+  };
+
+  return (
+    <VStack
+      alignItems="stretch"
+      borderWidth="1px"
+      borderRadius="md"
+      p={4}
+      spacing={3}
+      w="full"
+    >
+      <HStack
+        justifyContent="space-between"
+        alignItems="center"
+        flexWrap="wrap"
+      >
+        <Heading size="sm">Stand placement</Heading>
+        <Badge colorScheme="purple">Mocked Art of Fiber grid</Badge>
+      </HStack>
+      <Text fontSize="xs" color="chakra-subtle-text">
+        Demo-only placement preview for utility supplier execution.
+      </Text>
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+        <SimpleGrid columns={2} spacing={2} aria-label="Stand placement grid">
+          {GRID_LOCATIONS.map((location) => {
+            const isSelected = selectedLocation === location;
+            return (
+              <Button
+                key={location}
+                type="button"
+                variant={isSelected ? "solid" : "outline"}
+                colorScheme={isSelected ? "primary" : "gray"}
+                minH="52px"
+                onClick={() => setGridLocation(location)}
+                aria-pressed={isSelected}
+              >
+                {location}
+              </Button>
+            );
+          })}
+        </SimpleGrid>
+        <VStack alignItems="stretch" spacing={2} fontSize="sm">
+          <HStack justifyContent="space-between">
+            <Text color="chakra-subtle-text">Hall</Text>
+            <Text fontWeight="semibold">{context.hall}</Text>
+          </HStack>
+          <HStack justifyContent="space-between">
+            <Text color="chakra-subtle-text">Stand number</Text>
+            <Text fontWeight="semibold">{context.standNumber}</Text>
+          </HStack>
+          <HStack justifyContent="space-between">
+            <Text color="chakra-subtle-text">Stand package</Text>
+            <Text fontWeight="semibold">{context.standPackage}</Text>
+          </HStack>
+          <Button
+            type="button"
+            variant="outline"
+            alignSelf="flex-start"
+            onClick={onOpen}
+          >
+            Open stand configurator
+          </Button>
+        </VStack>
+      </SimpleGrid>
+
+      <Modal isOpen={isOpen} onClose={onClose} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Art of Fiber stand configurator</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack alignItems="stretch" spacing={4}>
+              <Text fontSize="sm" color="chakra-subtle-text">
+                This is a mocked redirect/return flow. Production would request
+                a stand-specific configurator URL from RAI middleware. The
+                configurator would return placement coordinates to the webshop.
+              </Text>
+              {/* Demo-only: Production would use RAI middleware and Art of Fiber, not local UI state. */}
+              <Box borderWidth="1px" borderRadius="md" p={3}>
+                <VStack alignItems="stretch" spacing={2} fontSize="sm">
+                  <HStack justifyContent="space-between">
+                    <Text color="chakra-subtle-text">EventID</Text>
+                    <Text fontWeight="semibold">{context.eventId}</Text>
+                  </HStack>
+                  <HStack justifyContent="space-between">
+                    <Text color="chakra-subtle-text">ExhibitorID</Text>
+                    <Text fontWeight="semibold">{context.exhibitorId}</Text>
+                  </HStack>
+                  <HStack justifyContent="space-between">
+                    <Text color="chakra-subtle-text">Hall</Text>
+                    <Text fontWeight="semibold">{context.hall}</Text>
+                  </HStack>
+                  <HStack justifyContent="space-between">
+                    <Text color="chakra-subtle-text">StandNumber</Text>
+                    <Text fontWeight="semibold">{context.standNumber}</Text>
+                  </HStack>
+                  <HStack justifyContent="space-between">
+                    <Text color="chakra-subtle-text">
+                      Selected grid location
+                    </Text>
+                    <Text fontWeight="semibold">
+                      {selectedLocation || "Not selected"}
+                    </Text>
+                  </HStack>
+                </VStack>
+              </Box>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              type="button"
+              colorScheme="primary"
+              onClick={returnPlacement}
+            >
+              Return placement to webshop
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </VStack>
+  );
+};
+
 export interface ProductDetailProps {
   productId: string;
   renderProductDetail?: (product: BuyerProduct) => JSX.Element;
@@ -458,6 +616,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const raiDependencyRecommendations = useMemo(
     () => getRaiDependencyRecommendations(product, raiServiceDetailsType),
     [product, raiServiceDetailsType],
+  );
+  const selectedRaiContext = useMemo(
+    () =>
+      getRaiDemoContextById(
+        typeof window === "undefined"
+          ? undefined
+          : window.localStorage.getItem(RAI_DEMO_CONTEXT_STORAGE_KEY),
+      ),
+    [],
   );
   const outOfStock = useMemo(
     () => product?.Inventory?.QuantityAvailable === 0,
@@ -516,7 +683,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const handleAddToCart = useCallback(async () => {
     if (!product) {
       console.warn("[ProductDetail.tsx] Product not found for ID:", productId);
-      return <div>Product not found for ID: {productId}</div>;
+      return;
     }
 
     if (IS_MULTI_LOCATION_INVENTORY && !activeRecordId) {
@@ -562,12 +729,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         }
       }
 
-      const selectedContext = getRaiDemoContextById(
-        typeof window === "undefined"
-          ? undefined
-          : window.localStorage.getItem(RAI_DEMO_CONTEXT_STORAGE_KEY),
-      );
-
       await addCartLineItem({
         ProductID: productId,
         Quantity: quantity,
@@ -583,10 +744,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   ServiceDetailsType: raiServiceDetailsType,
                   ServiceDetails: raiServiceDetails,
                   CapturedFor: {
-                    EventID: selectedContext.eventId,
-                    ExhibitorID: selectedContext.exhibitorId,
-                    Hall: selectedContext.hall,
-                    StandNumber: selectedContext.standNumber,
+                    EventID: selectedRaiContext.eventId,
+                    ExhibitorID: selectedRaiContext.exhibitorId,
+                    Hall: selectedRaiContext.hall,
+                    StandNumber: selectedRaiContext.standNumber,
                   },
                 },
               },
@@ -636,6 +797,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     selectedSpecs,
     raiServiceDetailsType,
     raiServiceDetails,
+    selectedRaiContext,
   ]);
 
   return loading ? (
@@ -690,6 +852,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               type={raiServiceDetailsType}
               details={raiServiceDetails}
               onChange={setRaiServiceDetails}
+            />
+          )}
+          {raiServiceDetailsType === "utility" && (
+            <RaiStandPlacementMock
+              details={raiServiceDetails}
+              onChange={setRaiServiceDetails}
+              context={selectedRaiContext}
             />
           )}
           <HStack alignItems="center" gap={4} my={3}>
