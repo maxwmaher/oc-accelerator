@@ -16,6 +16,11 @@ import { Link as RouterLink } from "react-router-dom";
 import formatPrice from "../../utils/formatPrice";
 import { parseProductXp } from "../../utils/productXp";
 import { getRaiDemoProductLifecycleMessaging } from "../../demo/raiDemoLifecycle";
+import {
+  getRaiDemoContextById,
+  RAI_DEMO_CONTEXT_STORAGE_KEY,
+} from "../../demo/raiDemoContexts";
+import { getRaiDemoProductVisibilityBadge } from "../../demo/raiDemoVisibility";
 
 interface ProductCardProps {
   product: BuyerProduct;
@@ -26,6 +31,15 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
   const primaryImage = productXp.Images?.[0];
   const primaryImageUrl = primaryImage?.ThumbnailUrl || primaryImage?.Url;
   const raiLifecycleMessaging = getRaiDemoProductLifecycleMessaging(product);
+  const selectedRaiContext = getRaiDemoContextById(
+    typeof window === "undefined"
+      ? undefined
+      : window.localStorage.getItem(RAI_DEMO_CONTEXT_STORAGE_KEY),
+  );
+  const raiVisibilityBadge = getRaiDemoProductVisibilityBadge(
+    product,
+    selectedRaiContext,
+  );
 
   return (
     <>
@@ -96,6 +110,11 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                 {raiLifecycleMessaging && (
                   <Badge colorScheme="purple" variant="subtle">
                     {raiLifecycleMessaging.cardBadge}
+                  </Badge>
+                )}
+                {raiVisibilityBadge && (
+                  <Badge colorScheme="teal" variant="subtle">
+                    {raiVisibilityBadge}
                   </Badge>
                 )}
                 {product.PriceSchedule?.PriceBreaks && (

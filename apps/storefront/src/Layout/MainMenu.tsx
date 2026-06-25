@@ -35,6 +35,7 @@ import {
   RAI_DEMO_CONTEXTS,
   isDelegatedRaiDemoContext,
 } from "../demo/raiDemoContexts";
+import { RAI_DEMO_CONTEXT_CHANGED_EVENT } from "../demo/raiDemoVisibility";
 import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "../Layout/MegaMenu";
 
@@ -120,6 +121,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
       RAI_DEMO_CONTEXT_STORAGE_KEY,
       selectedRaiContext.id,
     );
+    window.dispatchEvent(new CustomEvent(RAI_DEMO_CONTEXT_CHANGED_EVENT));
   }, [selectedRaiContext.id]);
 
   const handleRaiContextSelect = (contextId: string) => {
