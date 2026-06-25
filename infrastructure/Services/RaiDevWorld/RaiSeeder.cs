@@ -29,12 +29,12 @@ public class RaiSeeder
         if (o.DryRun)
         {
             var categories = BuildCategories(snap).ToList();
-            var typedPayloads = BuildAndValidateTypedPayloads(snap, o.CatalogId, categories);
+            var dryRunPayloads = BuildAndValidateTypedPayloads(snap, o.CatalogId, categories);
             await log.WriteLineAsync($"Dry run: {snap.Products.Count} snapshot product records, {snap.Categories.Count} source categories, {specs} specs, {opts} options.");
-            await log.WriteLineAsync($"Dry run validated typed OrderCloud payloads for catalog '{o.CatalogId}': {typedPayloads.Categories.Count} unique categories, {typedPayloads.PriceSchedules.Count} unique price schedules, {typedPayloads.Products.Count} unique products, {typedPayloads.CatalogAssignments.Count} unique catalog assignments, {typedPayloads.CategoryAssignments.Count} unique category assignments.");
-            await log.WriteLineAsync($"Dry run duplicates: {typedPayloads.SnapshotProductRecords} snapshot product records, {typedPayloads.Products.Count} unique product writes, {typedPayloads.DuplicateProductRecordsCollapsed} duplicate product records collapsed.");
-            await log.WriteLineAsync($"Dry run XP lengths: max category xp {typedPayloads.MaxCategoryXpLength} chars, max product xp {typedPayloads.MaxProductXpLength} chars.");
-            return new(typedPayloads.Products.Count, typedPayloads.Categories.Count, typedPayloads.PriceSchedules.Count, specs, opts, typedPayloads.CatalogAssignments.Count, typedPayloads.CategoryAssignments.Count, 0, true, typedPayloads.MaxCategoryXpLength, typedPayloads.MaxProductXpLength, typedPayloads.SnapshotProductRecords, typedPayloads.DuplicateProductRecordsCollapsed);
+            await log.WriteLineAsync($"Dry run validated typed OrderCloud payloads for catalog '{o.CatalogId}': {dryRunPayloads.Categories.Count} unique categories, {dryRunPayloads.PriceSchedules.Count} unique price schedules, {dryRunPayloads.Products.Count} unique products, {dryRunPayloads.CatalogAssignments.Count} unique catalog assignments, {dryRunPayloads.CategoryAssignments.Count} unique category assignments.");
+            await log.WriteLineAsync($"Dry run duplicates: {dryRunPayloads.SnapshotProductRecords} snapshot product records, {dryRunPayloads.Products.Count} unique product writes, {dryRunPayloads.DuplicateProductRecordsCollapsed} duplicate product records collapsed.");
+            await log.WriteLineAsync($"Dry run XP lengths: max category xp {dryRunPayloads.MaxCategoryXpLength} chars, max product xp {dryRunPayloads.MaxProductXpLength} chars.");
+            return new(dryRunPayloads.Products.Count, dryRunPayloads.Categories.Count, dryRunPayloads.PriceSchedules.Count, specs, opts, dryRunPayloads.CatalogAssignments.Count, dryRunPayloads.CategoryAssignments.Count, 0, true, dryRunPayloads.MaxCategoryXpLength, dryRunPayloads.MaxProductXpLength, dryRunPayloads.SnapshotProductRecords, dryRunPayloads.DuplicateProductRecordsCollapsed);
         }
 
         if (string.IsNullOrWhiteSpace(o.ClientId) || string.IsNullOrWhiteSpace(o.ClientSecret))
@@ -42,8 +42,8 @@ public class RaiSeeder
 
         var oc = new OrderCloudClient(new OrderCloudClientConfig { ApiUrl = o.ApiUrl, AuthUrl = o.ApiUrl, ClientId = o.ClientId, ClientSecret = o.ClientSecret, Roles = new[] { ApiRole.FullAccess } });
         await log.WriteLineAsync($"Authenticated OrderCloud client for {o.ApiUrl}; credentials redacted.");
-        var typedPayloads = await SeedDynamicAsync((dynamic)oc, snap, o, log);
-        return new(typedPayloads.Products.Count, typedPayloads.Categories.Count, typedPayloads.PriceSchedules.Count, specs, opts, typedPayloads.CatalogAssignments.Count, typedPayloads.CategoryAssignments.Count, 0, false, typedPayloads.MaxCategoryXpLength, typedPayloads.MaxProductXpLength, typedPayloads.SnapshotProductRecords, typedPayloads.DuplicateProductRecordsCollapsed);
+        var seedPayloads = await SeedDynamicAsync((dynamic)oc, snap, o, log);
+        return new(seedPayloads.Products.Count, seedPayloads.Categories.Count, seedPayloads.PriceSchedules.Count, specs, opts, seedPayloads.CatalogAssignments.Count, seedPayloads.CategoryAssignments.Count, 0, false, seedPayloads.MaxCategoryXpLength, seedPayloads.MaxProductXpLength, seedPayloads.SnapshotProductRecords, seedPayloads.DuplicateProductRecordsCollapsed);
     }
 
     public static RaiSnapshot Load(string path)
