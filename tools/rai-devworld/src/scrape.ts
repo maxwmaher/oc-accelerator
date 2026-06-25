@@ -1003,6 +1003,55 @@ function productImageTitleTokens(title?: string | null) {
     .filter((p) => p.length >= 5);
 }
 
+type ProductImageFamily = "food" | "flooring" | "power" | "rigging" | null;
+
+const GENERIC_POWER_IMAGE_URL =
+  "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/devworld/RAI/en_US/visuals/Standard-power-prof.jpg";
+
+function inferProductImageFamily(input: {
+  sku?: string | null;
+  title?: string | null;
+  pageUrl?: string | null;
+}): ProductImageFamily {
+  const sku = norm(input.sku || "").toUpperCase();
+  const title = norm(input.title || "");
+  const context = `${title} ${input.pageUrl || ""}`;
+  if (/\brigging\b/i.test(`${sku} ${title}`)) return "rigging";
+  if (/^(?:CAT-FOOD-|FNB-)/i.test(sku)) return "food";
+  if (/^FLOOR-/i.test(sku) || /\bfloor(?:ing)?\b/i.test(context)) {
+    return "flooring";
+  }
+  if (/^POWER-/i.test(sku) || /\b(?:power|socket|sockets)\b/i.test(title)) {
+    return "power";
+  }
+  return null;
+}
+
+function isFoodImagePath(pathAndSearch: string) {
+  return (
+    /\/food\//i.test(pathAndSearch) ||
+    /\/img\/fnb\//i.test(pathAndSearch) ||
+    (/\/productcard\//i.test(pathAndSearch) &&
+      /(?:cat-food|fnb|sandwich|kitchen|catering|breakfast|beverage|drink|croiss|burger)/i.test(
+        pathAndSearch,
+      ))
+  );
+}
+
+function isPowerImagePath(pathAndSearch: string) {
+  return (
+    /\/power\//i.test(pathAndSearch) || /\/visuals\/power/i.test(pathAndSearch)
+  );
+}
+
+function isFlooringImagePath(pathAndSearch: string) {
+  return /\/flooring\//i.test(pathAndSearch);
+}
+
+function isRiggingImagePath(pathAndSearch: string) {
+  return /(?:^|\/)rigging\.png(?:$|[?#])/i.test(pathAndSearch);
+}
+
 export function filterProductImageUrls(
   urls: string[],
   pageUrl: string,
@@ -1016,6 +1065,7 @@ export function filterProductImageUrls(
   const skuTokens = productImageSkuTokens(sku);
   const strictSkuTokens = productImageStrictSkuTokens(sku);
   const titleTokens = productImageTitleTokens(title);
+  const productFamily = inferProductImageFamily({ sku, title, pageUrl });
   const deduped: string[] = [];
   const seen = new Set<string>();
 
@@ -1053,6 +1103,30 @@ export function filterProductImageUrls(
         pathAndSearch.includes(token),
       );
       if (isProductCard && !hasStrictSkuToken) return null;
+      if (isRiggingImagePath(pathAndSearch) && productFamily !== "rigging") {
+        return null;
+      }
+      if (!hasStrictSkuToken) {
+        if (productFamily === "power" && isFoodImagePath(pathAndSearch)) {
+          return null;
+        }
+        if (
+          productFamily === "food" &&
+          (isPowerImagePath(pathAndSearch) ||
+            isFlooringImagePath(pathAndSearch) ||
+            isRiggingImagePath(pathAndSearch))
+        ) {
+          return null;
+        }
+        if (
+          productFamily === "flooring" &&
+          (isFoodImagePath(pathAndSearch) ||
+            isPowerImagePath(pathAndSearch) ||
+            isRiggingImagePath(pathAndSearch))
+        ) {
+          return null;
+        }
+      }
 
       let score = 0;
       if (productPathRe.test(parsed.pathname)) score += 40;
@@ -1067,10 +1141,15 @@ export function filterProductImageUrls(
       Boolean(item),
     );
 
-  return scored
+  const filtered = scored
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .slice(0, 8)
     .map((item) => item.href);
+
+  if (productFamily === "power" && filtered.length === 0) {
+    return [GENERIC_POWER_IMAGE_URL];
+  }
+  return filtered;
 }
 
 export async function scrapeProduct(

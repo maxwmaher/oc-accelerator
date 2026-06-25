@@ -110,6 +110,95 @@ describe("rai scraper product image filtering", () => {
     ]);
   });
 
+  it("rejects FNB/kitchen and rigging images for POWER-DAY-230-3KW and uses generic power fallback", () => {
+    const images = filterProductImageUrls(
+      [
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/img/fnb/sandwich.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/productCard/kitchen-sandwich.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/visuals/Rigging.PNG",
+      ],
+      pdp,
+      "POWER-DAY-230-3KW",
+      "Mandatory daytime power 230V 3KW",
+    );
+
+    expect(images).toEqual([
+      "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/devworld/RAI/en_US/visuals/Standard-power-prof.jpg",
+    ]);
+  });
+
+  it("rejects FNB/kitchen and rigging images for POWER-CONT-230-3KW and uses generic power fallback", () => {
+    const images = filterProductImageUrls(
+      [
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/food/sandwich.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/img/fnb/kitchen.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/Rigging.PNG",
+      ],
+      pdp,
+      "POWER-CONT-230-3KW",
+      "Optional continuous power 230V 3KW",
+    );
+
+    expect(images).toEqual([
+      "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/devworld/RAI/en_US/visuals/Standard-power-prof.jpg",
+    ]);
+  });
+
+  it("keeps evoline first for POWER-DAY-ADD-SOCK-EXC and rejects FNB/kitchen images", () => {
+    const images = filterProductImageUrls(
+      [
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/img/fnb/kitchen-sandwich.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/power/evoline.jpg",
+      ],
+      pdp,
+      "POWER-DAY-ADD-SOCK-EXC",
+      "Additional sockets",
+    );
+
+    expect(images[0]).toBe(
+      "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/power/evoline.jpg",
+    );
+    expect(images).toHaveLength(1);
+  });
+
+  it("rejects generic power, flooring, and rigging images for food products", () => {
+    const images = filterProductImageUrls(
+      [
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/visuals/Power-sockets.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/power/evoline.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/flooring/RAISED-STAND-FLOOR.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/visuals/Rigging.PNG",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/product/CAT-FOOD-SAFE-CROISSTEEK.jpg",
+      ],
+      pdp,
+      "CAT-FOOD-SAFE-CROISSTEEK",
+      "Croissant in a bag",
+    );
+
+    expect(images).toEqual([
+      "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/product/CAT-FOOD-SAFE-CROISSTEEK.jpg",
+    ]);
+  });
+
+  it("rejects food, power, and rigging images for flooring products", () => {
+    const images = filterProductImageUrls(
+      [
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/img/fnb/kitchen-sandwich.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/power/evoline.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/visuals/Power-sockets.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/Rigging.PNG",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/flooring/RAISED-STAND-FLOOR.jpg",
+      ],
+      pdp,
+      "FLOOR-RAISED-STAND-FLOOR",
+      "Raised stand floor",
+    );
+
+    expect(images).toEqual([
+      "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/flooring/RAISED-STAND-FLOOR.jpg",
+    ]);
+  });
+
   it("does not return Hamburger, Logo, or Close SVG as the first image", () => {
     const images = filterProductImageUrls(
       [
