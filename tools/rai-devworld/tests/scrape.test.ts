@@ -28,7 +28,9 @@ import {
   isUnpricedQuoteRequestProduct,
   productTitleFromPdpText,
   recordSkippedQuoteRequestProduct,
+  gotoCategoryOrSkip,
 } from "../src/scrape.js";
+import { validateSnapshot } from "../src/lib.js";
 import { firstChildren } from "../src/lib.js";
 const base =
   "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/";
@@ -293,7 +295,7 @@ describe("rai scraper product/category split filtering", () => {
       "snapshot.source.skippedProducts",
       guard,
     );
-    const pageGoto = source.indexOf("await page.goto(url", traverseStart);
+    const pageGoto = source.indexOf("await gotoCategoryOrSkip(page, snapshot, url, catPath)", traverseStart);
     const categoryNameRead = source.indexOf(
       "const currentCategoryName = categoryNameOf(page.url())",
       traverseStart,
@@ -319,7 +321,7 @@ describe("rai scraper product/category split filtering", () => {
       fs.readFile(new URL("../src/scrape.ts", import.meta.url), "utf8"),
     );
     const traverseStart = source.indexOf("async function traverse(");
-    const pageGoto = source.indexOf("await page.goto(url", traverseStart);
+    const pageGoto = source.indexOf("await gotoCategoryOrSkip(page, snapshot, url, catPath)", traverseStart);
     const loadState = source.indexOf(
       'waitForLoadState("networkidle"',
       pageGoto,
@@ -1022,6 +1024,65 @@ describe("rai scraper child category filtering", () => {
     recordSkippedQuoteRequestProduct(snapshot, { url: base + "ViewProduct-Start?SKU=rigging-request", sku: "rigging-request", name: "Shopping cart" });
     recordSkippedQuoteRequestProduct(snapshot, { url: base + "ViewProduct-Start?SKU=rigging-request&CategoryName=Rigging", sku: "rigging-request", name: "Request for rigging quote" });
     expect(snapshot.source.skippedProducts).toHaveLength(1);
+  });
+
+  it("skips and records Rigging category navigation timeouts without invalidating captured products", async () => {
+    const url = base + "ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=Rigging";
+    const timeout = new Error("page.goto: Timeout 45000ms exceeded.");
+    timeout.name = "TimeoutError";
+    const page: any = { goto: vi.fn().mockRejectedValue(timeout) };
+    const snapshot: any = {
+      schemaVersion: 1,
+      complete: true,
+      source: {
+        system: "RAI Amsterdam Exhibitor Services",
+        event: "DevWorld",
+        language: "en_US",
+        currency: "EUR",
+        homepageUrl: base + "ViewHomepage-Start",
+        scrapedAtUtc: new Date().toISOString(),
+      },
+      categories: [],
+      products: [
+        {
+          sourceSku: "CHAIR-001",
+          name: "Conference chair",
+          canonicalUrl: base + "ViewProduct-Start?SKU=CHAIR-001",
+          images: [],
+          pricing: { basePrice: { amount: 25, currency: "EUR", rawText: "€25,00" }, rawPriceText: "€25,00", minQuantity: 1, quantityMultiplier: 1, priceBreaks: [], options: [] },
+          ordering: { notes: [] },
+          attributes: [],
+          sourceBreadcrumbs: ["Furniture"],
+          categoryPaths: [["Furniture"]],
+          sourceHash: "hash",
+          ocId: "chair-001",
+          priceScheduleId: "chair-001",
+        },
+      ],
+    };
+
+    await expect(gotoCategoryOrSkip(page, snapshot, url, ["Stand construction items", "Rigging"])).resolves.toBe(false);
+    expect(snapshot.source.skippedCategories).toEqual([
+      {
+        url,
+        categoryPath: ["Stand construction items", "Rigging"],
+        reason: "navigation timeout for quote/request category",
+      },
+    ]);
+    expect(() => validateSnapshot(snapshot)).not.toThrow();
+  });
+
+  it("reports normal category navigation timeouts as real errors", async () => {
+    const url = base + "ViewStandardCatalog-Browse?CatalogID=RAIMasterCatalog&CategoryName=Furniture";
+    const timeout = new Error("page.goto: Timeout 45000ms exceeded.");
+    timeout.name = "TimeoutError";
+    const page: any = { goto: vi.fn().mockRejectedValue(timeout) };
+    const snapshot: any = { source: {} };
+
+    await expect(gotoCategoryOrSkip(page, snapshot, url, ["Stand construction items", "Furniture"])).rejects.toThrow(
+      'Category navigation failed for "Stand construction items > Furniture"',
+    );
+    expect(snapshot.source.skippedCategories).toBeUndefined();
   });
 
 describe("rai scraper cookie banner handling", () => {
