@@ -211,3 +211,163 @@ public class RaiDevWorldXpTests
         "prod-safe-croissteek",
         "ps-safe-croissteek");
 }
+
+public class RaiDevWorldDistinctPayloadTests
+{
+    [Test]
+    public void Duplicate_product_records_collapse_product_and_price_schedule_writes_while_preserving_assignments()
+    {
+        var productA = BuildProduct(new List<List<string>> { new() { "Food" } });
+        var productB = BuildProduct(new List<List<string>> { new() { "Printing" } });
+        var snapshot = BuildSnapshot(productA, productB);
+
+        var payloads = RaiSeeder.BuildAndValidateTypedPayloads(snapshot, "catalog-1");
+
+        Assert.That(payloads.SnapshotProductRecords, Is.EqualTo(2));
+        Assert.That(payloads.DuplicateProductRecordsCollapsed, Is.EqualTo(1));
+        Assert.That(payloads.Products, Has.Count.EqualTo(1));
+        Assert.That(payloads.Products.Single().ID, Is.EqualTo("prod-duplicate"));
+        Assert.That(payloads.PriceSchedules, Has.Count.EqualTo(1));
+        Assert.That(payloads.PriceSchedules.Single().ID, Is.EqualTo("ps-duplicate"));
+        Assert.That(payloads.CatalogAssignments, Has.Count.EqualTo(1));
+        Assert.That(payloads.CategoryAssignments.Select(a => a.CategoryID), Is.EquivalentTo(new[] { "cat-food", "cat-printing" }));
+    }
+
+    [Test]
+    public void Duplicate_category_assignments_collapse_by_category_and_product()
+    {
+        var productA = BuildProduct(new List<List<string>> { new() { "Food" } });
+        var productB = BuildProduct(new List<List<string>> { new() { "Food" } });
+        var snapshot = BuildSnapshot(productA, productB);
+
+        var payloads = RaiSeeder.BuildAndValidateTypedPayloads(snapshot, "catalog-1");
+
+        Assert.That(payloads.CategoryAssignments, Has.Count.EqualTo(1));
+        Assert.That(payloads.CategoryAssignments.Single().CategoryID, Is.EqualTo("cat-food"));
+        Assert.That(payloads.CategoryAssignments.Single().ProductID, Is.EqualTo("prod-duplicate"));
+    }
+
+    [Test]
+    public void Dry_run_catches_conflicting_duplicate_product_data()
+    {
+        var productA = BuildProduct(new List<List<string>> { new() { "Food" } });
+        var productB = BuildProduct(new List<List<string>> { new() { "Printing" } }) with { Name = "Conflicting Name" };
+        var snapshot = BuildSnapshot(productA, productB);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => RaiSeeder.BuildAndValidateTypedPayloads(snapshot, "catalog-1"));
+
+        Assert.That(ex!.Message, Does.Contain("Duplicate RAI product records"));
+        Assert.That(ex.Message, Does.Contain("prod-duplicate"));
+        Assert.That(ex.Message, Does.Contain("Name"));
+    }
+
+    [Test]
+    public void Dry_run_catches_conflicting_duplicate_price_schedule_values()
+    {
+        var productA = BuildProduct(new List<List<string>> { new() { "Food" } });
+        var productB = BuildProduct(new List<List<string>> { new() { "Printing" } }) with
+        {
+            Pricing = productA.Pricing with { BasePrice = new OC_Accelerator.Models.RaiDevWorld.RaiMoney(12, "EUR", "€12") }
+        };
+        var snapshot = BuildSnapshot(productA, productB);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => RaiSeeder.BuildAndValidateTypedPayloads(snapshot, "catalog-1"));
+
+        Assert.That(ex!.Message, Does.Contain("price schedule"));
+        Assert.That(ex.Message, Does.Contain("price break"));
+    }
+
+    [Test]
+    public void OrderCloud_error_wrapping_includes_status_message_and_resource_context()
+    {
+        var exception = CreateOrderCloudException(System.Net.HttpStatusCode.BadRequest, "OrderCloud rejected the payload");
+
+        var message = RaiSeeder.BuildOrderCloudFailureMessage("product", "prod-duplicate", exception);
+
+        Assert.That(message, Does.Contain("product"));
+        Assert.That(message, Does.Contain("prod-duplicate"));
+        Assert.That(message, Does.Contain("400"));
+        Assert.That(message, Does.Contain("BadRequest"));
+        Assert.That(message, Does.Contain("OrderCloud rejected the payload"));
+    }
+
+    private static OrderCloud.SDK.OrderCloudException CreateOrderCloudException(System.Net.HttpStatusCode status, string message)
+    {
+        var type = typeof(OrderCloud.SDK.OrderCloudException);
+        foreach (var ctor in type.GetConstructors())
+        {
+            var parameters = ctor.GetParameters();
+            try
+            {
+                var args = parameters.Select(p =>
+                    p.ParameterType == typeof(string) ? message :
+                    p.ParameterType == typeof(System.Net.HttpStatusCode) ? status :
+                    p.ParameterType == typeof(int) ? (int)status :
+                    p.HasDefaultValue ? p.DefaultValue :
+                    p.ParameterType.IsValueType ? Activator.CreateInstance(p.ParameterType) : null).ToArray();
+                if (ctor.Invoke(args) is OrderCloud.SDK.OrderCloudException ex)
+                    return WithStatusAndMessage(ex, status, message);
+            }
+            catch
+            {
+                // Try the next SDK constructor shape.
+            }
+        }
+
+#pragma warning disable SYSLIB0050
+        return WithStatusAndMessage((OrderCloud.SDK.OrderCloudException)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(type), status, message);
+#pragma warning restore SYSLIB0050
+    }
+
+    private static OrderCloud.SDK.OrderCloudException WithStatusAndMessage(OrderCloud.SDK.OrderCloudException ex, System.Net.HttpStatusCode status, string message)
+    {
+        SetPropertyOrField(ex, "HttpStatus", status);
+        SetPropertyOrField(ex, "Message", message);
+        return ex;
+    }
+
+    private static void SetPropertyOrField(object target, string name, object value)
+    {
+        var type = target.GetType();
+        var property = type.GetProperty(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+        if (property?.CanWrite == true)
+        {
+            property.SetValue(target, value);
+            return;
+        }
+
+        var field = type.GetField($"<{name}>k__BackingField", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+            ?? type.BaseType?.GetField($"_{char.ToLowerInvariant(name[0])}{name[1..]}", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+            ?? type.BaseType?.GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+            ?? type.GetField($"_{char.ToLowerInvariant(name[0])}{name[1..]}", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+        field?.SetValue(target, value);
+    }
+
+    private static OC_Accelerator.Models.RaiDevWorld.RaiSnapshot BuildSnapshot(params OC_Accelerator.Models.RaiDevWorld.RaiProduct[] products) => new(
+        1,
+        true,
+        new OC_Accelerator.Models.RaiDevWorld.RaiSource("RAI", "DevWorld", "en", "EUR", "https://example.test", "2026-06-25T00:00:00Z", null),
+        new List<OC_Accelerator.Models.RaiDevWorld.RaiCategory>
+        {
+            new(null, "Food", new List<string> { "Food" }, "https://example.test/food", 1, null, "cat-food"),
+            new(null, "Printing", new List<string> { "Printing" }, "https://example.test/printing", 2, null, "cat-printing")
+        },
+        products.ToList());
+
+    private static OC_Accelerator.Models.RaiDevWorld.RaiProduct BuildProduct(List<List<string>> categoryPaths) => new(
+        "source-1",
+        "sku-1",
+        "Duplicate Product",
+        "Card description",
+        "Full description",
+        "https://example.test/product",
+        new List<OC_Accelerator.Models.RaiDevWorld.RaiImage> { new("https://example.test/thumb.jpg", "https://example.test/image.jpg") },
+        new OC_Accelerator.Models.RaiDevWorld.RaiPricing(new OC_Accelerator.Models.RaiDevWorld.RaiMoney(10, "EUR", "€10"), null, 1, null, 1, new List<OC_Accelerator.Models.RaiDevWorld.RaiPriceBreak>(), null, null, null, "€10", new List<OC_Accelerator.Models.RaiDevWorld.RaiOption>()),
+        new OC_Accelerator.Models.RaiDevWorld.RaiOrdering(null, null, null, new List<string>()),
+        new List<OC_Accelerator.Models.RaiDevWorld.RaiAttribute>(),
+        categoryPaths.First(),
+        categoryPaths,
+        "hash-1",
+        "prod-duplicate",
+        "ps-duplicate");
+}

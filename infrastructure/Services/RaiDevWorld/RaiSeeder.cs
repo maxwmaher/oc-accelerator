@@ -1,3 +1,4 @@
+using System.Reflection;
 using Newtonsoft.Json;
 using OC_Accelerator.Models.RaiDevWorld;
 using OrderCloud.SDK;
@@ -5,7 +6,7 @@ using OrderCloud.SDK;
 namespace OC_Accelerator.Services.RaiDevWorld;
 
 public record RaiSeedOptions(string DataPath, bool DryRun, bool ForceUpdate, string ApiUrl, string ClientId, string ClientSecret, string BuyerId, string CatalogId);
-public record RaiSeedSummary(int Products, int Categories, int PriceSchedules, int Specs, int Options, int CatalogAssignments, int CategoryAssignments, int Failed, bool DryRun, int MaxCategoryXpLength = 0, int MaxProductXpLength = 0);
+public record RaiSeedSummary(int Products, int Categories, int PriceSchedules, int Specs, int Options, int CatalogAssignments, int CategoryAssignments, int Failed, bool DryRun, int MaxCategoryXpLength = 0, int MaxProductXpLength = 0, int SnapshotProductRecords = 0, int DuplicateProductRecordsCollapsed = 0);
 
 public class RaiSeeder
 {
@@ -29,10 +30,11 @@ public class RaiSeeder
         {
             var categories = BuildCategories(snap).ToList();
             var typedPayloads = BuildAndValidateTypedPayloads(snap, o.CatalogId, categories);
-            await log.WriteLineAsync($"Dry run: {snap.Products.Count} products, {snap.Categories.Count} categories, {specs} specs, {opts} options.");
-            await log.WriteLineAsync($"Dry run validated typed OrderCloud payloads for catalog '{o.CatalogId}': {typedPayloads.Categories.Count} categories, {typedPayloads.PriceSchedules.Count} price schedules, {typedPayloads.Products.Count} products, {typedPayloads.CatalogAssignments.Count} catalog assignments, {typedPayloads.CategoryAssignments.Count} category assignments.");
+            await log.WriteLineAsync($"Dry run: {snap.Products.Count} snapshot product records, {snap.Categories.Count} source categories, {specs} specs, {opts} options.");
+            await log.WriteLineAsync($"Dry run validated typed OrderCloud payloads for catalog '{o.CatalogId}': {typedPayloads.Categories.Count} unique categories, {typedPayloads.PriceSchedules.Count} unique price schedules, {typedPayloads.Products.Count} unique products, {typedPayloads.CatalogAssignments.Count} unique catalog assignments, {typedPayloads.CategoryAssignments.Count} unique category assignments.");
+            await log.WriteLineAsync($"Dry run duplicates: {typedPayloads.SnapshotProductRecords} snapshot product records, {typedPayloads.Products.Count} unique product writes, {typedPayloads.DuplicateProductRecordsCollapsed} duplicate product records collapsed.");
             await log.WriteLineAsync($"Dry run XP lengths: max category xp {typedPayloads.MaxCategoryXpLength} chars, max product xp {typedPayloads.MaxProductXpLength} chars.");
-            return new(snap.Products.Count, snap.Categories.Count, snap.Products.Count, specs, opts, snap.Products.Count, catAssign, 0, true, typedPayloads.MaxCategoryXpLength, typedPayloads.MaxProductXpLength);
+            return new(typedPayloads.Products.Count, typedPayloads.Categories.Count, typedPayloads.PriceSchedules.Count, specs, opts, typedPayloads.CatalogAssignments.Count, typedPayloads.CategoryAssignments.Count, 0, true, typedPayloads.MaxCategoryXpLength, typedPayloads.MaxProductXpLength, typedPayloads.SnapshotProductRecords, typedPayloads.DuplicateProductRecordsCollapsed);
         }
 
         if (string.IsNullOrWhiteSpace(o.ClientId) || string.IsNullOrWhiteSpace(o.ClientSecret))
@@ -40,8 +42,8 @@ public class RaiSeeder
 
         var oc = new OrderCloudClient(new OrderCloudClientConfig { ApiUrl = o.ApiUrl, AuthUrl = o.ApiUrl, ClientId = o.ClientId, ClientSecret = o.ClientSecret, Roles = new[] { ApiRole.FullAccess } });
         await log.WriteLineAsync($"Authenticated OrderCloud client for {o.ApiUrl}; credentials redacted.");
-        await SeedDynamicAsync((dynamic)oc, snap, o, log);
-        return new(snap.Products.Count, snap.Categories.Count, snap.Products.Count, specs, opts, snap.Products.Count, catAssign, 0, false);
+        var typedPayloads = await SeedDynamicAsync((dynamic)oc, snap, o, log);
+        return new(typedPayloads.Products.Count, typedPayloads.Categories.Count, typedPayloads.PriceSchedules.Count, specs, opts, typedPayloads.CatalogAssignments.Count, typedPayloads.CategoryAssignments.Count, 0, false, typedPayloads.MaxCategoryXpLength, typedPayloads.MaxProductXpLength, typedPayloads.SnapshotProductRecords, typedPayloads.DuplicateProductRecordsCollapsed);
     }
 
     public static RaiSnapshot Load(string path)
@@ -189,11 +191,27 @@ public class RaiSeeder
 
     public static RaiTypedPayloads BuildAndValidateTypedPayloads(RaiSnapshot s, string catalogId, IEnumerable<Category>? categories = null)
     {
-        var categoryPayloads = (categories ?? BuildCategories(s)).ToList();
-        var priceSchedules = s.Products.Select(BuildPriceSchedule).ToList();
-        var products = s.Products.Select(p => BuildProduct(p, s)).ToList();
-        var catalogAssignments = s.Products.Select(p => BuildProductCatalogAssignment(catalogId, p)).ToList();
-        var categoryAssignments = s.Products.SelectMany(BuildCategoryProductAssignments).ToList();
+        var categoryPayloads = DistinctByKey(categories ?? BuildCategories(s), c => c.ID, "category").ToList();
+        var products = DistinctProductPayloads(
+            s.Products,
+            p => p.OcId,
+            p => BuildProduct(p, s),
+            ProductsConflict,
+            "product").ToList();
+        var priceSchedules = DistinctProductPayloads(
+            s.Products,
+            p => p.PriceScheduleId,
+            BuildPriceSchedule,
+            PriceSchedulesConflict,
+            "price schedule").ToList();
+        var catalogAssignments = DistinctByKey(
+            s.Products.Select(p => BuildProductCatalogAssignment(catalogId, p)),
+            a => $"{a.CatalogID}\u001f{a.ProductID}",
+            "catalog product assignment").ToList();
+        var categoryAssignments = DistinctByKey(
+            s.Products.SelectMany(BuildCategoryProductAssignments),
+            a => $"{a.CategoryID}\u001f{a.ProductID}",
+            "category product assignment").ToList();
 
         ValidateCategorySaveArguments(catalogId, categoryPayloads);
         ValidatePriceSchedules(priceSchedules);
@@ -203,8 +221,70 @@ public class RaiSeeder
         ValidateCatalogAssignments(catalogAssignments);
         ValidateCategoryProductAssignments(categoryAssignments);
 
-        return new RaiTypedPayloads(categoryPayloads, priceSchedules, products, catalogAssignments, categoryAssignments, maxCategoryXpLength, maxProductXpLength);
+        return new RaiTypedPayloads(categoryPayloads, priceSchedules, products, catalogAssignments, categoryAssignments, maxCategoryXpLength, maxProductXpLength, s.Products.Count, s.Products.Count - products.Count);
     }
+
+    static IEnumerable<TPayload> DistinctProductPayloads<TPayload>(IEnumerable<RaiProduct> products, Func<RaiProduct, string?> idSelector, Func<RaiProduct, TPayload> build, Func<TPayload, TPayload, string?> conflictSelector, string resourceType)
+    {
+        var byId = new Dictionary<string, TPayload>(StringComparer.OrdinalIgnoreCase);
+        foreach (var source in products)
+        {
+            var id = idSelector(source);
+            if (string.IsNullOrWhiteSpace(id))
+                throw new InvalidOperationException($"RAI {resourceType} seed encountered a product record without an ID.");
+            var payload = build(source);
+            if (byId.TryGetValue(id, out var existing))
+            {
+                var conflict = conflictSelector(existing, payload);
+                if (conflict != null)
+                    throw new InvalidOperationException($"Duplicate RAI product records for {resourceType} '{id}' have conflicting {conflict}.");
+                continue;
+            }
+            byId.Add(id, payload);
+        }
+        return byId.Values;
+    }
+
+    static IEnumerable<T> DistinctByKey<T>(IEnumerable<T> items, Func<T, string?> keySelector, string resourceType)
+    {
+        var byKey = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in items)
+        {
+            var key = keySelector(item);
+            if (string.IsNullOrWhiteSpace(key))
+                throw new InvalidOperationException($"RAI {resourceType} seed built a payload with an empty distinct key.");
+            if (!byKey.ContainsKey(key))
+                byKey.Add(key, item);
+        }
+        return byKey.Values;
+    }
+
+    static string? ProductsConflict(Product existing, Product candidate)
+    {
+        if (!StringEquals(existing.Name, candidate.Name)) return $"Name values ('{existing.Name}' vs '{candidate.Name}')";
+        if (!StringEquals(existing.DefaultPriceScheduleID, candidate.DefaultPriceScheduleID)) return $"DefaultPriceScheduleID values ('{existing.DefaultPriceScheduleID}' vs '{candidate.DefaultPriceScheduleID}')";
+        return null;
+    }
+
+    static string? PriceSchedulesConflict(PriceSchedule existing, PriceSchedule candidate)
+    {
+        if (!StringEquals(existing.Name, candidate.Name)) return $"Name values ('{existing.Name}' vs '{candidate.Name}')";
+        if (existing.MinQuantity != candidate.MinQuantity) return $"MinQuantity values ('{existing.MinQuantity}' vs '{candidate.MinQuantity}')";
+        if (existing.MaxQuantity != candidate.MaxQuantity) return $"MaxQuantity values ('{existing.MaxQuantity}' vs '{candidate.MaxQuantity}')";
+        if (existing.RestrictedQuantity != candidate.RestrictedQuantity) return $"RestrictedQuantity values ('{existing.RestrictedQuantity}' vs '{candidate.RestrictedQuantity}')";
+        if (!StringEquals(existing.Currency, candidate.Currency)) return $"Currency values ('{existing.Currency}' vs '{candidate.Currency}')";
+        var existingBreaks = existing.PriceBreaks?.ToList() ?? new List<PriceBreak>();
+        var candidateBreaks = candidate.PriceBreaks?.ToList() ?? new List<PriceBreak>();
+        if (existingBreaks.Count != candidateBreaks.Count) return "price break counts";
+        for (var i = 0; i < existingBreaks.Count; i++)
+        {
+            if (existingBreaks[i].Quantity != candidateBreaks[i].Quantity || existingBreaks[i].Price != candidateBreaks[i].Price)
+                return $"price break #{i + 1} values";
+        }
+        return null;
+    }
+
+    static bool StringEquals(string? left, string? right) => string.Equals(left, right, StringComparison.Ordinal);
 
     static void ValidatePriceSchedules(IEnumerable<PriceSchedule> priceSchedules)
     {
@@ -276,8 +356,12 @@ public class RaiSeeder
 
     public async Task SaveCategoriesAsync(dynamic oc, RaiSnapshot s, RaiSeedOptions o)
     {
-        var catalogId = o.CatalogId;
-        var categories = BuildCategories(s).ToList();
+        var categories = BuildAndValidateTypedPayloads(s, o.CatalogId).Categories;
+        await SaveCategoriesAsync(oc, o.CatalogId, categories);
+    }
+
+    static async Task SaveCategoriesAsync(dynamic oc, string catalogId, IEnumerable<Category> categories)
+    {
         ValidateCategorySaveArguments(catalogId, categories);
 
         foreach (var category in categories)
@@ -291,38 +375,41 @@ public class RaiSeeder
         }
     }
 
-    async Task SeedDynamicAsync(dynamic oc, RaiSnapshot s, RaiSeedOptions o, TextWriter log)
+    async Task<RaiTypedPayloads> SeedDynamicAsync(dynamic oc, RaiSnapshot s, RaiSeedOptions o, TextWriter log)
     {
         await log.WriteLineAsync("Starting real seed. Existing unmanaged ID collisions are checked before writes where resources are returned by the API.");
         /* OrderCloud SDK 0.13 dynamic calls are intentionally isolated so dry-run/tests do not need credentials. */
-        var categories = BuildCategories(s).ToList();
-        var typedPayloads = BuildAndValidateTypedPayloads(s, o.CatalogId, categories);
-        foreach (var category in categories)
+        var typedPayloads = BuildAndValidateTypedPayloads(s, o.CatalogId);
+
+        foreach (var category in typedPayloads.Categories)
             await log.WriteLineAsync($"Saving category {category.ID}");
-        await SaveCategoriesAsync(oc, s, o);
+        await SaveCategoriesAsync(oc, o.CatalogId, typedPayloads.Categories);
 
-        for (var i = 0; i < s.Products.Count; i++)
+        foreach (var priceSchedule in typedPayloads.PriceSchedules)
         {
-            var product = typedPayloads.Products[i];
-            var priceSchedule = typedPayloads.PriceSchedules[i];
-            var catalogAssignment = typedPayloads.CatalogAssignments[i];
-            var categoryAssignments = BuildCategoryProductAssignments(s.Products[i]).ToList();
-
             await log.WriteLineAsync($"Saving price schedule {priceSchedule.ID}");
             await Retry(async () => await oc.PriceSchedules.SaveAsync(priceSchedule.ID, priceSchedule, null), "price schedule", priceSchedule.ID);
+        }
 
+        foreach (var product in typedPayloads.Products)
+        {
             await log.WriteLineAsync($"Saving product {product.ID}");
             await Retry(async () => await oc.Products.SaveAsync(product.ID, product, null), "product", product.ID);
+        }
 
+        foreach (var catalogAssignment in typedPayloads.CatalogAssignments)
+        {
             await log.WriteLineAsync($"Saving catalog product assignment {catalogAssignment.CatalogID}/{catalogAssignment.ProductID}");
             await Retry(async () => await oc.Catalogs.SaveProductAssignmentAsync(catalogAssignment), "catalog product assignment", $"{catalogAssignment.CatalogID}/{catalogAssignment.ProductID}");
-
-            foreach (var categoryAssignment in categoryAssignments)
-            {
-                await log.WriteLineAsync($"Saving category product assignment {categoryAssignment.CategoryID}/{categoryAssignment.ProductID}");
-                await Retry(async () => await oc.Categories.SaveProductAssignmentAsync(o.CatalogId, categoryAssignment), "category product assignment", $"{categoryAssignment.CategoryID}/{categoryAssignment.ProductID}");
-            }
         }
+
+        foreach (var categoryAssignment in typedPayloads.CategoryAssignments)
+        {
+            await log.WriteLineAsync($"Saving category product assignment {categoryAssignment.CategoryID}/{categoryAssignment.ProductID}");
+            await Retry(async () => await oc.Categories.SaveProductAssignmentAsync(o.CatalogId, categoryAssignment), "category product assignment", $"{categoryAssignment.CategoryID}/{categoryAssignment.ProductID}");
+        }
+
+        return typedPayloads;
     }
 
     static async Task Retry(Func<Task> op, string resourceType, string resourceId)
@@ -331,10 +418,58 @@ public class RaiSeeder
         {
             try { await op(); return; }
             catch (OrderCloudException ex) when (i < 4 && ((int)ex.HttpStatus == 429 || (int)ex.HttpStatus >= 500)) { await Task.Delay(TimeSpan.FromMilliseconds(250 * Math.Pow(2, i))); }
+            catch (OrderCloudException ex)
+            {
+                throw new InvalidOperationException(BuildOrderCloudFailureMessage(resourceType, resourceId, ex), ex);
+            }
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"Failed saving {resourceType} '{resourceId}'.", ex);
             }
+        }
+    }
+
+    public static string BuildOrderCloudFailureMessage(string resourceType, string resourceId, OrderCloudException ex)
+    {
+        var details = new List<string>
+        {
+            $"resource type: {resourceType}",
+            $"resource ID: {resourceId}",
+            $"HTTP status: {(int)ex.HttpStatus} ({ex.HttpStatus})",
+            $"message: {ex.Message}"
+        };
+
+        foreach (var detail in GetOrderCloudExceptionDetails(ex))
+            details.Add(detail);
+
+        return $"Failed saving {resourceType} '{resourceId}'. OrderCloud details: {string.Join("; ", details)}";
+    }
+
+    static IEnumerable<string> GetOrderCloudExceptionDetails(OrderCloudException ex)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in ex.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (property.GetIndexParameters().Length != 0)
+                continue;
+            if (property.Name is nameof(Exception.Message) or nameof(Exception.StackTrace) or nameof(Exception.InnerException) or nameof(Exception.TargetSite) or nameof(Exception.Data) or nameof(Exception.HelpLink) or nameof(Exception.Source) or nameof(Exception.HResult) or "HttpStatus")
+                continue;
+            object? value;
+            try
+            {
+                value = property.GetValue(ex);
+            }
+            catch
+            {
+                continue;
+            }
+            if (value == null)
+                continue;
+
+            var rendered = value is string text ? text : JsonConvert.SerializeObject(value, Formatting.None);
+            if (string.IsNullOrWhiteSpace(rendered) || rendered == "null" || !seen.Add(property.Name))
+                continue;
+            yield return $"{property.Name}: {rendered}";
         }
     }
 }
@@ -346,4 +481,6 @@ public record RaiTypedPayloads(
     List<ProductCatalogAssignment> CatalogAssignments,
     List<CategoryProductAssignment> CategoryAssignments,
     int MaxCategoryXpLength,
-    int MaxProductXpLength);
+    int MaxProductXpLength,
+    int SnapshotProductRecords,
+    int DuplicateProductRecordsCollapsed);
