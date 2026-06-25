@@ -20,7 +20,7 @@ interface OrderSummaryProps {
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({ order, lineItems }) => {
   const navigate = useNavigate();
-  const {isLoggedIn, newAnonSession} = useOrderCloudContext();
+  const { isLoggedIn, newAnonSession } = useOrderCloudContext();
 
   const handleLineItemChange = (newLi: LineItem) => {
     // Implement the logic to update the line item
@@ -34,7 +34,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ order, lineItems }) => {
       await newAnonSession();
       navigate("/products");
     }
-  }, [isLoggedIn, navigate, newAnonSession])
+  }, [isLoggedIn, navigate, newAnonSession]);
 
   return (
     <VStack align="stretch" spacing={6}>
@@ -75,13 +75,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ order, lineItems }) => {
         <Flex justify="space-between">
           <Text>Promotion</Text>
           <Text>${order.PromotionDiscount}</Text>
-        </Flex>
-        <Flex justify="space-between">
-          <Text>
-            {order.ShippingCost === 0
-              ? "FREE SHIPPING"
-              : "$" + order.ShippingCost}
-          </Text>
         </Flex>
         <Flex justify="space-between" fontWeight="bold" fontSize="lg">
           <Text>Total</Text>

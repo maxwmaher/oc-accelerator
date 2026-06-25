@@ -50,7 +50,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
         console.error(error);
       }
     },
-    [addCartPromo, promoCode, toast]
+    [addCartPromo, promoCode, toast],
   );
 
   const handleRemovePromotion = useCallback(
@@ -69,7 +69,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
         console.error(error);
       }
     },
-    [removeCartPromo, toast]
+    [removeCartPromo, toast],
   );
 
   return (
@@ -140,14 +140,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
             </Flex>
           )}
         <Flex justify="space-between">
-          <Text>Shipping</Text>
-          {tabIndex !== TABS.SHIPPING && tabIndex !== TABS.INFORMATION && (
-            <Text>${orderWorksheet?.Order?.ShippingCost?.toFixed(2)}</Text>
-          )}
-        </Flex>
-        <Flex justify="space-between">
           <Text>Tax</Text>
-          {tabIndex !== TABS.SHIPPING && tabIndex !== TABS.INFORMATION && (
+          {tabIndex !== TABS.INFORMATION && (
             <Text>${orderWorksheet?.Order?.TaxCost?.toFixed(2)}</Text>
           )}
         </Flex>

@@ -241,7 +241,7 @@ export const CartInformationPanel = ({
       </Stack>
 
       <Button alignSelf="flex-end" onClick={handleFormSubmit} mt={6}>
-        Continue to shipping
+        Continue to payment
       </Button>
     </VStack>
   );
