@@ -12,6 +12,7 @@ import React, { useCallback } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import OcCurrentOrderLineItemList from "./OcCurrentOrderLineItemList";
 import { useOrderCloudContext } from "@ordercloud/react-sdk";
+import formatPrice from "../../utils/formatPrice";
 
 interface OrderSummaryProps {
   order: RequiredDeep<Order>;
@@ -70,15 +71,21 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ order, lineItems }) => {
       <Stack spacing={3}>
         <Flex justify="space-between">
           <Text>Subtotal</Text>
-          <Text>${order.Subtotal?.toFixed(2)}</Text>
+          <Text>{formatPrice(order.Subtotal)}</Text>
         </Flex>
+        {order.PromotionDiscount && order.PromotionDiscount > 0 && (
+          <Flex justify="space-between">
+            <Text>Promotion</Text>
+            <Text>- {formatPrice(order.PromotionDiscount)}</Text>
+          </Flex>
+        )}
         <Flex justify="space-between">
-          <Text>Promotion</Text>
-          <Text>${order.PromotionDiscount}</Text>
+          <Text>VAT / Tax</Text>
+          <Text>{formatPrice(order.TaxCost)}</Text>
         </Flex>
         <Flex justify="space-between" fontWeight="bold" fontSize="lg">
           <Text>Total</Text>
-          <Text>${order.Total?.toFixed(2)}</Text>
+          <Text>{formatPrice(order.Total)}</Text>
         </Flex>
       </Stack>
     </VStack>
