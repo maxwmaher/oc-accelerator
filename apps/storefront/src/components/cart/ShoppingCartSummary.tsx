@@ -16,7 +16,7 @@ import { LineItem } from "ordercloud-javascript-sdk";
 import React, { FormEvent, useCallback, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import OcCurrentOrderLineItemList from "./OcCurrentOrderLineItemList";
-import { TABS } from "./ShoppingCart";
+import formatPrice from "../../utils/formatPrice";
 
 interface CartSummaryProps {
   onSubmitOrder: () => void;
@@ -24,7 +24,7 @@ interface CartSummaryProps {
   tabIndex: number;
 }
 
-const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
+const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder }) => {
   const { addCartPromo, removeCartPromo, orderWorksheet } = useShopper();
   const [promoCode, setPromoCode] = useState<string>("");
   const handleLineItemChange = (newLi: LineItem) => {
@@ -128,26 +128,22 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
       <Stack spacing={3}>
         <Flex justify="space-between">
           <Text>Subtotal</Text>
-          <Text>${orderWorksheet?.Order?.Subtotal?.toFixed(2)}</Text>
+          <Text>{formatPrice(orderWorksheet?.Order?.Subtotal)}</Text>
         </Flex>
         {orderWorksheet?.Order.PromotionDiscount &&
           orderWorksheet?.Order.PromotionDiscount > 0 && (
             <Flex justify="space-between">
               <Text>Promotion Discount</Text>
-              <Text>
-                - ${orderWorksheet?.Order?.PromotionDiscount?.toFixed(2)}
-              </Text>
+              <Text>- {formatPrice(orderWorksheet?.Order?.PromotionDiscount)}</Text>
             </Flex>
           )}
         <Flex justify="space-between">
-          <Text>Tax</Text>
-          {tabIndex !== TABS.INFORMATION && (
-            <Text>${orderWorksheet?.Order?.TaxCost?.toFixed(2)}</Text>
-          )}
+          <Text>VAT / Tax</Text>
+          <Text>{formatPrice(orderWorksheet?.Order?.TaxCost)}</Text>
         </Flex>
         <Flex justify="space-between" fontWeight="bold" fontSize="lg">
           <Text>Total</Text>
-          <Text>${orderWorksheet?.Order?.Total?.toFixed(2)}</Text>
+          <Text>{formatPrice(orderWorksheet?.Order?.Total)}</Text>
         </Flex>
       </Stack>
     </VStack>
