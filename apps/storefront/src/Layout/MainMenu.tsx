@@ -1,5 +1,6 @@
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import {
+  Badge,
   Box,
   Button,
   Container,
@@ -14,6 +15,8 @@ import {
   Text,
   useDisclosure,
   UseDisclosureProps,
+  useToast,
+  VStack,
 } from "@chakra-ui/react";
 import {
   useOcResourceList,
@@ -26,6 +29,11 @@ import { TbShoppingCartFilled } from "react-icons/tb";
 import { Link as RouterLink } from "react-router-dom";
 import { DEFAULT_BRAND } from "../assets/DEFAULT_BRAND";
 import { BRAND_LOGO_DARK, BRAND_LOGO_LIGHT } from "../constants";
+import {
+  getRaiDemoContextById,
+  RAI_DEMO_CONTEXT_STORAGE_KEY,
+  RAI_DEMO_CONTEXTS,
+} from "../demo/raiDemoContexts";
 import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "../Layout/MegaMenu";
 
@@ -37,7 +45,15 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   const { data: user } = useCurrentUser();
   const { isLoggedIn, logout } = useOrderCloudContext();
   const megaMenuDisclosure = useDisclosure();
+  const toast = useToast();
   const [selectedCatalog, setSelectedCatalog] = useState<string>("");
+  const [selectedRaiContextId, setSelectedRaiContextId] = useState(() => {
+    if (typeof window === "undefined") return RAI_DEMO_CONTEXTS[0].id;
+
+    return getRaiDemoContextById(
+      window.localStorage.getItem(RAI_DEMO_CONTEXT_STORAGE_KEY),
+    ).id;
+  });
 
   const { orderWorksheet } = useShopper();
 
@@ -45,7 +61,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     "Me.Catalogs",
     undefined,
     undefined,
-    { staleTime: 300000 }
+    { staleTime: 300000 },
   );
 
   const catalogs = useMemo(() => catalogData?.Items ?? [], [catalogData]);
@@ -56,7 +72,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     "Me.Categories",
     activeCatalogId ? { catalogId: activeCatalogId } : undefined,
     undefined,
-    { staleTime: 300000 }
+    { staleTime: 300000 },
   );
 
   const categories = useMemo(() => categoryData?.Items ?? [], [categoryData]);
@@ -70,10 +86,111 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     return (
       orderWorksheet?.LineItems?.reduce(
         (sum, item) => sum + item.Quantity,
-        0
+        0,
       ) || 0
     );
   }, [orderWorksheet?.LineItems]);
+
+  const selectedRaiContext = getRaiDemoContextById(selectedRaiContextId);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      RAI_DEMO_CONTEXT_STORAGE_KEY,
+      selectedRaiContext.id,
+    );
+  }, [selectedRaiContext.id]);
+
+  const handleRaiContextSelect = (contextId: string) => {
+    if (contextId === selectedRaiContext.id) return;
+
+    if (totalQuantity > 0) {
+      toast({
+        title: "Cart belongs to the current stand",
+        description:
+          "Complete or empty the cart before switching event or stand context.",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setSelectedRaiContextId(getRaiDemoContextById(contextId).id);
+  };
+
+  const renderRaiContextMenu = () => {
+    if (!isLoggedIn) return null;
+
+    return (
+      <Menu placement="bottom-end">
+        <MenuButton
+          as={Button}
+          variant="outline"
+          size="sm"
+          rightIcon={<ChevronDownIcon />}
+          maxW={{ base: "44", md: "72" }}
+        >
+          <Text as="span" noOfLines={1}>
+            {`${selectedRaiContext.eventName} · ${selectedRaiContext.hall} · Stand ${selectedRaiContext.standNumber}`}
+          </Text>
+        </MenuButton>
+        <MenuList minW="xs" maxW="sm">
+          <Box px={3} py={2}>
+            <Badge colorScheme="purple" variant="subtle" mb={2}>
+              Mocked Momentus profile
+            </Badge>
+            <VStack align="stretch" spacing={1}>
+              <Text fontWeight="semibold">
+                {selectedRaiContext.companyName}
+              </Text>
+              <Text fontSize="sm">
+                {selectedRaiContext.eventName} ({selectedRaiContext.eventId})
+              </Text>
+              <Text fontSize="sm">
+                {selectedRaiContext.hall} · Stand{" "}
+                {selectedRaiContext.standNumber}
+              </Text>
+              <Text fontSize="xs" color="gray.600">
+                ExhibitorID: {selectedRaiContext.exhibitorId}
+              </Text>
+              <Text fontSize="xs" color="gray.600">
+                AccountID: {selectedRaiContext.accountId}
+              </Text>
+              <Text fontSize="xs" color="gray.600">
+                Role: {selectedRaiContext.role}
+              </Text>
+              <Text fontSize="xs" color="gray.600">
+                Package: {selectedRaiContext.standPackage}
+              </Text>
+            </VStack>
+          </Box>
+          {RAI_DEMO_CONTEXTS.map((context) => (
+            <MenuItem
+              key={context.id}
+              onClick={() => handleRaiContextSelect(context.id)}
+              fontWeight={
+                context.id === selectedRaiContext.id ? "semibold" : "normal"
+              }
+            >
+              <VStack align="stretch" spacing={0}>
+                <Text fontSize="sm">
+                  {context.eventName} · {context.hall} · Stand{" "}
+                  {context.standNumber}
+                </Text>
+                <Text
+                  fontSize="xs"
+                  color="gray.500"
+                  display={{ base: "none", md: "block" }}
+                >
+                  {context.standType} · {context.standPackage}
+                </Text>
+              </VStack>
+            </MenuItem>
+          ))}
+        </MenuList>
+      </Menu>
+    );
+  };
 
   const renderCatalogMenu = () => {
     if (catalogs?.length && catalogs.length > 1) {
@@ -157,9 +274,10 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
             )}
             {renderCatalogMenu()}
           </HStack>
-          <HStack>
+          <HStack spacing={2}>
+            {renderRaiContextMenu()}
             {isLoggedIn && (
-              <Heading size="sm">
+              <Heading size="sm" display={{ base: "none", lg: "block" }}>
                 {`Welcome, ${user?.FirstName} ${user?.LastName}`}
               </Heading>
             )}
