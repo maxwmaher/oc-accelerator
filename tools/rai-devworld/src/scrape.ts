@@ -960,6 +960,119 @@ export async function handleCookieBanner(page: Page) {
   }
   return false;
 }
+
+function productImageSkuTokens(sku?: string | null) {
+  if (!sku) return [];
+  const full = sku.trim().toLowerCase();
+  if (!full) return [];
+  const parts = full.split(/[^a-z0-9]+/).filter((p) => p.length >= 4);
+  const prefixes: string[] = [];
+  let prefix = "";
+  for (const part of parts) {
+    prefix = prefix ? `${prefix}-${part}` : part;
+    if (prefix.length >= 4) prefixes.push(prefix);
+  }
+  return [
+    ...new Set([
+      full,
+      full.replace(/[^a-z0-9]/g, ""),
+      ...parts,
+      ...prefixes,
+    ]),
+  ];
+}
+
+function productImageStrictSkuTokens(sku?: string | null) {
+  if (!sku) return [];
+  const full = sku.trim().toLowerCase();
+  if (!full) return [];
+  const parts = full.split(/[^a-z0-9]+/).filter((p) => p.length >= 4);
+  return [
+    ...new Set(
+      [full, full.replace(/[^a-z0-9]/g, ""), parts.at(-1) || ""].filter(
+        (token): token is string => Boolean(token),
+      ),
+    ),
+  ];
+}
+
+function productImageTitleTokens(title?: string | null) {
+  return (title || "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((p) => p.length >= 5);
+}
+
+export function filterProductImageUrls(
+  urls: string[],
+  pageUrl: string,
+  sku?: string | null,
+  title?: string | null,
+): string[] {
+  const chromeRe =
+    /(?:hamburger|logo|close|myaccount|icon|sprite|loader|loading|cookie|consent)/i;
+  const productPathRe =
+    /(?:\/product\/|\/thumb\/|\/img\/fnb\/|\/flooring\/|\/power\/|\/visuals\/)/i;
+  const skuTokens = productImageSkuTokens(sku);
+  const strictSkuTokens = productImageStrictSkuTokens(sku);
+  const titleTokens = productImageTitleTokens(title);
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+
+  for (const raw of urls) {
+    let href: string;
+    try {
+      const parsed = new URL(raw, pageUrl);
+      if (parsed.protocol !== "https:") continue;
+      href = parsed.href;
+    } catch {
+      continue;
+    }
+    if (seen.has(href)) continue;
+    seen.add(href);
+    deduped.push(href);
+  }
+
+  const scored = deduped
+    .map((href, index) => {
+      const parsed = new URL(href);
+      const pathAndSearch = decodeURIComponent(
+        `${parsed.pathname}${parsed.search}`,
+      ).toLowerCase();
+      if (/\.svg(?:$|[?#])/i.test(parsed.pathname)) return null;
+      if (chromeRe.test(pathAndSearch)) return null;
+
+      const hasSkuToken = skuTokens.some((token) =>
+        pathAndSearch.includes(token),
+      );
+      const hasTitleToken = titleTokens.some((token) =>
+        pathAndSearch.includes(token),
+      );
+      const isProductCard = /\/productcard\//i.test(parsed.pathname);
+      const hasStrictSkuToken = strictSkuTokens.some((token) =>
+        pathAndSearch.includes(token),
+      );
+      if (isProductCard && !hasStrictSkuToken) return null;
+
+      let score = 0;
+      if (productPathRe.test(parsed.pathname)) score += 40;
+      if (/\/product\//i.test(parsed.pathname)) score += 20;
+      if (/\/thumb\//i.test(parsed.pathname)) score -= 20;
+      if (hasSkuToken) score += 50;
+      if (hasTitleToken) score += 10;
+      if (isProductCard) score -= 20;
+      return { href, index, score };
+    })
+    .filter((item): item is { href: string; index: number; score: number } =>
+      Boolean(item),
+    );
+
+  return scored
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .slice(0, 8)
+    .map((item) => item.href);
+}
+
 export async function scrapeProduct(
   page: Page,
   href: string,
@@ -1045,24 +1158,18 @@ export async function scrapeProduct(
     .evaluateAll((els: any[]) =>
       els.map((i) => i.currentSrc || i.src).filter(Boolean),
     );
-  const abs = [
-    ...new Set(
-      imgs
-        .map((u) => new URL(u, page.url()).href) // Corrected from location.href to page.url()
-        .filter((u) => u.startsWith("https://")),
-    ),
-  ];
   const sku =
     text.match(
       /(?:SKU|Item number|Product ID)\s*[:#]?\s*([A-Z0-9._-]+)/i,
     )?.[1] || sourceSkuFromUrl; // Integrated sourceSkuFromUrl from HEAD
+  const filteredImages = filterProductImageUrls(imgs, page.url(), sku, title);
   const base: any = {
     sourceSku: sku,
     name: title,
     cardDescription: card,
     fullDescription: text.slice(0, 4000),
     canonicalUrl: page.url(),
-    images: abs.map((u) => ({ thumbnailUrl: u, url: u })),
+    images: filteredImages.map((u) => ({ thumbnailUrl: u, url: u })),
     pricing: {
       basePrice: price,
       rawPriceText: usedCardPriceFallback // Integrated from HEAD
