@@ -1,4 +1,5 @@
 import {
+  Badge,
   Card,
   CardBody,
   Center,
@@ -14,6 +15,7 @@ import { TbPhoto } from "react-icons/tb";
 import { Link as RouterLink } from "react-router-dom";
 import formatPrice from "../../utils/formatPrice";
 import { parseProductXp } from "../../utils/productXp";
+import { getRaiDemoProductLifecycleMessaging } from "../../demo/raiDemoLifecycle";
 
 interface ProductCardProps {
   product: BuyerProduct;
@@ -23,6 +25,7 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
   const productXp = parseProductXp(product.xp);
   const primaryImage = productXp.Images?.[0];
   const primaryImageUrl = primaryImage?.ThumbnailUrl || primaryImage?.Url;
+  const raiLifecycleMessaging = getRaiDemoProductLifecycleMessaging(product);
 
   return (
     <>
@@ -90,10 +93,15 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                   {product.ID}
                 </Text>
                 <Heading size="lg">{product.Name}</Heading>
+                {raiLifecycleMessaging && (
+                  <Badge colorScheme="purple" variant="subtle">
+                    {raiLifecycleMessaging.cardBadge}
+                  </Badge>
+                )}
                 {product.PriceSchedule?.PriceBreaks && (
                   <Text fontSize="md" fontWeight="normal">
                     {formatPrice(
-                      product?.PriceSchedule?.PriceBreaks[0].Price ?? 0
+                      product?.PriceSchedule?.PriceBreaks[0].Price ?? 0,
                     )}
                   </Text>
                 )}

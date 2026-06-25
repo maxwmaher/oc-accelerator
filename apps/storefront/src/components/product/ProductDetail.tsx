@@ -39,6 +39,12 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
 import { parseProductXp } from "../../utils/productXp";
+import {
+  getRaiDemoProductFamily,
+  getRaiDemoProductLifecycleMessaging,
+  RAI_DEMO_EVENT_LIFECYCLE,
+  RaiDemoProductFamily,
+} from "../../demo/raiDemoLifecycle";
 import OcQuantityInput from "../cart/OcQuantityInput";
 import ProductImageGallery from "./product-detail/ProductImageGallery";
 import ProductSpecs from "./product-detail/ProductSpecs";
@@ -59,7 +65,7 @@ import {
   useShopper,
 } from "@ordercloud/react-sdk";
 
-type RaiServiceDetailsType = "catering" | "utility" | "flooring";
+type RaiServiceDetailsType = RaiDemoProductFamily;
 type RaiServiceDetails = Record<string, string>;
 type RaiDependencyStatus =
   | "Available"
@@ -94,30 +100,7 @@ const REQUIRED_BY_OPTIONS = [
 const RAMP_OPTIONS = ["Yes", "No"];
 const FLOOR_FINISH_OPTIONS = ["Standard grey", "Black carpet", "Blue carpet"];
 
-const getRaiServiceDetailsType = (
-  product?: BuyerProduct,
-): RaiServiceDetailsType | undefined => {
-  const haystack = [
-    product?.ID,
-    product?.Name,
-    (product as any)?.SKU,
-    (product?.xp as any)?.SKU,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  if (/food|fnb|croissant|breakfast|sandwich|muesli|yoghurt/.test(haystack)) {
-    return "catering";
-  }
-  if (/power|socket|electricity|connection/.test(haystack)) {
-    return "utility";
-  }
-  if (/floor/.test(haystack)) {
-    return "flooring";
-  }
-  return undefined;
-};
+const getRaiServiceDetailsType = getRaiDemoProductFamily;
 
 const getRaiDependencyRecommendations = (
   product?: BuyerProduct,
@@ -197,6 +180,71 @@ const getRaiDependencyRecommendations = (
   }
 
   return [];
+};
+
+interface RaiOrderingWindowProps {
+  messaging: ReturnType<typeof getRaiDemoProductLifecycleMessaging>;
+}
+
+const RaiOrderingWindow: React.FC<RaiOrderingWindowProps> = ({ messaging }) => {
+  if (!messaging) return null;
+
+  return (
+    <VStack
+      alignItems="stretch"
+      borderWidth="1px"
+      borderRadius="md"
+      p={4}
+      spacing={3}
+      w="full"
+    >
+      <HStack
+        justifyContent="space-between"
+        alignItems="center"
+        flexWrap="wrap"
+      >
+        <Heading size="sm">Ordering window</Heading>
+        <Badge colorScheme="purple" variant="subtle">
+          Mocked Momentus timeline
+        </Badge>
+      </HStack>
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} fontSize="sm">
+        <Box>
+          <Text color="chakra-subtle-text" fontSize="xs">
+            Current stage
+          </Text>
+          <Text fontWeight="semibold">
+            {RAI_DEMO_EVENT_LIFECYCLE.currentStage}
+          </Text>
+          <Text color="chakra-subtle-text" fontSize="xs">
+            {RAI_DEMO_EVENT_LIFECYCLE.currentStageDescription}
+          </Text>
+        </Box>
+        <Box>
+          <Text color="chakra-subtle-text" fontSize="xs">
+            Next pricing phase/date
+          </Text>
+          <Text fontWeight="semibold">
+            {RAI_DEMO_EVENT_LIFECYCLE.nextStage} ·{" "}
+            {RAI_DEMO_EVENT_LIFECYCLE.nextStageStart}
+          </Text>
+        </Box>
+      </SimpleGrid>
+      <HStack spacing={2} flexWrap="wrap">
+        <Badge colorScheme="green" variant="subtle">
+          {messaging.availabilityBadge}
+        </Badge>
+        <Text fontSize="sm" color="chakra-subtle-text">
+          {messaging.helper}
+        </Text>
+      </HStack>
+      <Text fontSize="xs" color="chakra-subtle-text">
+        Demo-only: Production would receive event phases, product availability,
+        and pricing windows from Momentus/resource data and enforce them
+        server-side or through catalog/pricing rules.
+      </Text>
+    </VStack>
+  );
 };
 
 interface RaiDependencyRecommendationsProps {
@@ -614,6 +662,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     () => getRaiServiceDetailsType(product),
     [product],
   );
+  const raiLifecycleMessaging = useMemo(
+    () => getRaiDemoProductLifecycleMessaging(product),
+    [product],
+  );
   const raiDependencyRecommendations = useMemo(
     () => getRaiDependencyRecommendations(product, raiServiceDetailsType),
     [product, raiServiceDetailsType],
@@ -864,6 +916,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             onChange={setSelectedSpecs}
           />
           <RaiProductInfo rai={productXp.RAI} />
+          <RaiOrderingWindow messaging={raiLifecycleMessaging} />
           {raiServiceDetailsType && (
             <RaiDependencyRecommendations
               recommendations={raiDependencyRecommendations}
