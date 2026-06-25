@@ -33,8 +33,13 @@ export const ShoppingCart = (): JSX.Element => {
   const [submitting, setSubmitting] = useState(false);
   const [tabIndex, setTabIndex] = useState(TABS.INFORMATION);
 
-  const { orderWorksheet, worksheetLoading, deleteCart, submitCart } =
-    useShopper();
+  const {
+    orderWorksheet,
+    worksheetLoading,
+    deleteCart,
+    submitCart,
+    calculateOrder,
+  } = useShopper();
 
   const [shippingAddress, setShippingAddress] = useState<Address>({
     FirstName: "",
@@ -53,9 +58,10 @@ export const ShoppingCart = (): JSX.Element => {
   const toast = useToast();
 
   const submitOrder = useCallback(async () => {
-    setSubmitting(true);
     if (!orderWorksheet?.Order?.ID) return;
+    setSubmitting(true);
     try {
+      await calculateOrder();
       await submitCart();
       setSubmitting(false);
       navigate(`/order-confirmation?orderID=${orderWorksheet.Order.ID}`);
@@ -71,7 +77,7 @@ export const ShoppingCart = (): JSX.Element => {
         isClosable: true,
       });
     }
-  }, [navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
+  }, [calculateOrder, navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
 
   const deleteOrder = useCallback(async () => {
     if (!orderWorksheet?.Order?.ID) return;
