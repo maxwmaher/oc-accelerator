@@ -26,6 +26,8 @@ import {
   rejectChildCategoryReasons,
   scrapeProduct,
   isUnpricedQuoteRequestProduct,
+  isCookieDisabledPageText,
+  productTitleFromPage,
   productTitleFromPdpText,
   recordSkippedQuoteRequestProduct,
   gotoCategoryOrSkip,
@@ -37,6 +39,71 @@ const base =
 const pdp = base + "ViewProduct-Show?SKU=ABC";
 
 describe("rai scraper product title extraction", () => {
+  it("detects the cookie-disabled page text", () => {
+    expect(
+      isCookieDisabledPageText(
+        "It appears that your browser has cookies disabled.",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not accept the cookie-disabled phrase as a product title", async () => {
+    const phrase = "It appears that your browser has cookies disabled.";
+    const page: any = {
+      locator: vi.fn(() => ({
+        first: () => ({ textContent: vi.fn().mockResolvedValue(phrase) }),
+      })),
+    };
+
+    expect(productTitleFromPdpText(`${phrase} € 12.50 Product details`)).toBe(
+      "",
+    );
+    await expect(productTitleFromPage(page, phrase, phrase, null)).resolves.toBe(
+      "",
+    );
+  });
+
+  it("throws on cookie-disabled product pages before card price fallback", async () => {
+    const href = base + "ViewProduct-Start?SKU=COOKIE-001";
+    const body = "It appears that your browser has cookies disabled.";
+    const page: any = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForLoadState: vi.fn().mockResolvedValue(undefined),
+      url: vi.fn(() => href),
+      setViewportSize: vi.fn().mockResolvedValue(undefined),
+      evaluate: vi.fn().mockResolvedValue(0),
+      getByRole: vi.fn(() => ({
+        first: () => ({ isVisible: vi.fn().mockResolvedValue(false) }),
+      })),
+      locator: vi.fn((selector: string) =>
+        selector === "body"
+          ? {
+              innerText: vi.fn().mockResolvedValue(body),
+              first: () => ({
+                getByRole: vi.fn(() => ({
+                  first: () => ({ isVisible: vi.fn().mockResolvedValue(false) }),
+                })),
+              }),
+            }
+          : {
+              evaluateAll: vi.fn().mockResolvedValue([]),
+              first: () => ({
+                textContent: vi.fn().mockResolvedValue(""),
+                getByRole: vi.fn(() => ({
+                  first: () => ({ isVisible: vi.fn().mockResolvedValue(false) }),
+                })),
+              }),
+            },
+      ),
+    };
+
+    await expect(
+      scrapeProduct(page, href, "Fallback product", ["Category"], "€ 12.50"),
+    ).rejects.toThrow(
+      `RAI returned cookie-disabled page for product URL: ${href}`,
+    );
+  });
+
   it("extracts the breadcrumb product segment from PDP body text", () => {
     expect(
       productTitleFromPdpText(

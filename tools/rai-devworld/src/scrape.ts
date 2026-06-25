@@ -265,7 +265,11 @@ const INVALID_PRODUCT_TITLE_CANDIDATES = new Set([
   "myaccount",
   "productsservices",
   "shoppingcart",
+  "itappearsthatyourbrowserhascookiesdisabled",
 ]);
+export function isCookieDisabledPageText(text: string) {
+  return /it appears that your browser has cookies disabled/i.test(norm(text));
+}
 export function isValidProductTitleCandidate(input?: string | null) {
   return !INVALID_PRODUCT_TITLE_CANDIDATES.has(loose(norm(input || "")));
 }
@@ -973,7 +977,11 @@ export async function scrapeProduct(
     .waitForLoadState("networkidle", { timeout: 10000 })
     .catch(() => {});
   requireAllowedRaiPage(page.url());
+  await preparePageForScraping(page);
   const text = norm(await page.locator("body").innerText({ timeout: 5000 }));
+  if (isCookieDisabledPageText(text)) {
+    throw new Error(`RAI returned cookie-disabled page for product URL: ${href}`);
+  }
   let price = parseMoney(
     text.match(/(?:€|EUR)\s*[-+]?\d[\d.,\s]*/i)?.[0] || "",
   );
