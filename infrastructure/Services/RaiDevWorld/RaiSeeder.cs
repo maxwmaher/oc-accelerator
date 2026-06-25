@@ -5,7 +5,7 @@ using OrderCloud.SDK;
 namespace OC_Accelerator.Services.RaiDevWorld;
 
 public record RaiSeedOptions(string DataPath, bool DryRun, bool ForceUpdate, string ApiUrl, string ClientId, string ClientSecret, string BuyerId, string CatalogId);
-public record RaiSeedSummary(int Products, int Categories, int PriceSchedules, int Specs, int Options, int CatalogAssignments, int CategoryAssignments, int Failed, bool DryRun);
+public record RaiSeedSummary(int Products, int Categories, int PriceSchedules, int Specs, int Options, int CatalogAssignments, int CategoryAssignments, int Failed, bool DryRun, int MaxCategoryXpLength = 0, int MaxProductXpLength = 0);
 
 public class RaiSeeder
 {
@@ -31,7 +31,8 @@ public class RaiSeeder
             var typedPayloads = BuildAndValidateTypedPayloads(snap, o.CatalogId, categories);
             await log.WriteLineAsync($"Dry run: {snap.Products.Count} products, {snap.Categories.Count} categories, {specs} specs, {opts} options.");
             await log.WriteLineAsync($"Dry run validated typed OrderCloud payloads for catalog '{o.CatalogId}': {typedPayloads.Categories.Count} categories, {typedPayloads.PriceSchedules.Count} price schedules, {typedPayloads.Products.Count} products, {typedPayloads.CatalogAssignments.Count} catalog assignments, {typedPayloads.CategoryAssignments.Count} category assignments.");
-            return new(snap.Products.Count, snap.Categories.Count, snap.Products.Count, specs, opts, snap.Products.Count, catAssign, 0, true);
+            await log.WriteLineAsync($"Dry run XP lengths: max category xp {typedPayloads.MaxCategoryXpLength} chars, max product xp {typedPayloads.MaxProductXpLength} chars.");
+            return new(snap.Products.Count, snap.Categories.Count, snap.Products.Count, specs, opts, snap.Products.Count, catAssign, 0, true, typedPayloads.MaxCategoryXpLength, typedPayloads.MaxProductXpLength);
         }
 
         if (string.IsNullOrWhiteSpace(o.ClientId) || string.IsNullOrWhiteSpace(o.ClientSecret))
@@ -75,8 +76,30 @@ public class RaiSeeder
             ParentID = parentCategoryId,
             Active = true,
             ListOrder = c.ListOrder,
-            xp = new { RAI = new { Managed = true, SourceUrl = c.Url, SourcePath = c.Path } }
+            xp = BuildXpString(new { RAI = new { Managed = true, SourceUrl = c.Url, SourcePath = c.Path } }, "Category", categoryId)
         };
+    }
+
+
+    public static string BuildXpString(object xp, string resourceType, string resourceId)
+    {
+        var json = JsonConvert.SerializeObject(xp, Formatting.None);
+        if (string.IsNullOrWhiteSpace(json) || json == "null")
+            throw new InvalidOperationException($"{resourceType} '{resourceId}' xp serialized to empty JSON.");
+
+        try
+        {
+            JsonConvert.DeserializeObject(json);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException($"{resourceType} '{resourceId}' xp serialized to invalid JSON.", ex);
+        }
+
+        if (json.Length > 8000)
+            throw new InvalidOperationException($"{resourceType} '{resourceId}' xp is {json.Length} characters, exceeding OrderCloud's 8000 character limit.");
+
+        return json;
     }
 
     public static void ValidateCategorySaveArguments(string catalogId, IEnumerable<Category> categories)
@@ -132,34 +155,26 @@ public class RaiSeeder
             Active = true,
             Returnable = false,
             DefaultPriceScheduleID = priceScheduleId,
-            xp = new Dictionary<string, object?>
+            xp = BuildXpString(new
             {
-                ["Images"] = p.Images.Select(i => new Dictionary<string, string>
+                Images = p.Images.Select(i => new
                 {
-                    ["ThumbnailUrl"] = i.ThumbnailUrl,
-                    ["Url"] = i.Url
-                }).ToList(),
-                ["RAI"] = new Dictionary<string, object?>
+                    i.ThumbnailUrl,
+                    i.Url
+                }),
+                RAI = new
                 {
-                    ["Managed"] = true,
-                    ["SourceSystem"] = s.Source.System,
-                    ["Event"] = s.Source.Event,
-                    ["SourceProductID"] = p.SourceProductId,
-                    ["SourceSKU"] = p.SourceSku,
-                    ["SourceUrl"] = p.CanonicalUrl,
-                    ["SourceCategoryPaths"] = p.CategoryPaths,
-                    ["Descriptions"] = new Dictionary<string, string?>
-                    {
-                        ["Card"] = p.CardDescription,
-                        ["Full"] = p.FullDescription
-                    },
-                    ["Attributes"] = p.Attributes,
-                    ["Pricing"] = p.Pricing,
-                    ["Ordering"] = p.Ordering,
-                    ["ScrapedAtUtc"] = s.Source.ScrapedAtUtc,
-                    ["SourceHash"] = p.SourceHash
+                    Managed = true,
+                    SourceSystem = s.Source.System,
+                    Event = s.Source.Event,
+                    SourceProductID = p.SourceProductId,
+                    SourceSKU = p.SourceSku,
+                    SourceUrl = p.CanonicalUrl,
+                    SourceCategoryPaths = p.CategoryPaths,
+                    ScrapedAtUtc = s.Source.ScrapedAtUtc,
+                    SourceHash = p.SourceHash
                 }
-            }
+            }, "Product", productId)
         };
     }
 
@@ -187,10 +202,12 @@ public class RaiSeeder
         ValidateCategorySaveArguments(catalogId, categoryPayloads);
         ValidatePriceSchedules(priceSchedules);
         ValidateProducts(products);
+        var maxCategoryXpLength = ValidateXpStrings(categoryPayloads.Select(c => (ResourceType: "Category", ResourceId: c.ID, Xp: c.xp)));
+        var maxProductXpLength = ValidateXpStrings(products.Select(p => (ResourceType: "Product", ResourceId: p.ID, Xp: p.xp)));
         ValidateCatalogAssignments(catalogAssignments);
         ValidateCategoryProductAssignments(categoryAssignments);
 
-        return new RaiTypedPayloads(categoryPayloads, priceSchedules, products, catalogAssignments, categoryAssignments);
+        return new RaiTypedPayloads(categoryPayloads, priceSchedules, products, catalogAssignments, categoryAssignments, maxCategoryXpLength, maxProductXpLength);
     }
 
     static void ValidatePriceSchedules(IEnumerable<PriceSchedule> priceSchedules)
@@ -216,6 +233,31 @@ public class RaiSeeder
             if (string.IsNullOrWhiteSpace(product.Name)) throw new InvalidOperationException($"RAI product '{product.ID}' is missing a name.");
             if (string.IsNullOrWhiteSpace(product.DefaultPriceScheduleID)) throw new InvalidOperationException($"RAI product '{product.ID}' is missing a default price schedule ID.");
         }
+    }
+
+
+    static int ValidateXpStrings(IEnumerable<(string ResourceType, string ResourceId, object? Xp)> payloads)
+    {
+        var maxLength = 0;
+        foreach (var payload in payloads)
+        {
+            if (payload.Xp is not string json)
+                throw new InvalidOperationException($"{payload.ResourceType} '{payload.ResourceId}' xp must be a compact JSON string.");
+            if (string.IsNullOrWhiteSpace(json))
+                throw new InvalidOperationException($"{payload.ResourceType} '{payload.ResourceId}' xp must be non-empty JSON.");
+            try
+            {
+                JsonConvert.DeserializeObject(json);
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException($"{payload.ResourceType} '{payload.ResourceId}' xp must be valid JSON.", ex);
+            }
+            if (json.Length > 8000)
+                throw new InvalidOperationException($"{payload.ResourceType} '{payload.ResourceId}' xp is {json.Length} characters, exceeding OrderCloud's 8000 character limit.");
+            maxLength = Math.Max(maxLength, json.Length);
+        }
+        return maxLength;
     }
 
     static void ValidateCatalogAssignments(IEnumerable<ProductCatalogAssignment> catalogAssignments)
@@ -249,7 +291,7 @@ public class RaiSeeder
             {
                 // OrderCloud.SDK 0.13.6 signature: SaveAsync(string catalogID, string categoryID, Category category, bool accessToken = false, string impersonatingUserID = null)
                 await oc.Categories.SaveAsync(catalogId, categoryId, category, false, null);
-            });
+            }, "category", categoryId);
         }
     }
 
@@ -259,6 +301,8 @@ public class RaiSeeder
         /* OrderCloud SDK 0.13 dynamic calls are intentionally isolated so dry-run/tests do not need credentials. */
         var categories = BuildCategories(s).ToList();
         var typedPayloads = BuildAndValidateTypedPayloads(s, o.CatalogId, categories);
+        foreach (var category in categories)
+            await log.WriteLineAsync($"Saving category {category.ID}");
         await SaveCategoriesAsync(oc, s, o);
 
         for (var i = 0; i < s.Products.Count; i++)
@@ -268,23 +312,33 @@ public class RaiSeeder
             var catalogAssignment = typedPayloads.CatalogAssignments[i];
             var categoryAssignments = BuildCategoryProductAssignments(s.Products[i]).ToList();
 
-            await Retry(async () =>
+            await log.WriteLineAsync($"Saving price schedule {priceSchedule.ID}");
+            await Retry(async () => await oc.PriceSchedules.SaveAsync(priceSchedule.ID, priceSchedule, null), "price schedule", priceSchedule.ID);
+
+            await log.WriteLineAsync($"Saving product {product.ID}");
+            await Retry(async () => await oc.Products.SaveAsync(product.ID, product, null), "product", product.ID);
+
+            await log.WriteLineAsync($"Saving catalog product assignment {catalogAssignment.CatalogID}/{catalogAssignment.ProductID}");
+            await Retry(async () => await oc.Catalogs.SaveProductAssignmentAsync(catalogAssignment), "catalog product assignment", $"{catalogAssignment.CatalogID}/{catalogAssignment.ProductID}");
+
+            foreach (var categoryAssignment in categoryAssignments)
             {
-                await oc.PriceSchedules.SaveAsync(priceSchedule.ID, priceSchedule, null);
-                await oc.Products.SaveAsync(product.ID, product, null);
-                await oc.Catalogs.SaveProductAssignmentAsync(catalogAssignment);
-                foreach (var categoryAssignment in categoryAssignments)
-                    await oc.Categories.SaveProductAssignmentAsync(o.CatalogId, categoryAssignment);
-            });
+                await log.WriteLineAsync($"Saving category product assignment {categoryAssignment.CategoryID}/{categoryAssignment.ProductID}");
+                await Retry(async () => await oc.Categories.SaveProductAssignmentAsync(o.CatalogId, categoryAssignment), "category product assignment", $"{categoryAssignment.CategoryID}/{categoryAssignment.ProductID}");
+            }
         }
     }
 
-    static async Task Retry(Func<Task> op)
+    static async Task Retry(Func<Task> op, string resourceType, string resourceId)
     {
         for (var i = 0; ; i++)
         {
             try { await op(); return; }
             catch (OrderCloudException ex) when (i < 4 && ((int)ex.HttpStatus == 429 || (int)ex.HttpStatus >= 500)) { await Task.Delay(TimeSpan.FromMilliseconds(250 * Math.Pow(2, i))); }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed saving {resourceType} '{resourceId}'.", ex);
+            }
         }
     }
 }
@@ -294,4 +348,6 @@ public record RaiTypedPayloads(
     List<PriceSchedule> PriceSchedules,
     List<Product> Products,
     List<ProductCatalogAssignment> CatalogAssignments,
-    List<CategoryProductAssignment> CategoryAssignments);
+    List<CategoryProductAssignment> CategoryAssignments,
+    int MaxCategoryXpLength,
+    int MaxProductXpLength);

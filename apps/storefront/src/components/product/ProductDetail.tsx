@@ -26,6 +26,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
+import { parseProductXp } from "../../utils/productXp";
 import OcQuantityInput from "../cart/OcQuantityInput";
 import ProductImageGallery from "./product-detail/ProductImageGallery";
 import ProductSpecs from "./product-detail/ProductSpecs";
@@ -68,6 +69,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const [quantity, setQuantity] = useState(
     product?.PriceSchedule?.MinQuantity ?? 1
   );
+  const productXp = useMemo(() => parseProductXp(product?.xp), [product?.xp]);
   const outOfStock = useMemo(
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable]
@@ -191,7 +193,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         w="full"
         maxW="container.4xl"
       >
-        <ProductImageGallery images={product.xp?.Images || []} />
+        <ProductImageGallery images={productXp.Images || []} />
         <VStack alignItems="flex-start" maxW="4xl" gap={4}>
           <Heading maxW="2xl" size="xl">
             {product.Name}
@@ -205,7 +207,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           </Text>
           {specsLoading && <Alert status="info"><AlertIcon />Loading product options…</Alert>}
           <ProductSpecs specs={specs} selected={selectedSpecs} errors={specErrors} basePrice={product?.PriceSchedule?.PriceBreaks?.[0].Price || 0} quantity={quantity} onChange={setSelectedSpecs} />
-          <RaiProductInfo rai={product.xp?.RAI} />
+          <RaiProductInfo rai={productXp.RAI} />
           <HStack alignItems="center" gap={4} my={3}>
             <Button
               colorScheme="primary"
