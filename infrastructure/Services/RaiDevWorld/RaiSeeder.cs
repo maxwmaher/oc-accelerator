@@ -28,9 +28,9 @@ public class RaiSeeder
         if (o.DryRun)
         {
             var categories = BuildCategories(snap).ToList();
-            ValidateCategorySaveArguments(o.CatalogId, categories);
+            var typedPayloads = BuildAndValidateTypedPayloads(snap, o.CatalogId, categories);
             await log.WriteLineAsync($"Dry run: {snap.Products.Count} products, {snap.Categories.Count} categories, {specs} specs, {opts} options.");
-            await log.WriteLineAsync($"Dry run validated {categories.Count} OrderCloud Category write payloads for catalog '{o.CatalogId}'.");
+            await log.WriteLineAsync($"Dry run validated typed OrderCloud payloads for catalog '{o.CatalogId}': {typedPayloads.Categories.Count} categories, {typedPayloads.PriceSchedules.Count} price schedules, {typedPayloads.Products.Count} products, {typedPayloads.CatalogAssignments.Count} catalog assignments, {typedPayloads.CategoryAssignments.Count} category assignments.");
             return new(snap.Products.Count, snap.Categories.Count, snap.Products.Count, specs, opts, snap.Products.Count, catAssign, 0, true);
         }
 
@@ -89,6 +89,153 @@ public class RaiSeeder
         }
     }
 
+    public static PriceSchedule BuildPriceSchedule(RaiProduct p)
+    {
+        var priceScheduleId = p.PriceScheduleId ?? throw new InvalidOperationException($"Product '{p.Name}' is missing a price schedule ID.");
+        var productName = p.Name ?? throw new InvalidOperationException($"Price schedule '{priceScheduleId}' is missing a name.");
+        var breaks = (p.Pricing.PriceBreaks.Any()
+                ? p.Pricing.PriceBreaks
+                : new List<RaiPriceBreak> { new(1, p.Pricing.BasePrice) })
+            .Select(b => new PriceBreak
+            {
+                Quantity = b.Quantity,
+                Price = b.Price.Amount
+            })
+            .ToList();
+
+        return new PriceSchedule
+        {
+            ID = priceScheduleId,
+            Name = productName,
+            ApplyShipping = false,
+            ApplyTax = false,
+            MinQuantity = p.Pricing.MinQuantity,
+            MaxQuantity = p.Pricing.MaxQuantity,
+            RestrictedQuantity = p.Pricing.QuantityMultiplier > 1,
+            UseCumulativeQuantity = false,
+            Currency = "EUR",
+            PriceBreaks = breaks
+        };
+    }
+
+    public static Product BuildProduct(RaiProduct p, RaiSnapshot s)
+    {
+        var productId = p.OcId ?? throw new InvalidOperationException($"Product '{p.Name}' is missing an OrderCloud ID.");
+        var productName = p.Name ?? throw new InvalidOperationException($"Product '{productId}' is missing a name.");
+        var priceScheduleId = p.PriceScheduleId ?? throw new InvalidOperationException($"Product '{productId}' is missing a price schedule ID.");
+
+        return new Product
+        {
+            ID = productId,
+            Name = productName,
+            Description = p.CardDescription ?? p.FullDescription,
+            Active = true,
+            Returnable = false,
+            DefaultPriceScheduleID = priceScheduleId,
+            xp = new Dictionary<string, object?>
+            {
+                ["Images"] = p.Images.Select(i => new Dictionary<string, string>
+                {
+                    ["ThumbnailUrl"] = i.ThumbnailUrl,
+                    ["Url"] = i.Url
+                }).ToList(),
+                ["RAI"] = new Dictionary<string, object?>
+                {
+                    ["Managed"] = true,
+                    ["SourceSystem"] = s.Source.System,
+                    ["Event"] = s.Source.Event,
+                    ["SourceProductID"] = p.SourceProductId,
+                    ["SourceSKU"] = p.SourceSku,
+                    ["SourceUrl"] = p.CanonicalUrl,
+                    ["SourceCategoryPaths"] = p.CategoryPaths,
+                    ["Descriptions"] = new Dictionary<string, string?>
+                    {
+                        ["Card"] = p.CardDescription,
+                        ["Full"] = p.FullDescription
+                    },
+                    ["Attributes"] = p.Attributes,
+                    ["Pricing"] = p.Pricing,
+                    ["Ordering"] = p.Ordering,
+                    ["ScrapedAtUtc"] = s.Source.ScrapedAtUtc,
+                    ["SourceHash"] = p.SourceHash
+                }
+            }
+        };
+    }
+
+    public static ProductCatalogAssignment BuildProductCatalogAssignment(string catalogId, RaiProduct p) => new()
+    {
+        CatalogID = catalogId,
+        ProductID = p.OcId
+    };
+
+    public static IEnumerable<CategoryProductAssignment> BuildCategoryProductAssignments(RaiProduct p) =>
+        p.CategoryPaths.SelectMany(path => Enumerable.Range(1, path.Count).Select(i => new CategoryProductAssignment
+        {
+            CategoryID = RaiId.Create(new[] { "cat" }.Concat(path.Take(i))),
+            ProductID = p.OcId
+        }));
+
+    public static RaiTypedPayloads BuildAndValidateTypedPayloads(RaiSnapshot s, string catalogId, IEnumerable<Category>? categories = null)
+    {
+        var categoryPayloads = (categories ?? BuildCategories(s)).ToList();
+        var priceSchedules = s.Products.Select(BuildPriceSchedule).ToList();
+        var products = s.Products.Select(p => BuildProduct(p, s)).ToList();
+        var catalogAssignments = s.Products.Select(p => BuildProductCatalogAssignment(catalogId, p)).ToList();
+        var categoryAssignments = s.Products.SelectMany(BuildCategoryProductAssignments).ToList();
+
+        ValidateCategorySaveArguments(catalogId, categoryPayloads);
+        ValidatePriceSchedules(priceSchedules);
+        ValidateProducts(products);
+        ValidateCatalogAssignments(catalogAssignments);
+        ValidateCategoryProductAssignments(categoryAssignments);
+
+        return new RaiTypedPayloads(categoryPayloads, priceSchedules, products, catalogAssignments, categoryAssignments);
+    }
+
+    static void ValidatePriceSchedules(IEnumerable<PriceSchedule> priceSchedules)
+    {
+        foreach (var priceSchedule in priceSchedules)
+        {
+            if (string.IsNullOrWhiteSpace(priceSchedule.ID)) throw new InvalidOperationException("RAI price schedule seed built a price schedule without an ID.");
+            if (string.IsNullOrWhiteSpace(priceSchedule.Name)) throw new InvalidOperationException($"RAI price schedule '{priceSchedule.ID}' is missing a name.");
+            if (priceSchedule.PriceBreaks == null || !priceSchedule.PriceBreaks.Any()) throw new InvalidOperationException($"RAI price schedule '{priceSchedule.ID}' is missing price breaks.");
+            foreach (var priceBreak in priceSchedule.PriceBreaks)
+            {
+                if (priceBreak.Quantity < 1) throw new InvalidOperationException($"RAI price schedule '{priceSchedule.ID}' has an invalid price break quantity.");
+                if (priceBreak.Price < 0) throw new InvalidOperationException($"RAI price schedule '{priceSchedule.ID}' has an invalid price break price.");
+            }
+        }
+    }
+
+    static void ValidateProducts(IEnumerable<Product> products)
+    {
+        foreach (var product in products)
+        {
+            if (string.IsNullOrWhiteSpace(product.ID)) throw new InvalidOperationException("RAI product seed built a product without an ID.");
+            if (string.IsNullOrWhiteSpace(product.Name)) throw new InvalidOperationException($"RAI product '{product.ID}' is missing a name.");
+            if (string.IsNullOrWhiteSpace(product.DefaultPriceScheduleID)) throw new InvalidOperationException($"RAI product '{product.ID}' is missing a default price schedule ID.");
+        }
+    }
+
+    static void ValidateCatalogAssignments(IEnumerable<ProductCatalogAssignment> catalogAssignments)
+    {
+        foreach (var assignment in catalogAssignments)
+        {
+            if (string.IsNullOrWhiteSpace(assignment.CatalogID)) throw new InvalidOperationException("RAI product catalog assignment is missing a catalog ID.");
+            if (string.IsNullOrWhiteSpace(assignment.ProductID)) throw new InvalidOperationException($"RAI product catalog assignment for catalog '{assignment.CatalogID}' is missing a product ID.");
+        }
+    }
+
+    static void ValidateCategoryProductAssignments(IEnumerable<CategoryProductAssignment> categoryAssignments)
+    {
+        foreach (var assignment in categoryAssignments)
+        {
+            if (string.IsNullOrWhiteSpace(assignment.CategoryID)) throw new InvalidOperationException("RAI category product assignment is missing a category ID.");
+            if (string.IsNullOrWhiteSpace(assignment.ProductID)) throw new InvalidOperationException($"RAI category product assignment for category '{assignment.CategoryID}' is missing a product ID.");
+        }
+    }
+
     public async Task SaveCategoriesAsync(dynamic oc, RaiSnapshot s, RaiSeedOptions o)
     {
         var catalogId = o.CatalogId;
@@ -110,18 +257,24 @@ public class RaiSeeder
     {
         await log.WriteLineAsync("Starting real seed. Existing unmanaged ID collisions are checked before writes where resources are returned by the API.");
         /* OrderCloud SDK 0.13 dynamic calls are intentionally isolated so dry-run/tests do not need credentials. */
+        var categories = BuildCategories(s).ToList();
+        var typedPayloads = BuildAndValidateTypedPayloads(s, o.CatalogId, categories);
         await SaveCategoriesAsync(oc, s, o);
 
-        foreach (var p in s.Products)
+        for (var i = 0; i < s.Products.Count; i++)
         {
+            var product = typedPayloads.Products[i];
+            var priceSchedule = typedPayloads.PriceSchedules[i];
+            var catalogAssignment = typedPayloads.CatalogAssignments[i];
+            var categoryAssignments = BuildCategoryProductAssignments(s.Products[i]).ToList();
+
             await Retry(async () =>
             {
-                await oc.PriceSchedules.SaveAsync(p.PriceScheduleId, new { ID = p.PriceScheduleId, Name = p.Name, ApplyShipping = false, ApplyTax = false, MinQuantity = p.Pricing.MinQuantity, MaxQuantity = p.Pricing.MaxQuantity, RestrictedQuantity = p.Pricing.QuantityMultiplier > 1, UseCumulativeQuantity = false, Currency = "EUR", PriceBreaks = (p.Pricing.PriceBreaks.Any() ? p.Pricing.PriceBreaks : new List<RaiPriceBreak> { new RaiPriceBreak(1, p.Pricing.BasePrice) }).Select(b => new { Quantity = b.Quantity, Price = b.Price.Amount }) });
-                await oc.Products.SaveAsync(p.OcId, new { ID = p.OcId, Name = p.Name, Description = p.CardDescription ?? p.FullDescription, Active = true, Returnable = false, DefaultPriceScheduleID = p.PriceScheduleId, xp = new { Images = p.Images.Select(i => new { ThumbnailUrl = i.ThumbnailUrl, Url = i.Url }), RAI = new { Managed = true, SourceSystem = s.Source.System, Event = s.Source.Event, SourceProductID = p.SourceProductId, SourceSKU = p.SourceSku, SourceUrl = p.CanonicalUrl, SourceCategoryPaths = p.CategoryPaths, Descriptions = new { Card = p.CardDescription, Full = p.FullDescription }, Attributes = p.Attributes, Pricing = p.Pricing, Ordering = p.Ordering, ScrapedAtUtc = s.Source.ScrapedAtUtc, SourceHash = p.SourceHash } } });
-                await oc.Catalogs.SaveProductAssignmentAsync(new { CatalogID = o.CatalogId, ProductID = p.OcId });
-                foreach (var path in p.CategoryPaths)
-                    foreach (var i in Enumerable.Range(1, path.Count))
-                        await oc.Categories.SaveProductAssignmentAsync(o.CatalogId, new { CategoryID = RaiId.Create(new[] { "cat" }.Concat(path.Take(i))), ProductID = p.OcId });
+                await oc.PriceSchedules.SaveAsync(priceSchedule.ID, priceSchedule, null);
+                await oc.Products.SaveAsync(product.ID, product, null);
+                await oc.Catalogs.SaveProductAssignmentAsync(catalogAssignment);
+                foreach (var categoryAssignment in categoryAssignments)
+                    await oc.Categories.SaveProductAssignmentAsync(o.CatalogId, categoryAssignment);
             });
         }
     }
@@ -135,3 +288,10 @@ public class RaiSeeder
         }
     }
 }
+
+public record RaiTypedPayloads(
+    List<Category> Categories,
+    List<PriceSchedule> PriceSchedules,
+    List<Product> Products,
+    List<ProductCatalogAssignment> CatalogAssignments,
+    List<CategoryProductAssignment> CategoryAssignments);
