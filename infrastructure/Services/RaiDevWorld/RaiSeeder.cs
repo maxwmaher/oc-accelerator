@@ -157,7 +157,7 @@ public class RaiSeeder
             DefaultPriceScheduleID = priceScheduleId,
             xp = BuildXpString(new
             {
-                Images = p.Images.Select(i => new
+                Images = p.Images.Take(3).Select(i => new
                 {
                     i.ThumbnailUrl,
                     i.Url
@@ -165,14 +165,10 @@ public class RaiSeeder
                 RAI = new
                 {
                     Managed = true,
-                    SourceSystem = s.Source.System,
-                    Event = s.Source.Event,
-                    SourceProductID = p.SourceProductId,
                     SourceSKU = p.SourceSku,
                     SourceUrl = p.CanonicalUrl,
-                    SourceCategoryPaths = p.CategoryPaths,
-                    ScrapedAtUtc = s.Source.ScrapedAtUtc,
-                    SourceHash = p.SourceHash
+                    SourceHash = p.SourceHash,
+                    Event = s.Source.Event
                 }
             }, "Product", productId)
         };
