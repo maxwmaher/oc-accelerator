@@ -1,4 +1,6 @@
 import {
+  Badge,
+  Box,
   Container,
   Divider,
   Grid,
@@ -6,6 +8,7 @@ import {
   HStack,
   Heading,
   Icon,
+  SimpleGrid,
   Spinner,
   Text,
   VStack,
@@ -19,10 +22,232 @@ import {
   Orders,
   RequiredDeep,
 } from "ordercloud-javascript-sdk";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TbCheckbox } from "react-icons/tb";
 import { useLocation } from "react-router-dom";
+import {
+  getRaiDemoContextById,
+  RAI_DEMO_CONTEXT_STORAGE_KEY,
+  RaiDemoContext,
+} from "../../demo/raiDemoContexts";
 import OrderSummary from "./OrderSummary";
+
+type RaiServiceDetailsType = "catering" | "utility" | "flooring";
+type RaiServiceDetails = Record<string, string | number | boolean | undefined>;
+
+const MOMENTUS_HANDOFF_STATUSES = [
+  "OrderCloud order submitted",
+  "Order calculation completed",
+  "Queued for Momentus",
+  "Supplier work orders prepared",
+];
+
+const getLineItemRai = (lineItem: LineItem) => (lineItem.xp as any)?.RAI;
+
+const getMomentusOrderReference = (orderId?: string) => {
+  const safeSuffix = (orderId || "DEMO00")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .slice(-6)
+    .toUpperCase()
+    .padStart(6, "0");
+
+  return `MOM-DW26-${safeSuffix}`;
+};
+
+const getSupplierRoute = (type?: string) => {
+  if (type === "catering") return "Catering operations";
+  if (type === "utility") return "Electrical services";
+  if (type === "flooring") return "Stand construction";
+  return "Exhibitor services";
+};
+
+const formatServiceDetails = (
+  type?: RaiServiceDetailsType,
+  details?: RaiServiceDetails,
+) => {
+  if (!details) return "Service details captured for handoff.";
+
+  if (type === "catering") {
+    return `Delivery date: ${details.deliveryDate || "—"} · Time slot: ${details.deliveryTimeSlot || "—"} · Stand contact: ${details.standContactName || "—"}`;
+  }
+
+  if (type === "utility") {
+    return `Grid location: ${details.standGridLocation || "—"} · Required by: ${details.requiredBy || "—"} · Technical contact phone: ${details.technicalContactPhone || "—"}`;
+  }
+
+  if (type === "flooring") {
+    return `Area: ${details.standAreaM2 || "—"} m² · Ramp required: ${details.rampRequired || "—"} · Floor finish: ${details.floorFinish || "—"}`;
+  }
+
+  return "Service details captured for exhibitor services.";
+};
+
+const getConfirmationRaiContext = (
+  lineItems: LineItem[],
+): RaiDemoContext & { sourceLineItemContext?: Record<string, string> } => {
+  const sourceLineItemContext = lineItems
+    .map((lineItem) => getLineItemRai(lineItem)?.CapturedFor)
+    .find(Boolean) as Record<string, string> | undefined;
+
+  const selectedContext = getRaiDemoContextById(
+    typeof window === "undefined"
+      ? undefined
+      : window.localStorage.getItem(RAI_DEMO_CONTEXT_STORAGE_KEY),
+  );
+
+  return {
+    ...selectedContext,
+    eventId: sourceLineItemContext?.EventID || selectedContext.eventId,
+    exhibitorId:
+      sourceLineItemContext?.ExhibitorID || selectedContext.exhibitorId,
+    hall: sourceLineItemContext?.Hall || selectedContext.hall,
+    standNumber:
+      sourceLineItemContext?.StandNumber || selectedContext.standNumber,
+    sourceLineItemContext,
+  };
+};
+
+interface MomentusHandoffDemoProps {
+  order: RequiredDeep<Order>;
+  lineItems: LineItem[];
+}
+
+const MomentusHandoffDemo = ({
+  order,
+  lineItems,
+}: MomentusHandoffDemoProps) => {
+  const raiContext = useMemo(
+    () => getConfirmationRaiContext(lineItems),
+    [lineItems],
+  );
+
+  return (
+    <Box
+      border="1px solid"
+      borderColor="blackAlpha.200"
+      rounded="lg"
+      p={5}
+      w="full"
+      bg="white"
+    >
+      {/* Demo-only: production would post the OrderCloud order and line-level xp/custom attributes to RAI middleware, then Momentus would create supplier work orders. */}
+      <VStack alignItems="stretch" spacing={4}>
+        <HStack justifyContent="space-between" alignItems="flex-start" gap={3}>
+          <VStack alignItems="flex-start" gap={1}>
+            <Heading size="md">Momentus handoff</Heading>
+            <Text fontSize="sm" color="chakra-subtle-text">
+              Integration: Mocked RAPI/services-layer handoff
+            </Text>
+          </VStack>
+          <Badge colorScheme="purple" variant="subtle" whiteSpace="nowrap">
+            Mocked Momentus integration
+          </Badge>
+        </HStack>
+
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={2}>
+          {MOMENTUS_HANDOFF_STATUSES.map((status) => (
+            <HStack key={status} spacing={2}>
+              <Badge colorScheme="green" variant="solid">
+                ✓
+              </Badge>
+              <Text fontSize="sm" fontWeight="600">
+                {status}
+              </Text>
+            </HStack>
+          ))}
+        </SimpleGrid>
+
+        <Divider />
+
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={2}>
+          <Text fontSize="sm">
+            <Text as="span" fontWeight="700">
+              EventID:
+            </Text>{" "}
+            {raiContext.eventId}
+          </Text>
+          <Text fontSize="sm">
+            <Text as="span" fontWeight="700">
+              ExhibitorID:
+            </Text>{" "}
+            {raiContext.exhibitorId}
+          </Text>
+          <Text fontSize="sm">
+            <Text as="span" fontWeight="700">
+              AccountID:
+            </Text>{" "}
+            {raiContext.accountId}
+          </Text>
+          <Text fontSize="sm">
+            <Text as="span" fontWeight="700">
+              Hall:
+            </Text>{" "}
+            {raiContext.hall}
+          </Text>
+          <Text fontSize="sm">
+            <Text as="span" fontWeight="700">
+              StandNumber:
+            </Text>{" "}
+            {raiContext.standNumber}
+          </Text>
+          <Text fontSize="sm">
+            <Text as="span" fontWeight="700">
+              CompanyName:
+            </Text>{" "}
+            {raiContext.companyName}
+          </Text>
+        </SimpleGrid>
+
+        <Box bg="blackAlpha.50" rounded="md" p={3}>
+          <Text fontSize="sm" fontWeight="700">
+            Momentus Order: {getMomentusOrderReference(order.ID)}
+          </Text>
+          <Text fontSize="xs" color="chakra-subtle-text">
+            Integration: Mocked RAPI/services-layer handoff
+          </Text>
+        </Box>
+
+        <VStack alignItems="stretch" spacing={3}>
+          {lineItems.map((lineItem) => {
+            const rai = getLineItemRai(lineItem);
+            const type = rai?.ServiceDetailsType as
+              | RaiServiceDetailsType
+              | undefined;
+            return (
+              <Box
+                key={lineItem.ID || lineItem.ProductID}
+                borderTop="1px solid"
+                borderColor="blackAlpha.100"
+                pt={3}
+              >
+                <HStack
+                  justifyContent="space-between"
+                  alignItems="flex-start"
+                  gap={3}
+                >
+                  <VStack alignItems="flex-start" gap={1}>
+                    <Text fontSize="sm" fontWeight="700">
+                      {lineItem.Product?.Name || lineItem.ProductID}
+                    </Text>
+                    <Text fontSize="xs" color="chakra-subtle-text">
+                      Supplier route: {getSupplierRoute(type)}
+                    </Text>
+                    <Text fontSize="xs" color="chakra-subtle-text">
+                      {formatServiceDetails(type, rai?.ServiceDetails)}
+                    </Text>
+                  </VStack>
+                  <Badge colorScheme="blue" variant="subtle">
+                    Qty {lineItem.Quantity}
+                  </Badge>
+                </HStack>
+              </Box>
+            );
+          })}
+        </VStack>
+      </VStack>
+    </Box>
+  );
+};
 
 const OrderConfirmation = (): JSX.Element => {
   const [loading, setLoading] = useState(true);
@@ -139,6 +364,7 @@ const OrderConfirmation = (): JSX.Element => {
             <Text>
               Payment Method: {order.xp?.PaymentMethod || "Not specified"}
             </Text>
+            <MomentusHandoffDemo order={order} lineItems={lineItems} />
           </VStack>
         </Container>
       </GridItem>
