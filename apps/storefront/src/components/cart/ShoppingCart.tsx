@@ -16,11 +16,15 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { useShopper } from "@ordercloud/react-sdk";
-import { Address } from "ordercloud-javascript-sdk";
+import { Address, Orders } from "ordercloud-javascript-sdk";
 import { useCallback, useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { CartInformationPanel } from "./cart-panels/CartInformationPanel";
-import { CartPaymentPanel } from "./cart-panels/CartPaymentPanel";
+import {
+  CartPaymentPanel,
+  RAI_PAYMENT_METHOD_LABELS,
+  RaiPaymentMethod,
+} from "./cart-panels/CartPaymentPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
 
@@ -32,6 +36,8 @@ export const TABS = {
 export const ShoppingCart = (): JSX.Element => {
   const [submitting, setSubmitting] = useState(false);
   const [tabIndex, setTabIndex] = useState(TABS.INFORMATION);
+  const [paymentMethod, setPaymentMethod] =
+    useState<RaiPaymentMethod>("invoice");
 
   const {
     orderWorksheet,
@@ -61,6 +67,21 @@ export const ShoppingCart = (): JSX.Element => {
     if (!orderWorksheet?.Order?.ID) return;
     setSubmitting(true);
     try {
+      const existingXp = (orderWorksheet.Order.xp || {}) as Record<string, any>;
+      await Orders.Patch("Outgoing", orderWorksheet.Order.ID, {
+        xp: {
+          ...existingXp,
+          RAI: {
+            ...(existingXp.RAI || {}),
+            Payment: {
+              Method: paymentMethod,
+              PayOnInvoiceFlag: true,
+              Source: "Mocked Momentus account flag",
+            },
+          },
+          PaymentMethod: RAI_PAYMENT_METHOD_LABELS[paymentMethod],
+        },
+      });
       await calculateOrder();
       await submitCart();
       setSubmitting(false);
@@ -77,7 +98,14 @@ export const ShoppingCart = (): JSX.Element => {
         isClosable: true,
       });
     }
-  }, [calculateOrder, navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
+  }, [
+    calculateOrder,
+    navigate,
+    orderWorksheet?.Order,
+    paymentMethod,
+    submitCart,
+    toast,
+  ]);
 
   const deleteOrder = useCallback(async () => {
     if (!orderWorksheet?.Order?.ID) return;
@@ -175,6 +203,8 @@ export const ShoppingCart = (): JSX.Element => {
                         </TabPanel>
                         <TabPanel display="flex" flexDirection="column">
                           <CartPaymentPanel
+                            paymentMethod={paymentMethod}
+                            setPaymentMethod={setPaymentMethod}
                             submitOrder={submitOrder}
                             submitting={submitting}
                           />
