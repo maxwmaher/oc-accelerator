@@ -28,6 +28,7 @@ import { TbPhoto } from "react-icons/tb";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import useDebounce from "../../hooks/useDebounce";
 import formatPrice from "../../utils/formatPrice";
+import { parseProductXp } from "../../utils/productXp";
 import OcQuantityInput from "./OcQuantityInput";
 import { useShopper } from "@ordercloud/react-sdk";
 
@@ -80,6 +81,10 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
     return formatPrice(lineItem.UnitPrice);
   }, [lineItem]);
 
+  const productXp = useMemo(() => parseProductXp(lineItem?.Product?.xp), [lineItem?.Product?.xp]);
+  const primaryImage = productXp.Images?.[0];
+  const primaryImageUrl = primaryImage?.ThumbnailUrl || primaryImage?.Url;
+
   return (
     <>
       <HStack
@@ -97,12 +102,12 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
             boxSize="80px"
             rounded="md"
           >
-            {lineItem?.Product?.xp?.Images ? (
+            {primaryImageUrl ? (
               <Image
                 rounded="md"
                 boxSize="full"
                 objectFit="cover"
-                src={lineItem?.Product?.xp?.Images[0].Url}
+                src={primaryImageUrl}
                 zIndex={1}
                 onError={(e) => {
                   e.currentTarget.src = ""; // Prevent the broken image from rendering

@@ -13,12 +13,17 @@ import { FunctionComponent } from "react";
 import { TbPhoto } from "react-icons/tb";
 import { Link as RouterLink } from "react-router-dom";
 import formatPrice from "../../utils/formatPrice";
+import { parseProductXp } from "../../utils/productXp";
 
 interface ProductCardProps {
   product: BuyerProduct;
 }
 
 const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
+  const productXp = parseProductXp(product.xp);
+  const primaryImage = productXp.Images?.[0];
+  const primaryImageUrl = primaryImage?.ThumbnailUrl || primaryImage?.Url;
+
   return (
     <>
       {product && (
@@ -56,17 +61,12 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                 maxH="300px"
                 borderTopRadius="md"
               >
-                {product.xp?.Images &&
-                (product.xp.Images[0]?.ThumbnailUrl ||
-                  product.xp.Images[0]?.Url) ? (
+                {primaryImageUrl ? (
                   <Image
                     borderTopRadius="md"
                     boxSize="full"
                     objectFit="cover"
-                    src={
-                      product.xp.Images[0]?.ThumbnailUrl ||
-                      product.xp.Images[0]?.Url
-                    }
+                    src={primaryImageUrl}
                     zIndex={1}
                     bgColor="white"
                     onError={(e) => {
