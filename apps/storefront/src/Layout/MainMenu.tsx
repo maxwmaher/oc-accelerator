@@ -33,6 +33,7 @@ import {
   getRaiDemoContextById,
   RAI_DEMO_CONTEXT_STORAGE_KEY,
   RAI_DEMO_CONTEXTS,
+  isDelegatedRaiDemoContext,
 } from "../demo/raiDemoContexts";
 import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "../Layout/MegaMenu";
@@ -92,6 +93,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   }, [orderWorksheet?.LineItems]);
 
   const selectedRaiContext = getRaiDemoContextById(selectedRaiContextId);
+  const isDelegatedRaiContext = isDelegatedRaiDemoContext(selectedRaiContext);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -130,19 +132,48 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
           rightIcon={<ChevronDownIcon />}
           maxW={{ base: "44", md: "72" }}
         >
-          <Text as="span" noOfLines={1}>
-            {`${selectedRaiContext.eventName} · ${selectedRaiContext.hall} · Stand ${selectedRaiContext.standNumber}`}
-          </Text>
+          <VStack align="start" spacing={0}>
+            <Text as="span" noOfLines={1}>
+              {`${selectedRaiContext.eventName} · ${selectedRaiContext.hall} · Stand ${selectedRaiContext.standNumber}`}
+            </Text>
+            {isDelegatedRaiContext && (
+              <Text as="span" fontSize="2xs" color="purple.600" noOfLines={1}>
+                Ordering on behalf of exhibitor
+              </Text>
+            )}
+          </VStack>
         </MenuButton>
         <MenuList minW="xs" maxW="sm">
           <Box px={3} py={2}>
-            <Badge colorScheme="purple" variant="subtle" mb={2}>
-              Mocked Momentus profile
-            </Badge>
+            <HStack mb={2} spacing={2} flexWrap="wrap">
+              <Badge colorScheme="purple" variant="subtle">
+                Mocked Momentus profile
+              </Badge>
+              {isDelegatedRaiContext && (
+                <Badge colorScheme="orange" variant="subtle">
+                  Mocked delegated access
+                </Badge>
+              )}
+            </HStack>
             <VStack align="stretch" spacing={1}>
               <Text fontWeight="semibold">
-                {selectedRaiContext.companyName}
+                {isDelegatedRaiContext
+                  ? selectedRaiContext.actorCompanyName
+                  : selectedRaiContext.companyName}
               </Text>
+              {isDelegatedRaiContext && (
+                <>
+                  <Text fontSize="xs" color="gray.600">
+                    Actor: {selectedRaiContext.actorCompanyName}
+                  </Text>
+                  <Text fontSize="xs" color="gray.600">
+                    Role: {selectedRaiContext.actorRole}
+                  </Text>
+                  <Text fontSize="xs" color="gray.600">
+                    Ordering for: {selectedRaiContext.actingOnBehalfOfCompanyName}
+                  </Text>
+                </>
+              )}
               <Text fontSize="sm">
                 {selectedRaiContext.eventName} ({selectedRaiContext.eventId})
               </Text>
@@ -162,6 +193,16 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               <Text fontSize="xs" color="gray.600">
                 Package: {selectedRaiContext.standPackage}
               </Text>
+              {isDelegatedRaiContext && (
+                <>
+                  <Text fontSize="xs" color="gray.600">
+                    DelegationID: {selectedRaiContext.delegationId}
+                  </Text>
+                  <Text fontSize="xs" color="gray.600">
+                    Invoice to: {selectedRaiContext.invoiceTo}
+                  </Text>
+                </>
+              )}
             </VStack>
           </Box>
           {RAI_DEMO_CONTEXTS.map((context) => (
@@ -182,7 +223,9 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                   color="gray.500"
                   display={{ base: "none", md: "block" }}
                 >
-                  {context.standType} · {context.standPackage}
+                  {isDelegatedRaiDemoContext(context)
+                    ? `${context.actorRole} · ordering for ${context.actingOnBehalfOfCompanyName}`
+                    : `${context.standType} · ${context.standPackage}`}
                 </Text>
               </VStack>
             </MenuItem>
