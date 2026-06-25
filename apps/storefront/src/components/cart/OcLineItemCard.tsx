@@ -32,6 +32,11 @@ import { parseProductXp } from "../../utils/productXp";
 import OcQuantityInput from "./OcQuantityInput";
 import { useShopper } from "@ordercloud/react-sdk";
 
+interface RaiDelegationXp {
+  DelegatedOrder?: boolean;
+  ActingOnBehalfOfCompanyName?: string;
+}
+
 const getRaiServiceDetailsSummary = (lineItem: LineItem) => {
   const rai = (lineItem.xp as any)?.RAI;
   const details = rai?.ServiceDetails;
@@ -108,6 +113,9 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
     () => getRaiServiceDetailsSummary(lineItem),
     [lineItem],
   );
+  const raiDelegation = (
+    lineItem.xp as { RAI?: { Delegation?: RaiDelegationXp } } | undefined
+  )?.RAI?.Delegation;
 
   return (
     <>
@@ -177,6 +185,11 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
           {raiServiceDetailsSummary && (
             <Text mt={-3} fontSize="xs" color="chakra-subtle-text">
               {raiServiceDetailsSummary}
+            </Text>
+          )}
+          {raiDelegation?.DelegatedOrder && (
+            <Text mt={-3} fontSize="xs" color="purple.600" fontWeight="600">
+              Stand builder order for {raiDelegation.ActingOnBehalfOfCompanyName} · Invoice to exhibitor
             </Text>
           )}
           {lineItem?.Specs?.map((spec) => (
