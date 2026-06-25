@@ -95,6 +95,26 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   const selectedRaiContext = getRaiDemoContextById(selectedRaiContextId);
   const isDelegatedRaiContext = isDelegatedRaiDemoContext(selectedRaiContext);
 
+  const getRaiContextTitle = (context: typeof selectedRaiContext) =>
+    isDelegatedRaiDemoContext(context)
+      ? `${context.actorCompanyName} → ${context.actingOnBehalfOfCompanyName}`
+      : `${context.eventName} · ${context.hall} · Stand ${context.standNumber}`;
+
+  const getRaiContextSecondaryText = (context: typeof selectedRaiContext) =>
+    isDelegatedRaiDemoContext(context)
+      ? [
+          context.actorRole,
+          context.eventName,
+          context.hall,
+          `Stand ${context.standNumber}`,
+          "Invoice to exhibitor",
+        ].join(" · ")
+      : `${context.standType} · ${context.standPackage}`;
+
+  const activeRaiContextButtonLabel = isDelegatedRaiContext
+    ? `${selectedRaiContext.actorRole} · ${selectedRaiContext.hall} · Stand ${selectedRaiContext.standNumber}`
+    : getRaiContextTitle(selectedRaiContext);
+
   useEffect(() => {
     window.localStorage.setItem(
       RAI_DEMO_CONTEXT_STORAGE_KEY,
@@ -134,7 +154,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
         >
           <VStack align="start" spacing={0}>
             <Text as="span" noOfLines={1}>
-              {`${selectedRaiContext.eventName} · ${selectedRaiContext.hall} · Stand ${selectedRaiContext.standNumber}`}
+              {activeRaiContextButtonLabel}
             </Text>
             {isDelegatedRaiContext && (
               <Text as="span" fontSize="2xs" color="purple.600" noOfLines={1}>
@@ -151,7 +171,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               </Badge>
               {isDelegatedRaiContext && (
                 <Badge colorScheme="orange" variant="subtle">
-                  Mocked delegated access
+                  MOCKED DELEGATED ACCESS
                 </Badge>
               )}
             </HStack>
@@ -167,10 +187,14 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                     Actor: {selectedRaiContext.actorCompanyName}
                   </Text>
                   <Text fontSize="xs" color="gray.600">
-                    Role: {selectedRaiContext.actorRole}
+                    Ordering for:{" "}
+                    {selectedRaiContext.actingOnBehalfOfCompanyName}
                   </Text>
                   <Text fontSize="xs" color="gray.600">
-                    Ordering for: {selectedRaiContext.actingOnBehalfOfCompanyName}
+                    Invoice to: {selectedRaiContext.invoiceTo}
+                  </Text>
+                  <Text fontSize="xs" color="gray.600">
+                    DelegationID: {selectedRaiContext.delegationId}
                   </Text>
                 </>
               )}
@@ -193,16 +217,6 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               <Text fontSize="xs" color="gray.600">
                 Package: {selectedRaiContext.standPackage}
               </Text>
-              {isDelegatedRaiContext && (
-                <>
-                  <Text fontSize="xs" color="gray.600">
-                    DelegationID: {selectedRaiContext.delegationId}
-                  </Text>
-                  <Text fontSize="xs" color="gray.600">
-                    Invoice to: {selectedRaiContext.invoiceTo}
-                  </Text>
-                </>
-              )}
             </VStack>
           </Box>
           {RAI_DEMO_CONTEXTS.map((context) => (
@@ -214,18 +228,15 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               }
             >
               <VStack align="stretch" spacing={0}>
-                <Text fontSize="sm">
-                  {context.eventName} · {context.hall} · Stand{" "}
-                  {context.standNumber}
+                <Text fontSize="sm" noOfLines={1}>
+                  {getRaiContextTitle(context)}
                 </Text>
                 <Text
                   fontSize="xs"
                   color="gray.500"
                   display={{ base: "none", md: "block" }}
                 >
-                  {isDelegatedRaiDemoContext(context)
-                    ? `${context.actorRole} · ordering for ${context.actingOnBehalfOfCompanyName}`
-                    : `${context.standType} · ${context.standPackage}`}
+                  {getRaiContextSecondaryText(context)}
                 </Text>
               </VStack>
             </MenuItem>
