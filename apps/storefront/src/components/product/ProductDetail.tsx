@@ -1,4 +1,5 @@
 import {
+  Badge,
   Button,
   Card,
   CardBody,
@@ -25,7 +26,7 @@ import {
 } from "ordercloud-javascript-sdk";
 import pluralize from "pluralize";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
 import { parseProductXp } from "../../utils/productXp";
@@ -50,6 +51,23 @@ import {
 
 type RaiServiceDetailsType = "catering" | "utility" | "flooring";
 type RaiServiceDetails = Record<string, string>;
+type RaiDependencyStatus =
+  | "Available"
+  | "Already captured"
+  | "Mocked dependency";
+
+interface RaiDependencyRecommendation {
+  name: string;
+  reason: string;
+  status: RaiDependencyStatus;
+  productId?: string;
+}
+
+const RAI_DEMO_PRODUCT_IDS = {
+  mandatoryDaytimePower: "rai-devworld-product-power-day-230-3kw",
+  additionalSockets: "rai-devworld-product-power-day-add-sock-exc",
+  raisedStandFloor: "rai-devworld-product-floor-high-floor",
+} as const;
 
 const SERVICE_TIME_SLOTS = [
   "08:00–10:00",
@@ -89,6 +107,168 @@ const getRaiServiceDetailsType = (
     return "flooring";
   }
   return undefined;
+};
+
+const getRaiDependencyRecommendations = (
+  product?: BuyerProduct,
+  type?: RaiServiceDetailsType,
+): RaiDependencyRecommendation[] => {
+  if (!product || !type) return [];
+
+  const productName = product.Name || "";
+  const isAdditionalSockets =
+    product.ID === RAI_DEMO_PRODUCT_IDS.additionalSockets;
+
+  if (type === "catering") {
+    return [
+      {
+        name: "Mandatory daytime power",
+        reason:
+          "Food and catering services need stand power available during service hours.",
+        status: "Available",
+        productId: RAI_DEMO_PRODUCT_IDS.mandatoryDaytimePower,
+      },
+      {
+        name: "Additional sockets",
+        reason: "Catering equipment often needs a dedicated nearby socket.",
+        status: "Available",
+        productId: RAI_DEMO_PRODUCT_IDS.additionalSockets,
+      },
+      ...(productName.toLowerCase().includes("coffee")
+        ? [
+            {
+              name: "Water connection",
+              reason:
+                "Coffee service may require a water feed or refill point at the stand.",
+              status: "Mocked dependency" as const,
+            },
+          ]
+        : []),
+    ];
+  }
+
+  if (type === "utility") {
+    return [
+      ...(!isAdditionalSockets
+        ? [
+            {
+              name: "Additional sockets",
+              reason:
+                "Extra socket capacity helps exhibitors avoid last-minute power changes.",
+              status: "Available" as const,
+              productId: RAI_DEMO_PRODUCT_IDS.additionalSockets,
+            },
+          ]
+        : []),
+      {
+        name: "Stand grid placement",
+        reason:
+          "Required configuration note captured above for utility installation planning.",
+        status: "Already captured",
+      },
+    ];
+  }
+
+  if (type === "flooring") {
+    return [
+      {
+        name: "Ramp access",
+        reason:
+          "Raised floors may need an accessibility ramp decision for the stand design.",
+        status: "Already captured",
+      },
+      {
+        name: "Carpet finish selection",
+        reason:
+          "Floor finish is selected with the raised floor service details.",
+        status: "Already captured",
+      },
+    ];
+  }
+
+  return [];
+};
+
+interface RaiDependencyRecommendationsProps {
+  recommendations: RaiDependencyRecommendation[];
+}
+
+const getRecommendationBadgeColor = (status: RaiDependencyStatus) => {
+  if (status === "Available") return "green";
+  if (status === "Already captured") return "blue";
+  return "purple";
+};
+
+const RaiDependencyRecommendations: React.FC<
+  RaiDependencyRecommendationsProps
+> = ({ recommendations }) => {
+  if (!recommendations.length) return null;
+
+  return (
+    <VStack
+      alignItems="stretch"
+      borderWidth="1px"
+      borderRadius="md"
+      p={4}
+      spacing={3}
+      w="full"
+    >
+      <VStack alignItems="flex-start" spacing={1}>
+        <Heading size="sm">Recommended for this stand service</Heading>
+        <Text fontSize="xs" color="chakra-subtle-text">
+          Production implementation: dependencies would be driven by
+          Momentus/product rules and enforced during checkout or guided
+          ordering.
+        </Text>
+      </VStack>
+      <VStack alignItems="stretch" spacing={2}>
+        {recommendations.map((recommendation) => (
+          <HStack
+            key={`${recommendation.name}-${recommendation.status}`}
+            alignItems={{ base: "flex-start", md: "center" }}
+            borderWidth="1px"
+            borderRadius="md"
+            justifyContent="space-between"
+            p={3}
+            spacing={3}
+          >
+            <VStack alignItems="flex-start" spacing={1} flex="1">
+              <HStack spacing={2} flexWrap="wrap">
+                <Text fontSize="sm" fontWeight="semibold">
+                  {recommendation.name}
+                </Text>
+                <Badge
+                  colorScheme={getRecommendationBadgeColor(
+                    recommendation.status,
+                  )}
+                >
+                  {recommendation.status}
+                </Badge>
+              </HStack>
+              <Text fontSize="xs" color="chakra-subtle-text">
+                {recommendation.reason}
+              </Text>
+            </VStack>
+            {recommendation.productId ? (
+              <Button
+                as={RouterLink}
+                to={`/products/${recommendation.productId}`}
+                size="sm"
+                variant="outline"
+                flexShrink={0}
+              >
+                View product
+              </Button>
+            ) : (
+              <Button size="sm" variant="ghost" isDisabled flexShrink={0}>
+                Handled in Momentus rules
+              </Button>
+            )}
+          </HStack>
+        ))}
+      </VStack>
+    </VStack>
+  );
 };
 
 const getRequiredRaiServiceDetailFields = (type?: RaiServiceDetailsType) => {
@@ -274,6 +454,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const raiServiceDetailsType = useMemo(
     () => getRaiServiceDetailsType(product),
     [product],
+  );
+  const raiDependencyRecommendations = useMemo(
+    () => getRaiDependencyRecommendations(product, raiServiceDetailsType),
+    [product, raiServiceDetailsType],
   );
   const outOfStock = useMemo(
     () => product?.Inventory?.QuantityAvailable === 0,
@@ -496,6 +680,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             onChange={setSelectedSpecs}
           />
           <RaiProductInfo rai={productXp.RAI} />
+          {raiServiceDetailsType && (
+            <RaiDependencyRecommendations
+              recommendations={raiDependencyRecommendations}
+            />
+          )}
           {raiServiceDetailsType && (
             <RaiServiceDetailsForm
               type={raiServiceDetailsType}
