@@ -26,6 +26,7 @@ import {
   rejectChildCategoryReasons,
   scrapeProduct,
   isUnpricedQuoteRequestProduct,
+  recordSkippedQuoteRequestProduct,
 } from "../src/scrape.js";
 import { firstChildren } from "../src/lib.js";
 const base =
@@ -884,6 +885,52 @@ describe("rai scraper child category filtering", () => {
     await expect(scrapeProduct(page, href, "Conference chair", ["Furniture"])).rejects.toThrow(
       "Unable to parse required price",
     );
+  });
+
+
+  it("skips Shopping cart quote/request products with fake zero price", async () => {
+    const href = base + "ViewProduct-Start?SKU=rigging-request";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const page: any = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForLoadState: vi.fn().mockResolvedValue(undefined),
+      url: vi.fn(() => href),
+      locator: vi.fn((selector: string) =>
+        selector === "h1"
+          ? { first: () => ({ textContent: vi.fn().mockResolvedValue("Shopping cart") }) }
+          : selector === "img"
+            ? { evaluateAll: vi.fn().mockResolvedValue([]) }
+            : { innerText: vi.fn().mockResolvedValue("Shopping cart Request for rigging quote €0,") },
+      ),
+    };
+    await expect(scrapeProduct(page, href, "Shopping cart €0,", ["Rigging"])).resolves.toBeNull();
+    warn.mockRestore();
+  });
+
+  it("imports normal priced products", async () => {
+    const href = base + "ViewProduct-Start?SKU=CHAIR-001";
+    const page: any = {
+      goto: vi.fn().mockResolvedValue(undefined),
+      waitForLoadState: vi.fn().mockResolvedValue(undefined),
+      url: vi.fn(() => href),
+      locator: vi.fn((selector: string) =>
+        selector === "h1"
+          ? { first: () => ({ textContent: vi.fn().mockResolvedValue("Conference chair") }) }
+          : selector === "img"
+            ? { evaluateAll: vi.fn().mockResolvedValue([]) }
+            : { innerText: vi.fn().mockResolvedValue("Conference chair €25,00") },
+      ),
+    };
+    const product = await scrapeProduct(page, href, "Conference chair €25,00", ["Furniture"]);
+    expect(product?.name).toBe("Conference chair");
+    expect(product?.pricing.basePrice.amount).toBe(25);
+  });
+
+  it("deduplicates skipped quote/request products by SKU", () => {
+    const snapshot: any = { source: { skippedProducts: [] } };
+    recordSkippedQuoteRequestProduct(snapshot, { url: base + "ViewProduct-Start?SKU=rigging-request", sku: "rigging-request", name: "Shopping cart" });
+    recordSkippedQuoteRequestProduct(snapshot, { url: base + "ViewProduct-Start?SKU=rigging-request&CategoryName=Rigging", sku: "rigging-request", name: "Request for rigging quote" });
+    expect(snapshot.source.skippedProducts).toHaveLength(1);
   });
 
 describe("rai scraper cookie banner handling", () => {
