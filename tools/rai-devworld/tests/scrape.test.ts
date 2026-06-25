@@ -12,6 +12,7 @@ import {
   classifyTraversalUrl,
   discoverChildCategoryLinks,
   filterChildCategoryLinks,
+  filterProductImageUrls,
   filterProductLinks,
   handleCookieBanner,
   preparePageForScraping,
@@ -37,6 +38,95 @@ import { firstChildren } from "../src/lib.js";
 const base =
   "https://service.rai.nl/INTERSHOP/web/WFS/RAI-raievents-Site/en_US/devworld/EUR/";
 const pdp = base + "ViewProduct-Show?SKU=ABC";
+
+describe("rai scraper product image filtering", () => {
+  it("removes chrome SVGs", () => {
+    const images = filterProductImageUrls(
+      [
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/Hamburger_3.svg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/Logo.svg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/Close_L.svg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/product/CAT-FOOD-SAFE-CROISSTEEK.jpg",
+      ],
+      pdp,
+      "CAT-FOOD-SAFE-CROISSTEEK",
+      "Croissant in a bag",
+    );
+
+    expect(images).toEqual([
+      "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/product/CAT-FOOD-SAFE-CROISSTEEK.jpg",
+    ]);
+  });
+
+  it("keeps real food product URLs ordered before thumbnails and productCard", () => {
+    const images = filterProductImageUrls(
+      [
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/thumb/CAT-FOOD-SAFE-CROISSTEEK_small.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/productCard/CAT-FOOD-SAFE-CROISSTEEK_card.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/img/fnb/CAT-FOOD-SAFE-CROISSTEEK.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/product/CAT-FOOD-SAFE-CROISSTEEK.jpg",
+      ],
+      pdp,
+      "CAT-FOOD-SAFE-CROISSTEEK",
+      "Croissant in a bag",
+    );
+
+    expect(images.slice(0, 2)).toEqual([
+      "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/product/CAT-FOOD-SAFE-CROISSTEEK.jpg",
+      "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/img/fnb/CAT-FOOD-SAFE-CROISSTEEK.jpg",
+    ]);
+    expect(images.at(-1)).toContain("/productCard/");
+  });
+
+  it("removes unrelated productCard images", () => {
+    const images = filterProductImageUrls(
+      [
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/productCard/CAT-FOOD-SAFE-BURGER.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/product/CAT-FOOD-SAFE-CROISSTEEK.jpg",
+      ],
+      pdp,
+      "CAT-FOOD-SAFE-CROISSTEEK",
+      "Croissant in a bag",
+    );
+
+    expect(images).toHaveLength(1);
+    expect(images[0]).toContain("CAT-FOOD-SAFE-CROISSTEEK");
+  });
+
+  it("keeps power and flooring image URLs", () => {
+    const images = filterProductImageUrls(
+      [
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/power/MANDATORY-DAYTIME-POWER.jpg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/flooring/RAISED-STAND-FLOOR.jpg",
+      ],
+      pdp,
+      "MANDATORY-DAYTIME-POWER",
+      "Mandatory daytime power",
+    );
+
+    expect(images).toEqual([
+      "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/power/MANDATORY-DAYTIME-POWER.jpg",
+      "https://service.rai.nl/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/flooring/RAISED-STAND-FLOOR.jpg",
+    ]);
+  });
+
+  it("does not return Hamburger, Logo, or Close SVG as the first image", () => {
+    const images = filterProductImageUrls(
+      [
+        "/Hamburger_3.svg",
+        "/Logo.svg",
+        "/Close_L.svg",
+        "/INTERSHOP/static/WFS/RAI-raievents-Site/-/RAI/en_US/visuals/CHAIR-001.jpg",
+      ],
+      pdp,
+      "CHAIR-001",
+      "Conference chair",
+    );
+
+    expect(images[0]).not.toMatch(/Hamburger|Logo|Close|\.svg/i);
+    expect(images[0]).toContain("CHAIR-001.jpg");
+  });
+});
 
 describe("rai scraper product title extraction", () => {
   it("detects the cookie-disabled page text", () => {
