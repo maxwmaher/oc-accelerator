@@ -45,6 +45,7 @@ import ProductSpecs from "./product-detail/ProductSpecs";
 import RaiProductInfo from "./product-detail/RaiProductInfo";
 import {
   getRaiDemoContextById,
+  isDelegatedRaiDemoContext,
   RAI_DEMO_CONTEXT_STORAGE_KEY,
 } from "../../demo/raiDemoContexts";
 import {
@@ -729,6 +730,43 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         }
       }
 
+      const raiLineItemXp = {
+        RAI: {
+          Demo: true,
+          ...(raiServiceDetailsType
+            ? {
+                ServiceDetailsType: raiServiceDetailsType,
+                ServiceDetails: raiServiceDetails,
+              }
+            : {}),
+          CapturedFor: {
+            EventID: selectedRaiContext.eventId,
+            ExhibitorID: selectedRaiContext.exhibitorId,
+            Hall: selectedRaiContext.hall,
+            StandNumber: selectedRaiContext.standNumber,
+          },
+          // Demo-only: production would retrieve delegated access relationships
+          // from the post-Keycloak profile/Momentus service call and enforce
+          // permissions server-side before accepting this attribution.
+          ...(isDelegatedRaiDemoContext(selectedRaiContext)
+            ? {
+                Delegation: {
+                  DelegatedOrder: true,
+                  DelegationID: selectedRaiContext.delegationId,
+                  ActorAccountID: selectedRaiContext.actorAccountId,
+                  ActorCompanyName: selectedRaiContext.actorCompanyName,
+                  ActingOnBehalfOfAccountID:
+                    selectedRaiContext.actingOnBehalfOfAccountId,
+                  ActingOnBehalfOfCompanyName:
+                    selectedRaiContext.actingOnBehalfOfCompanyName,
+                  InvoiceTo: selectedRaiContext.invoiceTo,
+                  Source: "Mocked exhibitor-granted access",
+                },
+              }
+            : {}),
+        },
+      };
+
       await addCartLineItem({
         ProductID: productId,
         Quantity: quantity,
@@ -736,23 +774,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         Specs: Object.values(selectedSpecs).filter(
           (s) => s.OptionID || s.Value,
         ),
-        ...(raiServiceDetailsType
-          ? {
-              xp: {
-                RAI: {
-                  Demo: true,
-                  ServiceDetailsType: raiServiceDetailsType,
-                  ServiceDetails: raiServiceDetails,
-                  CapturedFor: {
-                    EventID: selectedRaiContext.eventId,
-                    ExhibitorID: selectedRaiContext.exhibitorId,
-                    Hall: selectedRaiContext.hall,
-                    StandNumber: selectedRaiContext.standNumber,
-                  },
-                },
-              },
-            }
-          : {}),
+        xp: raiLineItemXp,
       } as any);
       setAddingToCart(false);
       toast({
