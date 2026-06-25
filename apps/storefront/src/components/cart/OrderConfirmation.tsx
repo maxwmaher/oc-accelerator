@@ -134,6 +134,9 @@ const MomentusHandoffDemo = ({
     () => getConfirmationRaiContext(lineItems),
     [lineItems],
   );
+  const delegation = lineItems
+    .map((lineItem) => getLineItemRai(lineItem)?.Delegation)
+    .find((item) => item?.DelegatedOrder);
 
   return (
     <Box
@@ -211,6 +214,26 @@ const MomentusHandoffDemo = ({
             {raiContext.companyName}
           </Text>
         </SimpleGrid>
+
+        {delegation?.DelegatedOrder && (
+          <Box bg="purple.50" border="1px solid" borderColor="purple.100" rounded="md" p={3}>
+            {/* Demo-only: production would retrieve delegated access relationships from the post-Keycloak profile/Momentus service call and enforce permissions server-side. */}
+            <Text fontSize="sm" fontWeight="700" color="purple.800">
+              Delegated ordering
+            </Text>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={1} mt={2}>
+              <Text fontSize="xs">Ordered by: {delegation.ActorCompanyName}</Text>
+              <Text fontSize="xs">
+                Ordering for: {delegation.ActingOnBehalfOfCompanyName}
+              </Text>
+              <Text fontSize="xs">Delegation: {delegation.DelegationID}</Text>
+              <Text fontSize="xs">Invoice attribution: {delegation.InvoiceTo}</Text>
+            </SimpleGrid>
+            <Text fontSize="xs" color="purple.700" mt={2}>
+              Audit: actor and represented exhibitor captured for Momentus handoff
+            </Text>
+          </Box>
+        )}
 
         <Box bg="blackAlpha.50" rounded="md" p={3}>
           <Text fontSize="sm" fontWeight="700">
