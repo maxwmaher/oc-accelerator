@@ -21,27 +21,20 @@ import { useCallback, useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { CartInformationPanel } from "./cart-panels/CartInformationPanel";
 import { CartPaymentPanel } from "./cart-panels/CartPaymentPanel";
-import CartShippingPanel from "./cart-panels/CartShippingPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
 
 export const TABS = {
   INFORMATION: 0,
-  SHIPPING: 1,
-  PAYMENT: 2,
+  PAYMENT: 1,
 };
 
 export const ShoppingCart = (): JSX.Element => {
   const [submitting, setSubmitting] = useState(false);
   const [tabIndex, setTabIndex] = useState(TABS.INFORMATION);
 
-  const {
-    orderWorksheet,
-    worksheetLoading,
-    deleteCart,
-    submitCart,
-    estimateShipping,
-  } = useShopper();
+  const { orderWorksheet, worksheetLoading, deleteCart, submitCart } =
+    useShopper();
 
   const [shippingAddress, setShippingAddress] = useState<Address>({
     FirstName: "",
@@ -87,12 +80,8 @@ export const ShoppingCart = (): JSX.Element => {
 
   const handleNextTab = () => {
     setTabIndex((prevIndex) =>
-      Math.min(prevIndex + 1, Object.keys(TABS).length - 1)
+      Math.min(prevIndex + 1, Object.keys(TABS).length - 1),
     );
-  };
-
-  const handlePrevTab = () => {
-    setTabIndex((prevIndex) => Math.max(prevIndex - 1, 0));
   };
 
   const handleTabChange = (index: number) => {
@@ -103,8 +92,7 @@ export const ShoppingCart = (): JSX.Element => {
     if (!orderWorksheet?.Order?.ID) return;
 
     try {
-      await setShippingAddress(shippingAddress);
-      await estimateShipping();
+      setShippingAddress(shippingAddress);
     } catch (err) {
       console.error("Failed to save shipping address:", err);
     }
@@ -166,7 +154,6 @@ export const ShoppingCart = (): JSX.Element => {
                     >
                       <TabList>
                         <Tab>Information</Tab>
-                        <Tab>Shipping</Tab>
                         <Tab>Payment</Tab>
                       </TabList>
 
@@ -180,14 +167,6 @@ export const ShoppingCart = (): JSX.Element => {
                             }
                           />
                         </TabPanel>
-                        <TabPanel>
-                          <CartShippingPanel
-                            shippingAddress={shippingAddress}
-                            handleNextTab={handleNextTab}
-                            handlePrevTab={handlePrevTab}
-                          />
-                        </TabPanel>
-
                         <TabPanel display="flex" flexDirection="column">
                           <CartPaymentPanel
                             submitOrder={submitOrder}
