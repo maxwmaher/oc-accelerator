@@ -96,17 +96,51 @@ public class RaiDevWorldXpTests
         dynamic parsed = Newtonsoft.Json.JsonConvert.DeserializeObject(json)!;
         Assert.That((string)parsed.Images[0].ThumbnailUrl, Is.EqualTo("https://example.test/thumb.jpg"));
         Assert.That((bool)parsed.RAI.Managed, Is.True);
-        Assert.That((string)parsed.RAI.SourceSystem, Is.EqualTo("RAI"));
         Assert.That((string)parsed.RAI.Event, Is.EqualTo("DevWorld"));
-        Assert.That((string)parsed.RAI.SourceProductID, Is.EqualTo("source-1"));
         Assert.That((string)parsed.RAI.SourceSKU, Is.EqualTo("sku-1"));
         Assert.That((string)parsed.RAI.SourceUrl, Is.EqualTo("https://example.test/product"));
-        Assert.That((string)parsed.RAI.ScrapedAtUtc, Is.EqualTo("2026-06-25T00:00:00Z"));
         Assert.That((string)parsed.RAI.SourceHash, Is.EqualTo("hash-1"));
+        Assert.That(json, Does.Not.Contain("SourceSystem"));
+        Assert.That(json, Does.Not.Contain("SourceProductID"));
+        Assert.That(json, Does.Not.Contain("SourceCategoryPaths"));
+        Assert.That(json, Does.Not.Contain("ScrapedAtUtc"));
         Assert.That(json, Does.Not.Contain("Pricing"));
         Assert.That(json, Does.Not.Contain("Ordering"));
         Assert.That(json, Does.Not.Contain("Attributes"));
         Assert.That(json, Does.Not.Contain("Descriptions"));
+    }
+
+    [Test]
+    public void Product_xp_limits_images_to_first_three()
+    {
+        var images = Enumerable.Range(1, 5)
+            .Select(i => new OC_Accelerator.Models.RaiDevWorld.RaiImage($"https://example.test/thumb-{i}.jpg", $"https://example.test/image-{i}.jpg"))
+            .ToList();
+        var product = BuildProduct() with { Images = images };
+        var snapshot = BuildSnapshot(product);
+
+        var ocProduct = RaiSeeder.BuildProduct(product, snapshot);
+
+        var json = (string)ocProduct.xp;
+        dynamic parsed = Newtonsoft.Json.JsonConvert.DeserializeObject(json)!;
+        Assert.That(parsed.Images.Count, Is.EqualTo(3));
+        Assert.That((string)parsed.Images[0].Url, Is.EqualTo("https://example.test/image-1.jpg"));
+        Assert.That((string)parsed.Images[2].Url, Is.EqualTo("https://example.test/image-3.jpg"));
+        Assert.That(json, Does.Not.Contain("image-4.jpg"));
+    }
+
+    [Test]
+    public void Largest_scraped_product_xp_stays_under_ordercloud_limit()
+    {
+        if (!TryFindRepoFile("tools/rai-devworld/data/rai-devworld.snapshot.json", out var snapshotPath))
+            Assert.Ignore("The scraped RAI DevWorld snapshot is not present in this checkout.");
+        var snapshot = RaiSeeder.Load(snapshotPath);
+
+        var maxProductXpLength = snapshot.Products
+            .Select(product => ((string)RaiSeeder.BuildProduct(product, snapshot).xp).Length)
+            .Max();
+
+        Assert.That(maxProductXpLength, Is.LessThanOrEqualTo(8000));
     }
 
     [Test]
@@ -133,6 +167,24 @@ public class RaiDevWorldXpTests
         Assert.That(ex!.Message, Does.Contain("Product"));
         Assert.That(ex.Message, Does.Contain("prod-large"));
         Assert.That(ex.Message, Does.Contain("characters"));
+    }
+
+    private static bool TryFindRepoFile(string relativePath, out string path)
+    {
+        var directory = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
+        while (directory != null)
+        {
+            var candidate = Path.Combine(directory.FullName, relativePath);
+            if (File.Exists(candidate))
+            {
+                path = candidate;
+                return true;
+            }
+            directory = directory.Parent;
+        }
+
+        path = string.Empty;
+        return false;
     }
 
     private static OC_Accelerator.Models.RaiDevWorld.RaiSnapshot BuildSnapshot(OC_Accelerator.Models.RaiDevWorld.RaiProduct product) => new(
