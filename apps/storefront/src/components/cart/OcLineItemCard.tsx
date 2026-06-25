@@ -32,6 +32,23 @@ import { parseProductXp } from "../../utils/productXp";
 import OcQuantityInput from "./OcQuantityInput";
 import { useShopper } from "@ordercloud/react-sdk";
 
+const getRaiServiceDetailsSummary = (lineItem: LineItem) => {
+  const rai = (lineItem.xp as any)?.RAI;
+  const details = rai?.ServiceDetails;
+  if (!rai?.Demo || !details) return undefined;
+
+  if (rai.ServiceDetailsType === "catering") {
+    return `Delivery: ${details.deliveryTimeSlot || "—"} · Contact: ${details.standContactName || "—"}`;
+  }
+  if (rai.ServiceDetailsType === "utility") {
+    return `Grid: ${details.standGridLocation || "—"} · Required: ${details.requiredBy || "—"}`;
+  }
+  if (rai.ServiceDetailsType === "flooring") {
+    return `Area: ${details.standAreaM2 || "—"} m² · Ramp: ${details.rampRequired || "—"}`;
+  }
+  return undefined;
+};
+
 interface OcLineItemCardProps {
   lineItem: LineItem;
   editable?: boolean;
@@ -66,7 +83,7 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
         onChange(response);
       }
     },
-    [lineItem.ID, lineItem.Quantity, onChange, patchCartLineItem]
+    [lineItem.ID, lineItem.Quantity, onChange, patchCartLineItem],
   );
 
   useEffect(() => {
@@ -81,9 +98,16 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
     return formatPrice(lineItem.UnitPrice);
   }, [lineItem]);
 
-  const productXp = useMemo(() => parseProductXp(lineItem?.Product?.xp), [lineItem?.Product?.xp]);
+  const productXp = useMemo(
+    () => parseProductXp(lineItem?.Product?.xp),
+    [lineItem?.Product?.xp],
+  );
   const primaryImage = productXp.Images?.[0];
   const primaryImageUrl = primaryImage?.ThumbnailUrl || primaryImage?.Url;
+  const raiServiceDetailsSummary = useMemo(
+    () => getRaiServiceDetailsSummary(lineItem),
+    [lineItem],
+  );
 
   return (
     <>
@@ -150,6 +174,11 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
               {lineItem.Product?.ID}
             </Text>
           </HStack>
+          {raiServiceDetailsSummary && (
+            <Text mt={-3} fontSize="xs" color="chakra-subtle-text">
+              {raiServiceDetailsSummary}
+            </Text>
+          )}
           {lineItem?.Specs?.map((spec) => (
             <React.Fragment key={spec.SpecID}>
               <Text mt={-3} fontSize="xs" color="chakra-subtle-text">
