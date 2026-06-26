@@ -30,13 +30,11 @@ import { Link as RouterLink } from "react-router-dom";
 import { DEFAULT_BRAND } from "../assets/DEFAULT_BRAND";
 import { BRAND_LOGO_DARK, BRAND_LOGO_LIGHT } from "../constants";
 import {
-  getRaiDemoContextById,
-  RAI_DEMO_CONTEXT_STORAGE_KEY,
   RAI_DEMO_CONTEXTS,
   isDelegatedRaiDemoContext,
 } from "../demo/raiDemoContexts";
-import { RAI_DEMO_CONTEXT_CHANGED_EVENT } from "../demo/raiDemoVisibility";
 import { useCurrentUser } from "../hooks/currentUser";
+import { useRaiDemoContext } from "../hooks/useRaiDemoContext";
 import MegaMenu from "../Layout/MegaMenu";
 
 interface MainMenuProps {
@@ -49,13 +47,10 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   const megaMenuDisclosure = useDisclosure();
   const toast = useToast();
   const [selectedCatalog, setSelectedCatalog] = useState<string>("");
-  const [selectedRaiContextId, setSelectedRaiContextId] = useState(() => {
-    if (typeof window === "undefined") return RAI_DEMO_CONTEXTS[0].id;
-
-    return getRaiDemoContextById(
-      window.localStorage.getItem(RAI_DEMO_CONTEXT_STORAGE_KEY),
-    ).id;
-  });
+  const {
+    selectedContext: selectedRaiContext,
+    setSelectedContextId: setSelectedRaiContextId,
+  } = useRaiDemoContext();
 
   const { orderWorksheet } = useShopper();
 
@@ -93,7 +88,6 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     );
   }, [orderWorksheet?.LineItems]);
 
-  const selectedRaiContext = getRaiDemoContextById(selectedRaiContextId);
   const isDelegatedRaiContext = isDelegatedRaiDemoContext(selectedRaiContext);
 
   const getRaiContextTitle = (context: typeof selectedRaiContext) =>
@@ -116,14 +110,6 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     ? `${selectedRaiContext.actorRole} · ${selectedRaiContext.hall} · Stand ${selectedRaiContext.standNumber}`
     : getRaiContextTitle(selectedRaiContext);
 
-  useEffect(() => {
-    window.localStorage.setItem(
-      RAI_DEMO_CONTEXT_STORAGE_KEY,
-      selectedRaiContext.id,
-    );
-    window.dispatchEvent(new CustomEvent(RAI_DEMO_CONTEXT_CHANGED_EVENT));
-  }, [selectedRaiContext.id]);
-
   const handleRaiContextSelect = (contextId: string) => {
     if (contextId === selectedRaiContext.id) return;
 
@@ -139,7 +125,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
       return;
     }
 
-    setSelectedRaiContextId(getRaiDemoContextById(contextId).id);
+    setSelectedRaiContextId(contextId);
   };
 
   const renderRaiContextMenu = () => {
