@@ -205,13 +205,13 @@ const RaiOrderingWindow: React.FC<RaiOrderingWindowProps> = ({ messaging }) => {
       >
         <Heading size="sm">Ordering window</Heading>
         <Badge colorScheme="purple" variant="subtle">
-          Mocked Momentus timeline
+          Mocked Momentus event timeline
         </Badge>
       </HStack>
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} fontSize="sm">
         <Box>
           <Text color="chakra-subtle-text" fontSize="xs">
-            Current stage
+            Current phase
           </Text>
           <Text fontWeight="semibold">
             {RAI_DEMO_EVENT_LIFECYCLE.currentStage}
@@ -222,7 +222,7 @@ const RaiOrderingWindow: React.FC<RaiOrderingWindowProps> = ({ messaging }) => {
         </Box>
         <Box>
           <Text color="chakra-subtle-text" fontSize="xs">
-            Next pricing phase/date
+            Next phase
           </Text>
           <Text fontWeight="semibold">
             {RAI_DEMO_EVENT_LIFECYCLE.nextStage} ·{" "}
@@ -239,9 +239,8 @@ const RaiOrderingWindow: React.FC<RaiOrderingWindowProps> = ({ messaging }) => {
         </Text>
       </HStack>
       <Text fontSize="xs" color="chakra-subtle-text">
-        Demo-only: Production would receive event phases, product availability,
-        and pricing windows from Momentus/resource data and enforce them
-        server-side or through catalog/pricing rules.
+        Availability and pricing windows are event-relative and would be sourced
+        from Momentus in the production flow.
       </Text>
     </VStack>
   );
@@ -274,9 +273,8 @@ const RaiDependencyRecommendations: React.FC<
       <VStack alignItems="flex-start" spacing={1}>
         <Heading size="sm">Recommended for this stand service</Heading>
         <Text fontSize="xs" color="chakra-subtle-text">
-          Production implementation: dependencies would be driven by
-          Momentus/product rules and enforced during checkout or guided
-          ordering.
+          Related services help prevent incomplete stand-service orders, such as
+          power without sockets or catering without required delivery details.
         </Text>
       </VStack>
       <VStack alignItems="stretch" spacing={2}>
@@ -315,7 +313,11 @@ const RaiDependencyRecommendations: React.FC<
                 variant="outline"
                 flexShrink={0}
               >
-                View product
+                {recommendation.name.toLowerCase().includes("power")
+                  ? "Add required power"
+                  : recommendation.name.toLowerCase().includes("socket")
+                    ? "Add sockets"
+                    : "Review placement"}
               </Button>
             ) : (
               <Button size="sm" variant="ghost" isDisabled flexShrink={0}>
@@ -364,9 +366,13 @@ const RaiServiceDetailsForm: React.FC<RaiServiceDetailsFormProps> = ({
     >
       <Heading size="sm">Required service details</Heading>
       <Text fontSize="xs" color="chakra-subtle-text">
-        Demo-only RAI line-item data capture. Production would use
-        business-configurable line-item fields driven by Momentus/product
-        configuration.
+        These details are captured before checkout so RAI and supplier teams can
+        prepare the service for the selected stand. {" "}
+        {type === "utility"
+          ? "Placement and technical details are passed downstream for electrical services."
+          : type === "catering"
+            ? "Delivery timing and stand contact details are passed downstream for catering operations."
+            : "Area, ramp, and finish details are passed downstream for stand construction planning."}
       </Text>
       {type === "catering" && (
         <>
@@ -510,7 +516,9 @@ const RaiStandPlacementMock: React.FC<RaiStandPlacementMockProps> = ({
         <Badge colorScheme="purple">Mocked Art of Fiber grid</Badge>
       </HStack>
       <Text fontSize="xs" color="chakra-subtle-text">
-        Demo-only placement preview for utility supplier execution.
+        Select the approximate stand-grid location for this service. In
+        production, this placement could be returned from the Art of Fiber
+        configurator through RAI middleware.
       </Text>
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
         <SimpleGrid columns={2} spacing={2} aria-label="Stand placement grid">
@@ -613,6 +621,90 @@ const RaiStandPlacementMock: React.FC<RaiStandPlacementMockProps> = ({
   );
 };
 
+interface RaiStandContextStripProps {
+  context: ReturnType<typeof getRaiDemoContextById>;
+}
+
+const RaiStandContextStrip: React.FC<RaiStandContextStripProps> = ({
+  context,
+}) => {
+  const contextItems = [
+    ["Event", context.eventName],
+    ["Hall", context.hall],
+    ["Stand number", context.standNumber],
+    ["Stand type", context.standType],
+    ["Stand package", context.standPackage],
+    ["ExhibitorID", context.exhibitorId],
+  ];
+
+  return (
+    <VStack
+      alignItems="stretch"
+      borderWidth="1px"
+      borderRadius="md"
+      bg="chakra-subtle-bg"
+      p={4}
+      spacing={3}
+      w="full"
+    >
+      <HStack justifyContent="space-between" flexWrap="wrap" gap={2}>
+        <Heading size="sm">Configured for this stand</Heading>
+        <Badge colorScheme="purple" variant="subtle">
+          Mocked Momentus profile context
+        </Badge>
+      </HStack>
+      {isDelegatedRaiDemoContext(context) && (
+        <Text fontSize="sm" fontWeight="semibold" color="primary.600">
+          Ordering on behalf of {context.actingOnBehalfOfCompanyName}
+        </Text>
+      )}
+      <SimpleGrid columns={{ base: 2, md: 3 }} spacing={3}>
+        {contextItems.map(([label, value]) => (
+          <Box key={label}>
+            <Text color="chakra-subtle-text" fontSize="xs">
+              {label}
+            </Text>
+            <Text fontSize="sm" fontWeight="semibold">
+              {value}
+            </Text>
+          </Box>
+        ))}
+      </SimpleGrid>
+    </VStack>
+  );
+};
+
+const getSupplierRoute = (type?: RaiServiceDetailsType) => {
+  if (type === "catering") return "Catering operations";
+  if (type === "utility") return "Electrical services";
+  if (type === "flooring") return "Stand construction";
+  return "Exhibitor services";
+};
+
+const RaiSupplierRoutingCallout: React.FC<{ type?: RaiServiceDetailsType }> = ({
+  type,
+}) => (
+  <VStack
+    alignItems="stretch"
+    borderWidth="1px"
+    borderRadius="md"
+    p={4}
+    spacing={2}
+    w="full"
+  >
+    <HStack justifyContent="space-between" flexWrap="wrap" gap={2}>
+      <Heading size="sm">Supplier routing</Heading>
+      <Badge colorScheme="blue" variant="subtle">
+        {getSupplierRoute(type)}
+      </Badge>
+    </HStack>
+    <Text fontSize="sm" color="chakra-subtle-text">
+      When submitted, this line item carries service details and stand context
+      for downstream Momentus and supplier work-order processing.
+    </Text>
+  </VStack>
+);
+
 export interface ProductDetailProps {
   productId: string;
   renderProductDetail?: (product: BuyerProduct) => JSX.Element;
@@ -651,6 +743,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   );
   const productXp = useMemo(() => parseProductXp(product?.xp), [product?.xp]);
   const productImages = useMemo(() => productXp.Images || [], [productXp.Images]);
+  const isRaiDemoProduct = Boolean(productXp.RAI);
   const raiServiceDetailsType = useMemo(
     () => getRaiServiceDetailsType(product),
     [product],
@@ -820,7 +913,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           (s) => s.OptionID || s.Value,
         ),
         xp: raiLineItemXp,
-      } as any);
+      } as Parameters<typeof addCartLineItem>[0]);
       setAddingToCart(false);
       toast({
         title: `${quantity} ${pluralize("item", quantity)} added to cart`,
@@ -890,7 +983,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           <Text color="chakra-subtle-text" fontSize="sm">
             {product.ID}
           </Text>
-          <Text maxW="prose">{product.Description}</Text>
+          <RaiStandContextStrip context={selectedRaiContext} />
+          <Box maxW="prose">
+            <Heading size="sm" mb={2}>
+              {isRaiDemoProduct ? "Service description" : "Product description"}
+            </Heading>
+            <Text>{product.Description}</Text>
+          </Box>
           <Text fontSize="3xl" fontWeight="medium">
             {formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}
           </Text>
@@ -915,6 +1014,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               recommendations={raiDependencyRecommendations}
             />
           )}
+          <RaiSupplierRoutingCallout type={raiServiceDetailsType} />
           {raiServiceDetailsType && (
             <RaiServiceDetailsForm
               type={raiServiceDetailsType}
@@ -936,14 +1036,23 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               onClick={handleAddToCart}
               isDisabled={addingToCart || outOfStock}
             >
-              {outOfStock ? "Out of stock" : "Add To Cart"}
+              {outOfStock
+                ? "Out of stock"
+                : isRaiDemoProduct
+                  ? "Add service to cart"
+                  : "Add To Cart"}
             </Button>
-            <OcQuantityInput
-              controlId="addToCart"
-              priceSchedule={product.PriceSchedule}
-              quantity={quantity}
-              onChange={setQuantity}
-            />
+            <VStack alignItems="flex-start" gap={1}>
+              <Text fontSize="xs" color="chakra-subtle-text">
+                {isRaiDemoProduct ? "Service quantity" : "Quantity"}
+              </Text>
+              <OcQuantityInput
+                controlId="addToCart"
+                priceSchedule={product.PriceSchedule}
+                quantity={quantity}
+                onChange={setQuantity}
+              />
+            </VStack>
           </HStack>
           {!outOfStock && IS_MULTI_LOCATION_INVENTORY && (
             <>
