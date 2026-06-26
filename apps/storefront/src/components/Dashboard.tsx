@@ -11,8 +11,7 @@ import {
 } from "@chakra-ui/react";
 import { FC } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import defaultHeroImage from "../assets/default_images/default_hero_image.jpg";
-import { DASHBOARD_HERO_IMAGE } from "../constants";
+import devWorldHeroImage from "../assets/rai_images/dev-world.png";
 
 const contextCards = [
   {
@@ -99,8 +98,8 @@ const Dashboard: FC = () => {
           w="full"
           objectFit="cover"
           objectPosition="center center"
-          src={DASHBOARD_HERO_IMAGE || defaultHeroImage}
-          alt="RAI Amsterdam exhibitor services demo"
+          src={devWorldHeroImage}
+          alt="DevWorld 2026 exhibitor services"
         />
       </SimpleGrid>
 
