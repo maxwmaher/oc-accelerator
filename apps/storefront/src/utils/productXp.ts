@@ -1,6 +1,8 @@
 export interface ProductXpImage {
   ThumbnailUrl?: string
   Url?: string
+  thumbnailUrl?: string
+  url?: string
 }
 
 export interface ProductXp {
