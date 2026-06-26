@@ -85,12 +85,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder }) => {
           as={RouterLink}
           to="/products"
         >
-          Continue shopping
+          Shop stand services
         </Button>
       </ButtonGroup>
       <OcCurrentOrderLineItemList
         lineItems={orderWorksheet?.LineItems}
-        emptyMessage="Your cart is empty"
+        emptyMessage="No stand services in your cart"
         onChange={handleLineItemChange}
         editable={false}
       />
@@ -127,7 +127,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder }) => {
       <Divider />
       <Stack spacing={3}>
         <Flex justify="space-between">
-          <Text>Subtotal</Text>
+          <Text>Services subtotal</Text>
           <Text>{formatPrice(orderWorksheet?.Order?.Subtotal)}</Text>
         </Flex>
         {orderWorksheet?.Order.PromotionDiscount &&
@@ -142,9 +142,13 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder }) => {
           <Text>{formatPrice(orderWorksheet?.Order?.TaxCost)}</Text>
         </Flex>
         <Flex justify="space-between" fontWeight="bold" fontSize="lg">
-          <Text>Total</Text>
+          <Text>Order total</Text>
           <Text>{formatPrice(orderWorksheet?.Order?.Total)}</Text>
         </Flex>
+        <Text fontSize="sm" color="chakra-subtle-text">
+          No parcel shipping is required. Fulfillment is handled through RAI
+          supplier work orders.
+        </Text>
       </Stack>
     </VStack>
   );

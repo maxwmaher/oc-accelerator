@@ -1,4 +1,5 @@
 import {
+  Badge,
   Button,
   Center,
   HStack,
@@ -37,21 +38,56 @@ interface RaiDelegationXp {
   ActingOnBehalfOfCompanyName?: string;
 }
 
+interface RaiLineItemXp {
+  RAI?: {
+    Demo?: boolean;
+    SupplierRoute?: string;
+    ServiceDetailsType?: "catering" | "utility" | "flooring" | string;
+    ServiceDetails?: Record<string, string | undefined>;
+    CapturedFor?: {
+      EventID?: string;
+      ExhibitorID?: string;
+      Hall?: string;
+      StandNumber?: string;
+    };
+    Delegation?: RaiDelegationXp;
+  };
+}
+
+const getRaiLineItemXp = (lineItem: LineItem) =>
+  lineItem.xp as RaiLineItemXp | undefined;
+
+const getRaiSupplierRoute = (lineItem: LineItem) => {
+  const rai = getRaiLineItemXp(lineItem)?.RAI;
+  if (rai?.SupplierRoute) return rai.SupplierRoute;
+  if (rai?.ServiceDetailsType === "catering") return "Catering operations";
+  if (rai?.ServiceDetailsType === "utility") return "Electrical services";
+  if (rai?.ServiceDetailsType === "flooring") return "Stand construction";
+  if (rai?.Demo) return "Exhibitor services";
+  return undefined;
+};
+
 const getRaiServiceDetailsSummary = (lineItem: LineItem) => {
-  const rai = (lineItem.xp as any)?.RAI;
+  const rai = getRaiLineItemXp(lineItem)?.RAI;
   const details = rai?.ServiceDetails;
   if (!rai?.Demo || !details) return undefined;
 
   if (rai.ServiceDetailsType === "catering") {
-    return `Delivery: ${details.deliveryTimeSlot || "—"} · Contact: ${details.standContactName || "—"}`;
+    return `Delivery date: ${details.deliveryDate || "—"} · Time slot: ${details.deliveryTimeSlot || "—"} · Stand contact: ${details.standContactName || "—"}`;
   }
   if (rai.ServiceDetailsType === "utility") {
-    return `Grid: ${details.standGridLocation || "—"} · Required: ${details.requiredBy || "—"}`;
+    return `Grid location: ${details.standGridLocation || "—"} · Required by: ${details.requiredBy || "—"} · Technical contact: ${details.technicalContactPhone || "—"}`;
   }
   if (rai.ServiceDetailsType === "flooring") {
-    return `Area: ${details.standAreaM2 || "—"} m² · Ramp: ${details.rampRequired || "—"}`;
+    return `Stand area: ${details.standAreaM2 || "—"} m² · Ramp: ${details.rampRequired || "—"} · Finish: ${details.floorFinish || "—"}`;
   }
   return undefined;
+};
+
+const getRaiCapturedForSummary = (lineItem: LineItem) => {
+  const capturedFor = getRaiLineItemXp(lineItem)?.RAI?.CapturedFor;
+  if (!capturedFor) return undefined;
+  return `EventID: ${capturedFor.EventID || "—"} · ExhibitorID: ${capturedFor.ExhibitorID || "—"} · Hall: ${capturedFor.Hall || "—"} · Stand number: ${capturedFor.StandNumber || "—"}`;
 };
 
 interface OcLineItemCardProps {
@@ -109,13 +145,19 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
   );
   const primaryImage = productXp.Images?.[0];
   const primaryImageUrl = primaryImage?.ThumbnailUrl || primaryImage?.Url;
+  const raiSupplierRoute = useMemo(
+    () => getRaiSupplierRoute(lineItem),
+    [lineItem],
+  );
   const raiServiceDetailsSummary = useMemo(
     () => getRaiServiceDetailsSummary(lineItem),
     [lineItem],
   );
-  const raiDelegation = (
-    lineItem.xp as { RAI?: { Delegation?: RaiDelegationXp } } | undefined
-  )?.RAI?.Delegation;
+  const raiCapturedForSummary = useMemo(
+    () => getRaiCapturedForSummary(lineItem),
+    [lineItem],
+  );
+  const raiDelegation = getRaiLineItemXp(lineItem)?.RAI?.Delegation;
 
   return (
     <>
@@ -182,9 +224,25 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
               {lineItem.Product?.ID}
             </Text>
           </HStack>
+          {raiSupplierRoute && (
+            <Badge mt={-2} colorScheme="blue" variant="subtle">
+              Supplier route: {raiSupplierRoute}
+            </Badge>
+          )}
           {raiServiceDetailsSummary && (
-            <Text mt={-3} fontSize="xs" color="chakra-subtle-text">
+            <Text mt={-2} fontSize="xs" color="chakra-subtle-text">
+              <Text fontWeight="600" display="inline">
+                Service details: {" "}
+              </Text>
               {raiServiceDetailsSummary}
+            </Text>
+          )}
+          {raiCapturedForSummary && (
+            <Text mt={-3} fontSize="xs" color="chakra-subtle-text">
+              <Text fontWeight="600" display="inline">
+                Event / stand: {" "}
+              </Text>
+              {raiCapturedForSummary}
             </Text>
           )}
           {raiDelegation?.DelegatedOrder && (

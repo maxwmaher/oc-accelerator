@@ -1,10 +1,13 @@
 import {
+  Badge,
+  Box,
   Button,
   Center,
   Container,
   Grid,
   GridItem,
   Heading,
+  SimpleGrid,
   Spinner,
   Tab,
   TabList,
@@ -17,7 +20,7 @@ import {
 } from "@chakra-ui/react";
 import { useShopper } from "@ordercloud/react-sdk";
 import { Address, Orders } from "ordercloud-javascript-sdk";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { CartInformationPanel } from "./cart-panels/CartInformationPanel";
 import {
@@ -27,6 +30,8 @@ import {
 } from "./cart-panels/CartPaymentPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
+import { useRaiDemoContext } from "../../hooks/useRaiDemoContext";
+import { isDelegatedRaiDemoContext } from "../../demo/raiDemoContexts";
 
 export const TABS = {
   INFORMATION: 0,
@@ -62,17 +67,43 @@ export const ShoppingCart = (): JSX.Element => {
 
   const navigate = useNavigate();
   const toast = useToast();
+  const { selectedContext } = useRaiDemoContext();
+  const isDelegatedContext = isDelegatedRaiDemoContext(selectedContext);
+  const orderContextRows = useMemo(() => {
+    const rows = [
+      ["Event", selectedContext.eventName],
+      ["Company", selectedContext.companyName],
+      ["ExhibitorID", selectedContext.exhibitorId],
+      ["Hall", selectedContext.hall],
+      ["Stand number", selectedContext.standNumber],
+      ["Stand type", selectedContext.standType],
+      ["Stand package", selectedContext.standPackage],
+      ["AccountID", selectedContext.accountId],
+    ];
+
+    if (isDelegatedContext) {
+      rows.push(
+        ["Ordered by", selectedContext.actorCompanyName],
+        ["Ordering for", selectedContext.actingOnBehalfOfCompanyName || "—"],
+        ["DelegationID", selectedContext.delegationId || "—"],
+        ["Invoice attribution", selectedContext.invoiceTo || "—"],
+      );
+    }
+
+    return rows;
+  }, [isDelegatedContext, selectedContext]);
 
   const submitOrder = useCallback(async () => {
     if (!orderWorksheet?.Order?.ID) return;
     setSubmitting(true);
     try {
-      const existingXp = (orderWorksheet.Order.xp || {}) as Record<string, any>;
+      const existingXp = (orderWorksheet.Order.xp || {}) as Record<string, unknown>;
+      const existingRaiXp = (existingXp.RAI || {}) as Record<string, unknown>;
       await Orders.Patch("Outgoing", orderWorksheet.Order.ID, {
         xp: {
           ...existingXp,
           RAI: {
-            ...(existingXp.RAI || {}),
+            ...existingRaiXp,
             Payment: {
               Method: paymentMethod,
               PayOnInvoiceFlag: true,
@@ -178,7 +209,43 @@ export const ShoppingCart = (): JSX.Element => {
                     ml="auto"
                     p={{ base: 6, lg: 12 }}
                   >
-                    <Heading mb={6}>Checkout</Heading>
+                    <Heading mb={3}>Review stand services</Heading>
+                    <Text color="chakra-subtle-text" mb={6}>
+                      Confirm the services, quantities, and operational details
+                      for the active event and stand before submitting the order.
+                    </Text>
+
+                    <Box
+                      borderWidth="1px"
+                      borderRadius="lg"
+                      p={4}
+                      mb={6}
+                      bg="white"
+                    >
+                      <Badge colorScheme="green" mb={3}>
+                        Cart locked to current stand context
+                      </Badge>
+                      <Heading size="sm" mb={3}>
+                        Order context
+                      </Heading>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+                        {orderContextRows.map(([label, value]) => (
+                          <Box key={label}>
+                            <Text fontSize="xs" color="chakra-subtle-text">
+                              {label}
+                            </Text>
+                            <Text fontSize="sm" fontWeight="700">
+                              {value}
+                            </Text>
+                          </Box>
+                        ))}
+                      </SimpleGrid>
+                    </Box>
+
+                    <Text fontSize="sm" color="chakra-subtle-text" mb={6}>
+                      To prevent mixing services across stands, switch event or
+                      stand context only after completing or emptying this cart.
+                    </Text>
 
                     <Tabs
                       size="sm"
@@ -187,8 +254,8 @@ export const ShoppingCart = (): JSX.Element => {
                       variant="soft-rounded"
                     >
                       <TabList>
-                        <Tab>Information</Tab>
-                        <Tab>Payment</Tab>
+                        <Tab>Order details</Tab>
+                        <Tab>Payment terms</Tab>
                       </TabList>
 
                       <TabPanels>
@@ -237,9 +304,13 @@ export const ShoppingCart = (): JSX.Element => {
           ) : (
             <Center flex="1">
               <VStack mt={-28}>
-                <Heading>Cart is empty</Heading>
+                <Heading>No stand services in your cart</Heading>
+                <Text color="chakra-subtle-text">
+                  Browse the catalogue for the selected event and stand to add
+                  services before checkout.
+                </Text>
                 <Button as={RouterLink} size="sm" to="/products">
-                  Continue shopping
+                  Shop stand services
                 </Button>
               </VStack>
             </Center>
