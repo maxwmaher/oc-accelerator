@@ -650,14 +650,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     {},
   );
   const productXp = useMemo(() => parseProductXp(product?.xp), [product?.xp]);
-  const productImages = useMemo(
-    () =>
-      (productXp.Images || []).filter(
-        (image): image is { ThumbnailUrl?: string; Url: string } =>
-          Boolean(image.Url),
-      ),
-    [productXp.Images],
-  );
+  const productImages = useMemo(() => productXp.Images || [], [productXp.Images]);
   const raiServiceDetailsType = useMemo(
     () => getRaiServiceDetailsType(product),
     [product],

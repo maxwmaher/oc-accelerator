@@ -9,23 +9,26 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { TbPhoto } from "react-icons/tb";
-
-type ProductImage = {
-  ThumbnailUrl?: string;
-  Url: string;
-};
+import type { ProductXpImage } from "../../../utils/productXp";
 
 interface ProductImageGalleryProps {
-  images: ProductImage[];
+  images: ProductXpImage[];
 }
+
+const getImageUrl = (image: ProductXpImage | undefined) =>
+  image?.Url || image?.url;
+
+const getThumbnailUrl = (image: ProductXpImage | undefined) =>
+  image?.ThumbnailUrl || image?.thumbnailUrl || getImageUrl(image);
 
 const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
   images,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState(false);
+  const displayImages = images.filter((image) => Boolean(getImageUrl(image)));
 
-  if (!images.length || error) {
+  if (!displayImages.length || error) {
     return (
       <Center
         bgColor="chakra-subtle-bg"
@@ -47,7 +50,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
       gap={3}
       zIndex={0}
     >
-      {images.length > 1 && (
+      {displayImages.length > 1 && (
         <VStack
           maxH="100%"
           gap={2}
@@ -56,7 +59,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
           pr="4"
           zIndex={2}
         >
-          {images.map((image, idx) => (
+          {displayImages.map((image, idx) => (
             <Button
               key={idx}
               boxSize="full"
@@ -74,7 +77,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
               <Image
                 boxSize="60px"
                 objectFit="cover"
-                src={image.ThumbnailUrl || image.Url}
+                src={getThumbnailUrl(image)}
               />
             </Button>
           ))}
@@ -90,7 +93,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
           w="full"
           maxH="75vh"
           objectFit="contain"
-          src={images[selectedIndex]?.ThumbnailUrl || images[selectedIndex]?.Url}
+          src={getThumbnailUrl(displayImages[selectedIndex])}
           onError={() => setError(true)}
         />
       </Flex>
