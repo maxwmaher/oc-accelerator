@@ -30,6 +30,7 @@ public class RaiSeeder
             var dryRunPayloads = BuildAndValidateTypedPayloads(snap, o.CatalogId, categories);
             await log.WriteLineAsync($"Dry run: {snap.Products.Count} snapshot product records, {snap.Categories.Count} source categories, {specs} specs, {opts} options.");
             await log.WriteLineAsync($"Dry run validated typed OrderCloud payloads for catalog '{o.CatalogId}': {dryRunPayloads.Categories.Count} curated categories, {dryRunPayloads.PriceSchedules.Count} unique price schedules, {dryRunPayloads.Products.Count} unique products, {dryRunPayloads.CatalogAssignments.Count} unique catalog assignments, {dryRunPayloads.CategoryAssignments.Count} unique category assignments.");
+            await log.WriteLineAsync($"Dry run validated {dryRunPayloads.PriceSchedules.Count} RAI price schedules as currency-neutral (Currency is omitted/null; EUR display formatting remains storefront-only).");
             await log.WriteLineAsync($"Dry run cleanup: would keep {CuratedCategoryIds.Count} curated RAI categories and prune {CountSnapshotRaiCategoriesToPrune(snap)} scraped/source RAI categories not in the curated set. A real run also checks existing remote RAI-managed categories before pruning.");
             await log.WriteLineAsync($"Dry run duplicates: {dryRunPayloads.SnapshotProductRecords} snapshot product records, {dryRunPayloads.Products.Count} unique product writes, {dryRunPayloads.DuplicateProductRecordsCollapsed} duplicate product records collapsed.");
             await log.WriteLineAsync($"Dry run XP lengths: max category xp {dryRunPayloads.MaxCategoryXpLength} chars, max product xp {dryRunPayloads.MaxProductXpLength} chars.");
@@ -175,7 +176,7 @@ public class RaiSeeder
             MaxQuantity = p.Pricing.MaxQuantity,
             RestrictedQuantity = p.Pricing.QuantityMultiplier > 1,
             UseCumulativeQuantity = false,
-            Currency = "EUR",
+            Currency = null,
             PriceBreaks = breaks
         };
     }
@@ -341,6 +342,7 @@ public class RaiSeeder
         {
             if (string.IsNullOrWhiteSpace(priceSchedule.ID)) throw new InvalidOperationException("RAI price schedule seed built a price schedule without an ID.");
             if (string.IsNullOrWhiteSpace(priceSchedule.Name)) throw new InvalidOperationException($"RAI price schedule '{priceSchedule.ID}' is missing a name.");
+            if (!string.IsNullOrWhiteSpace(priceSchedule.Currency)) throw new InvalidOperationException($"RAI price schedule '{priceSchedule.ID}' must be currency-neutral, but Currency was '{priceSchedule.Currency}'.");
             if (priceSchedule.PriceBreaks == null || !priceSchedule.PriceBreaks.Any()) throw new InvalidOperationException($"RAI price schedule '{priceSchedule.ID}' is missing price breaks.");
             foreach (var priceBreak in priceSchedule.PriceBreaks)
             {
@@ -438,7 +440,8 @@ public class RaiSeeder
 
         foreach (var priceSchedule in typedPayloads.PriceSchedules)
         {
-            await log.WriteLineAsync($"Saving price schedule {priceSchedule.ID}");
+            EnsureCurrencyNeutral(priceSchedule);
+            await log.WriteLineAsync($"Saving currency-neutral price schedule {priceSchedule.ID}");
             await Retry(async () => await oc.PriceSchedules.SaveAsync(priceSchedule.ID, priceSchedule, null), "price schedule", priceSchedule.ID);
         }
 
@@ -468,13 +471,18 @@ public class RaiSeeder
         dynamic oc = ocClient;
         var curated = new HashSet<string>(curatedCategoryIds, StringComparer.OrdinalIgnoreCase);
         List<string> existing = await ListRaiManagedCategoryIdsAsync((object)oc, catalogId);
-        List<string> stale = existing.Where(id => !curated.Contains(id)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        List<string> stale = existing
+            .Where(id => IsRaiManagedCategoryId(id) && !curated.Contains(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(id => id.Length)
+            .ThenBy(id => id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
         await log.WriteLineAsync($"RAI category cleanup: pruning {stale.Count} stale RAI-managed categories; keeping {curated.Count} curated categories.");
         foreach (string categoryId in stale)
         {
             await log.WriteLineAsync($"Pruning stale RAI category {categoryId}");
-            await DeleteCategoryProductAssignmentsAsync((object)oc, catalogId, categoryId);
-            await Retry(async () => await oc.Categories.DeleteAsync(catalogId, categoryId, false, null), "category", categoryId);
+            await DeleteCategoryProductAssignmentsAsync((object)oc, catalogId, categoryId, log);
+            await RetryIdempotentDeleteAsync(async () => await oc.Categories.DeleteAsync(catalogId, categoryId, false, null), "category", categoryId, log);
         }
         return stale.Count;
     }
@@ -498,12 +506,21 @@ public class RaiSeeder
         return ids;
     }
 
-    static async Task DeleteCategoryProductAssignmentsAsync(object ocClient, string catalogId, string categoryId)
+    static async Task DeleteCategoryProductAssignmentsAsync(object ocClient, string catalogId, string categoryId, TextWriter log)
     {
         dynamic oc = ocClient;
         for (var page = 1; ; page++)
         {
-            dynamic response = await oc.Categories.ListProductAssignmentsAsync(catalogId, categoryId, null, page, 100, null, false, null);
+            dynamic response;
+            try
+            {
+                response = await oc.Categories.ListProductAssignmentsAsync(catalogId, categoryId, null, page, 100, null, false, null);
+            }
+            catch (OrderCloudException ex) when (IsNotFound(ex))
+            {
+                await log.WriteLineAsync($"Stale RAI category {categoryId} was already missing while listing product assignments; continuing cleanup.");
+                return;
+            }
             List<string> productIds = new();
             foreach (var item in response.Items)
             {
@@ -511,7 +528,7 @@ public class RaiSeeder
                 if (!string.IsNullOrWhiteSpace(productId)) productIds.Add(productId!);
             }
             foreach (string productId in productIds)
-                await Retry(async () => await oc.Categories.DeleteProductAssignmentAsync(catalogId, categoryId, productId, false, null), "category product assignment", $"{categoryId}/{productId}");
+                await RetryIdempotentDeleteAsync(async () => await oc.Categories.DeleteProductAssignmentAsync(catalogId, categoryId, productId, false, null), "category product assignment", $"{categoryId}/{productId}", log);
             int metaPage = response.Meta.Page;
             int totalPages = response.Meta.TotalPages;
             if (metaPage >= totalPages || totalPages == 0) break;
@@ -519,6 +536,26 @@ public class RaiSeeder
     }
 
     static bool IsRaiManagedCategoryId(string? id) => id?.StartsWith(RaiCategoryIdPrefix, StringComparison.OrdinalIgnoreCase) == true;
+
+    static void EnsureCurrencyNeutral(PriceSchedule priceSchedule)
+    {
+        priceSchedule.Currency = null;
+        ValidatePriceSchedules(new[] { priceSchedule });
+    }
+
+    static async Task RetryIdempotentDeleteAsync(Func<Task> op, string resourceType, string resourceId, TextWriter log)
+    {
+        try
+        {
+            await Retry(op, resourceType, resourceId);
+        }
+        catch (InvalidOperationException ex) when (ex.InnerException is OrderCloudException ocEx && IsNotFound(ocEx))
+        {
+            await log.WriteLineAsync($"{resourceType} '{resourceId}' was already missing; continuing cleanup.");
+        }
+    }
+
+    static bool IsNotFound(OrderCloudException ex) => (int)ex.HttpStatus == 404;
 
     static async Task Retry(Func<Task> op, string resourceType, string resourceId)
     {
