@@ -337,6 +337,9 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
                 {`Welcome, ${user?.FirstName} ${user?.LastName}`}
               </Heading>
             )}
+            <Button as={RouterLink} to="/orders" variant="ghost" size="sm">
+              My orders
+            </Button>
             <Button
               as={RouterLink}
               to="/cart"

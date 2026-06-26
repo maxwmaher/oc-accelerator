@@ -32,7 +32,7 @@ import {
 } from "../../demo/raiDemoContexts";
 import OrderSummary from "./OrderSummary";
 
-type RaiServiceDetailsType = "catering" | "utility" | "flooring";
+export type RaiServiceDetailsType = "catering" | "utility" | "flooring";
 type RaiServiceDetails = Record<string, string | number | boolean | undefined>;
 
 const MOMENTUS_HANDOFF_STATUSES = [
@@ -44,7 +44,7 @@ const MOMENTUS_HANDOFF_STATUSES = [
 
 const getLineItemRai = (lineItem: LineItem) => (lineItem.xp as any)?.RAI;
 
-const getMomentusOrderReference = (orderId?: string) => {
+export const getMomentusOrderReference = (orderId?: string) => {
   const safeSuffix = (orderId || "DEMO00")
     .replace(/[^a-zA-Z0-9]/g, "")
     .slice(-6)
@@ -68,14 +68,14 @@ const getPaymentConfirmation = (order: RequiredDeep<Order>) => {
   return { label, helperText };
 };
 
-const getSupplierRoute = (type?: string) => {
+export const getSupplierRoute = (type?: string) => {
   if (type === "catering") return "Catering operations";
   if (type === "utility") return "Electrical services";
   if (type === "flooring") return "Stand construction";
   return "Exhibitor services";
 };
 
-const formatServiceDetails = (
+export const formatServiceDetails = (
   type?: RaiServiceDetailsType,
   details?: RaiServiceDetails,
 ) => {
