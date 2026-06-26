@@ -1,4 +1,4 @@
-import { RouteObject } from "react-router-dom";
+import { Navigate, RouteObject } from "react-router-dom";
 import Layout from "./Layout/Layout";
 import Dashboard from './components/Dashboard';
 import OrderConfirmation from "./components/cart/OrderConfirmation";
@@ -7,7 +7,6 @@ import { ShoppingCart } from "./components/cart/ShoppingCart";
 import CategoryList from "./components/category/CategoryList";
 import ProductDetailWrapper from "./components/product/ProductDetailWrapper";
 import ProductList from "./components/product/ProductList";
-import EventConfiguration from "./components/event-configuration/EventConfiguration";
 import EventCommerceSetup from "./components/event-commerce-setup/EventCommerceSetup";
 
 const routes: RouteObject[] = [
@@ -29,7 +28,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "/event-configuration",
-        element: <EventConfiguration />,
+        element: <Navigate to="/event-commerce-setup" replace />,
       },
       {
         path: "/event-commerce-setup",

@@ -169,7 +169,7 @@ const EventCommerceSetup: FC = () => {
             <CardBody>
               <Stack spacing={5}>
                 <Heading as="h2" size="md">
-                  Template reuse
+                  Template reuse for commerce configuration
                 </Heading>
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <Stat p={5} bg="green.50" borderRadius="lg">
@@ -185,7 +185,7 @@ const EventCommerceSetup: FC = () => {
                 </SimpleGrid>
                 <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={4}>
                   <Box p={4} bg="white" borderWidth="1px" borderRadius="lg">
-                    <Text fontSize="sm" color="gray.500">Reused from</Text>
+                    <Text fontSize="sm" color="gray.500">Reused commerce baseline</Text>
                     <Text fontWeight="semibold">DevWorld 2025</Text>
                   </Box>
                   <Box p={4} bg="white" borderWidth="1px" borderRadius="lg">
