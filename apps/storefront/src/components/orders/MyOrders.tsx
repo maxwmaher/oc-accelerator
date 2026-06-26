@@ -165,9 +165,11 @@ const MyOrders = (): JSX.Element => {
           spacing={4}
         >
           <Box>
-            <Heading size="xl">My orders</Heading>
+            <Heading size="xl">My stand service orders</Heading>
             <Text color="chakra-subtle-text" mt={2}>
-              Order history grouped by RAI event, stand, and ExhibitorID.
+              Review submitted service orders for the selected event and stand.
+              Switch context to view orders for another stand or delegated
+              exhibitor relationship.
             </Text>
           </Box>
           <Button
@@ -176,7 +178,7 @@ const MyOrders = (): JSX.Element => {
             colorScheme="blue"
             alignSelf="flex-start"
           >
-            Continue shopping
+            Shop stand services
           </Button>
         </Stack>
 
@@ -233,6 +235,18 @@ const MyOrders = (): JSX.Element => {
             </Text>
             <Text>
               <Text as="span" fontWeight="700">
+                Stand type:
+              </Text>{" "}
+              {activeContext.standType}
+            </Text>
+            <Text>
+              <Text as="span" fontWeight="700">
+                Stand package:
+              </Text>{" "}
+              {activeContext.standPackage}
+            </Text>
+            <Text>
+              <Text as="span" fontWeight="700">
                 AccountID:
               </Text>{" "}
               {activeContext.accountId}
@@ -241,7 +255,16 @@ const MyOrders = (): JSX.Element => {
           {isDelegated && (
             <Alert status="info" rounded="md" mt={4}>
               <AlertIcon />
-              Ordering on behalf of {activeContext.actingOnBehalfOfCompanyName}
+              <Box>
+                <Text>
+                  Ordered by: {activeContext.actorCompanyName} · Ordering for:{" "}
+                  {activeContext.actingOnBehalfOfCompanyName}
+                </Text>
+                <Text>
+                  DelegationID: {activeContext.delegationId} · Invoice
+                  attribution: {activeContext.invoiceTo}
+                </Text>
+              </Box>
             </Alert>
           )}
         </Box>
@@ -264,10 +287,15 @@ const MyOrders = (): JSX.Element => {
             px={6}
           >
             <Heading size="md" mb={3}>
-              No orders for this event and stand yet.
+              No stand service orders for this context
             </Heading>
+            <Text color="chakra-subtle-text" mb={4}>
+              Orders are shown by selected event, stand, and delegated access
+              context. Switch context or shop services for this stand to create
+              a new order.
+            </Text>
             <Button as={RouterLink} to="/products" colorScheme="blue">
-              Continue shopping
+              Shop stand services
             </Button>
           </Box>
         )}
@@ -300,17 +328,21 @@ const MyOrders = (): JSX.Element => {
                       <VStack align="start" spacing={1}>
                         <Heading size="sm">Order ID: {order.ID}</Heading>
                         <Text fontSize="sm" color="chakra-subtle-text">
-                          Momentus Order: {getMomentusOrderReference(order.ID)}
+                          Mock Momentus reference:{" "}
+                          {getMomentusOrderReference(order.ID)}
                         </Text>
                         <Text fontSize="sm">
-                          Date: {formatOrderDate(getOrderDate(order))}
+                          Submitted date: {formatOrderDate(getOrderDate(order))}
                         </Text>
                       </VStack>
                       <VStack align={{ base: "start", lg: "end" }} spacing={2}>
                         <Badge colorScheme="blue" variant="subtle">
                           {order.Status || "Open"}
                         </Badge>
-                        <Text fontWeight="700">{formatPrice(order.Total)}</Text>
+                        <Text fontWeight="700">Order total: {formatPrice(order.Total)}</Text>
+                        <Text fontSize="sm">
+                          VAT / Tax: {formatPrice(order.TaxCost)}
+                        </Text>
                         <Text fontSize="sm">
                           Payment method: {getPaymentMethod(order)}
                         </Text>
@@ -319,7 +351,7 @@ const MyOrders = (): JSX.Element => {
                           variant="subtle"
                         >
                           {order.DateSubmitted
-                            ? "Confirmed in Momentus (mocked)"
+                            ? "Confirmed in Momentus"
                             : "Queued for Momentus"}
                         </Badge>
                       </VStack>
@@ -397,7 +429,7 @@ const MyOrders = (): JSX.Element => {
         })}
 
         <Text fontSize="sm" color="chakra-subtle-text">
-          Order changes are handled by RAI Exhibitor Services after submission.
+          Order changes after submission are handled by RAI Exhibitor Services.
         </Text>
       </VStack>
     </Container>

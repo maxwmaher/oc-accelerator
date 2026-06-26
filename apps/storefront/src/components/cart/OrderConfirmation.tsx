@@ -1,6 +1,7 @@
 import {
   Badge,
   Box,
+  Button,
   Container,
   Divider,
   Grid,
@@ -14,22 +15,21 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import {
-  Address,
   LineItem,
   LineItems,
-  Me,
   Order,
   Orders,
   RequiredDeep,
 } from "ordercloud-javascript-sdk";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TbCheckbox } from "react-icons/tb";
-import { useLocation } from "react-router-dom";
+import { Link as RouterLink, useLocation } from "react-router-dom";
 import {
   getRaiDemoContextById,
   RAI_DEMO_CONTEXT_STORAGE_KEY,
   RaiDemoContext,
 } from "../../demo/raiDemoContexts";
+import formatPrice from "../../utils/formatPrice";
 import OrderSummary from "./OrderSummary";
 
 export type RaiServiceDetailsType = "catering" | "utility" | "flooring";
@@ -37,7 +37,8 @@ type RaiServiceDetails = Record<string, string | number | boolean | undefined>;
 
 const MOMENTUS_HANDOFF_STATUSES = [
   "OrderCloud order submitted",
-  "Order calculation completed",
+  "Order calculated with VAT",
+  "Payment terms captured",
   "Queued for Momentus",
   "Supplier work orders prepared",
 ];
@@ -161,11 +162,20 @@ const MomentusHandoffDemo = ({
           </Badge>
         </HStack>
 
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={2}>
-          {MOMENTUS_HANDOFF_STATUSES.map((status) => (
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+          {MOMENTUS_HANDOFF_STATUSES.map((status, index) => (
             <HStack key={status} spacing={2}>
-              <Badge colorScheme="green" variant="solid">
-                ✓
+              <Badge
+                colorScheme={
+                  index < 3 ? "green" : index === 3 ? "purple" : "blue"
+                }
+                variant={index < 3 ? "solid" : "subtle"}
+              >
+                {index < 3
+                  ? "Complete"
+                  : index === 3
+                    ? "Mocked"
+                    : "Next system"}
               </Badge>
               <Text fontSize="sm" fontWeight="600">
                 {status}
@@ -176,75 +186,125 @@ const MomentusHandoffDemo = ({
 
         <Divider />
 
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={2}>
-          <Text fontSize="sm">
-            <Text as="span" fontWeight="700">
-              EventID:
-            </Text>{" "}
-            {raiContext.eventId}
-          </Text>
-          <Text fontSize="sm">
-            <Text as="span" fontWeight="700">
-              ExhibitorID:
-            </Text>{" "}
-            {raiContext.exhibitorId}
-          </Text>
-          <Text fontSize="sm">
-            <Text as="span" fontWeight="700">
-              AccountID:
-            </Text>{" "}
-            {raiContext.accountId}
-          </Text>
-          <Text fontSize="sm">
-            <Text as="span" fontWeight="700">
-              Hall:
-            </Text>{" "}
-            {raiContext.hall}
-          </Text>
-          <Text fontSize="sm">
-            <Text as="span" fontWeight="700">
-              StandNumber:
-            </Text>{" "}
-            {raiContext.standNumber}
-          </Text>
-          <Text fontSize="sm">
-            <Text as="span" fontWeight="700">
-              CompanyName:
-            </Text>{" "}
-            {raiContext.companyName}
-          </Text>
-        </SimpleGrid>
+        <Box>
+          <Heading size="sm" mb={3}>
+            Event and stand context
+          </Heading>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={2}>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="700">
+                Event:
+              </Text>{" "}
+              {raiContext.eventName}
+            </Text>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="700">
+                EventID:
+              </Text>{" "}
+              {raiContext.eventId}
+            </Text>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="700">
+                ExhibitorID:
+              </Text>{" "}
+              {raiContext.exhibitorId}
+            </Text>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="700">
+                AccountID:
+              </Text>{" "}
+              {raiContext.accountId}
+            </Text>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="700">
+                Hall:
+              </Text>{" "}
+              {raiContext.hall}
+            </Text>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="700">
+                Stand number:
+              </Text>{" "}
+              {raiContext.standNumber}
+            </Text>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="700">
+                Stand type:
+              </Text>{" "}
+              {raiContext.standType}
+            </Text>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="700">
+                Stand package:
+              </Text>{" "}
+              {raiContext.standPackage}
+            </Text>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="700">
+                Company:
+              </Text>{" "}
+              {raiContext.companyName}
+            </Text>
+          </SimpleGrid>
+        </Box>
 
         {delegation?.DelegatedOrder && (
-          <Box bg="purple.50" border="1px solid" borderColor="purple.100" rounded="md" p={3}>
+          <Box
+            bg="purple.50"
+            border="1px solid"
+            borderColor="purple.100"
+            rounded="md"
+            p={3}
+          >
             {/* Demo-only: production would retrieve delegated access relationships from the post-Keycloak profile/Momentus service call and enforce permissions server-side. */}
             <Text fontSize="sm" fontWeight="700" color="purple.800">
               Delegated ordering
             </Text>
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={1} mt={2}>
-              <Text fontSize="xs">Ordered by: {delegation.ActorCompanyName}</Text>
+              <Text fontSize="xs">
+                Ordered by: {delegation.ActorCompanyName}
+              </Text>
               <Text fontSize="xs">
                 Ordering for: {delegation.ActingOnBehalfOfCompanyName}
               </Text>
               <Text fontSize="xs">Delegation: {delegation.DelegationID}</Text>
-              <Text fontSize="xs">Invoice attribution: {delegation.InvoiceTo}</Text>
+              <Text fontSize="xs">
+                Invoice attribution: {delegation.InvoiceTo}
+              </Text>
             </SimpleGrid>
             <Text fontSize="xs" color="purple.700" mt={2}>
-              Audit: actor and represented exhibitor captured for Momentus handoff
+              Delegated ordering context is preserved for downstream review.
             </Text>
           </Box>
         )}
 
         <Box bg="blackAlpha.50" rounded="md" p={3}>
-          <Text fontSize="sm" fontWeight="700">
-            Momentus Order: {getMomentusOrderReference(order.ID)}
-          </Text>
-          <Text fontSize="xs" color="chakra-subtle-text">
-            Integration: Mocked RAPI/services-layer handoff
+          <Heading size="sm" mb={2}>
+            Payment and invoice handling
+          </Heading>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={2}>
+            <Text fontSize="sm">
+              Selected payment method: {getPaymentConfirmation(order).label}
+            </Text>
+            <Text fontSize="sm">
+              Pay-by-invoice flag:{" "}
+              {(order.xp as any)?.RAI?.Payment?.Method === "invoice" ||
+              (order.xp as any)?.PaymentMethod
+                ? "Available"
+                : "Not selected"}
+            </Text>
+            <Text fontSize="sm">VAT / Tax: {formatPrice(order.TaxCost)}</Text>
+            <Text fontSize="sm" fontWeight="700">
+              Order total: {formatPrice(order.Total)}
+            </Text>
+          </SimpleGrid>
+          <Text fontSize="xs" color="chakra-subtle-text" mt={2}>
+            Momentus remains authoritative for final invoice generation.
           </Text>
         </Box>
 
         <VStack alignItems="stretch" spacing={3}>
+          <Heading size="sm">Supplier instructions</Heading>
           {lineItems.map((lineItem) => {
             const rai = getLineItemRai(lineItem);
             const type = rai?.ServiceDetailsType as
@@ -272,6 +332,13 @@ const MomentusHandoffDemo = ({
                     <Text fontSize="xs" color="chakra-subtle-text">
                       {formatServiceDetails(type, rai?.ServiceDetails)}
                     </Text>
+                    <Text fontSize="xs" color="chakra-subtle-text">
+                      EventID: {rai?.CapturedFor?.EventID || raiContext.eventId}{" "}
+                      · ExhibitorID:{" "}
+                      {rai?.CapturedFor?.ExhibitorID || raiContext.exhibitorId}{" "}
+                      · {rai?.CapturedFor?.Hall || raiContext.hall} · Stand{" "}
+                      {rai?.CapturedFor?.StandNumber || raiContext.standNumber}
+                    </Text>
                   </VStack>
                   <Badge colorScheme="blue" variant="subtle">
                     Qty {lineItem.Quantity}
@@ -290,7 +357,6 @@ const OrderConfirmation = (): JSX.Element => {
   const [loading, setLoading] = useState(true);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [order, setOrder] = useState<RequiredDeep<Order>>();
-  const [shippingAddress, setShippingAddress] = useState<Address>();
   const location = useLocation();
 
   const getOrder = useCallback(async () => {
@@ -314,11 +380,6 @@ const OrderConfirmation = (): JSX.Element => {
     setLineItems(result.Items);
   }, [order]);
 
-  const getShippingAddress = useCallback(async () => {
-    if (!order?.ShippingAddressID) return;
-    const addressResult = await Me.GetAddress(order.ShippingAddressID);
-    setShippingAddress(addressResult);
-  }, [order]);
 
   useEffect(() => {
     getOrder();
@@ -326,8 +387,7 @@ const OrderConfirmation = (): JSX.Element => {
 
   useEffect(() => {
     getLineItems();
-    getShippingAddress();
-  }, [order, getLineItems, getShippingAddress]);
+  }, [order, getLineItems]);
 
   if (loading) {
     return (
@@ -370,34 +430,26 @@ const OrderConfirmation = (): JSX.Element => {
                 as={TbCheckbox}
               />
               <VStack alignItems="flex-start" gap="0">
-                <Heading size="xl">Order confirmed</Heading>
+                <Heading size="xl">Stand service order submitted</Heading>
                 <Text color="chakra-subtle-text">Order ID: {order.ID}</Text>
               </VStack>
             </HStack>
+            <Text color="chakra-subtle-text">
+              Your order has been captured for the selected event and stand
+              context. The demo handoff below shows how OrderCloud order data
+              would move toward Momentus, invoicing, and supplier work-order
+              processing.
+            </Text>
             <Divider my="3" />
-            <VStack justifyContent="flex-start" alignItems="flex-start">
-              <HStack alignItems="flex-start">
-                <VStack alignItems="flex-start" gap="0">
-                  <Text fontWeight="bold">
-                    {order.FromUser?.FirstName} {order.FromUser?.LastName}
-                  </Text>
-                  {shippingAddress && (
-                    <>
-                      <Text>
-                        {shippingAddress.Street1} {shippingAddress.Street2}
-                      </Text>
-                      <Text>
-                        {shippingAddress.City}, {shippingAddress.State}{" "}
-                        {shippingAddress.Zip}
-                      </Text>
-                    </>
-                  )}
-                  <Text mt="3">
-                    {order.FromUser?.Phone}
-                    {order.FromUser?.Phone && "|"} {order.FromUser?.Email}
-                  </Text>
-                </VStack>
-              </HStack>
+            <VStack justifyContent="flex-start" alignItems="flex-start" gap={0}>
+              <Text fontWeight="bold">Submitted by</Text>
+              <Text>
+                {order.FromUser?.FirstName} {order.FromUser?.LastName}
+              </Text>
+              <Text color="chakra-subtle-text">
+                {order.FromUser?.Phone}
+                {order.FromUser?.Phone && " | "} {order.FromUser?.Email}
+              </Text>
             </VStack>
             <Divider my="3" />
             <VStack alignItems="flex-start" gap="0">
@@ -409,6 +461,32 @@ const OrderConfirmation = (): JSX.Element => {
               </Text>
             </VStack>
             <MomentusHandoffDemo order={order} lineItems={lineItems} />
+            <Box
+              border="1px solid"
+              borderColor="blue.100"
+              bg="blue.50"
+              rounded="lg"
+              p={5}
+              w="full"
+            >
+              <Heading size="md" mb={2}>
+                What happens next
+              </Heading>
+              <Text color="blue.900">
+                In the production flow, the submitted order would be passed
+                through middleware to Momentus. Momentus would confirm invoicing
+                and supplier work-order routing based on event, stand, account,
+                and resource configuration.
+              </Text>
+              <HStack mt={4} spacing={3} flexWrap="wrap">
+                <Button as={RouterLink} to="/orders" colorScheme="blue">
+                  View my orders
+                </Button>
+                <Button as={RouterLink} to="/products" variant="outline">
+                  Continue shopping
+                </Button>
+              </HStack>
+            </Box>
           </VStack>
         </Container>
       </GridItem>
