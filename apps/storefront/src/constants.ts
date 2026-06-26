@@ -49,12 +49,12 @@ const BRAND_COLOR_ACCENT =
 // Dashboard configs
 const DASHBOARD_HERO_TAGLINE =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_HERO_TAGLINE ||
-  `Welcome to ${APP_NAME} storefront app`;
+  "DevWorld 2026 exhibitor services";
 const DASHBOARD_HERO_IMAGE = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_HERO_IMAGE;
 const DASHBOARD_HERO_CTA_TEXT =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_HERO_CTA_TEXT ||
-  "Call to action";
+  "Shop stand services";
 const DASHBOARD_HERO_CTA_LINK = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_HERO_CTA_LINK;
 
@@ -62,13 +62,13 @@ const DASHBOARD_SECONDARY_IMAGE = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_IMAGE;
 const DASHBOARD_SECONDARY_HEADING =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_HEADING ||
-  "Secondary heading text";
+  "Everything exhibitors need to prepare their stand";
 const DASHBOARD_SECONDARY_DESCRIPTION =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_DESCRIPTION ||
-  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+  "Browse event services, choose the products that apply to your stand, and capture the operational details suppliers need before build-up begins.";
 const DASHBOARD_SECONDARY_CTA_TEXT =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_CTA_TEXT ||
-  "Call to action";
+  "Review my orders";
 const DASHBOARD_SECONDARY_CTA_LINK = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_SECONDARY_CTA_LINK;
 
@@ -76,13 +76,13 @@ const DASHBOARD_TERTIARY_IMAGE = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_TERTIARY_IMAGE;
 const DASHBOARD_TERTIARY_HEADING =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_TERTIARY_HEADING ||
-  "Tertiary heading text";
+  "Built for exhibitors and stand builders";
 const DASHBOARD_TERTIARY_DESCRIPTION =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_TERTIARY_DESCRIPTION ||
-  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+  "Stand builders can work inside the represented exhibitor’s stand context while preserving audit, delegation, and invoice attribution details.";
 const DASHBOARD_TERTIARY_CTA_TEXT =
   import.meta.env.VITE_APP_ORDERCLOUD_DASHBOARD_TERTIARY_CTA_TEXT ||
-  "Call to action";
+  "Shop stand services";
 const DASHBOARD_TERTIARY_CTA_LINK = import.meta.env
   .VITE_APP_ORDERCLOUD_DASHBOARD_TERTIARY_CTA_LINK;
 
