@@ -1,4 +1,5 @@
 import { BuyerProduct } from "ordercloud-javascript-sdk";
+export { RAI_DEMO_CONTEXT_CHANGED_EVENT } from "./raiDemoContexts";
 import {
   getRaiDemoProductFamily,
   RaiDemoProductFamily,
@@ -10,8 +11,6 @@ export type RaiDemoCatalogueFilter =
   | "utilities"
   | "catering"
   | "stand-construction";
-
-export const RAI_DEMO_CONTEXT_CHANGED_EVENT = "rai-demo-context-changed";
 
 // Demo-only: production would enforce catalogue visibility with OrderCloud
 // catalog assignments, user groups, price schedules, and/or middleware-driven

@@ -14,14 +14,17 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { LineItem, LineItems, Me, Order, Orders } from "ordercloud-javascript-sdk";
+import {
+  LineItem,
+  LineItems,
+  Me,
+  Order,
+  Orders,
+} from "ordercloud-javascript-sdk";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import {
-  getRaiDemoContextById,
-  isDelegatedRaiDemoContext,
-  RAI_DEMO_CONTEXT_STORAGE_KEY,
-} from "../../demo/raiDemoContexts";
+import { isDelegatedRaiDemoContext } from "../../demo/raiDemoContexts";
+import { useRaiDemoContext } from "../../hooks/useRaiDemoContext";
 import formatPrice from "../../utils/formatPrice";
 import {
   formatServiceDetails,
@@ -46,9 +49,9 @@ const getOrderRaiContext = (order: OrderWithLineItems) => {
 };
 
 const getOrderDelegation = (order: OrderWithLineItems) =>
-  order.LineItems?.map((lineItem) => (lineItem.xp as any)?.RAI?.Delegation).find(
-    (delegation) => delegation?.DelegatedOrder,
-  );
+  order.LineItems?.map(
+    (lineItem) => (lineItem.xp as any)?.RAI?.Delegation,
+  ).find((delegation) => delegation?.DelegatedOrder);
 
 const getPaymentMethod = (order: Order) => {
   const method = (order.xp as any)?.RAI?.Payment?.Method;
@@ -82,11 +85,7 @@ const MyOrders = (): JSX.Element => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
 
-  const activeContext = getRaiDemoContextById(
-    typeof window === "undefined"
-      ? undefined
-      : window.localStorage.getItem(RAI_DEMO_CONTEXT_STORAGE_KEY),
-  );
+  const { selectedContext: activeContext } = useRaiDemoContext();
   const isDelegated = isDelegatedRaiDemoContext(activeContext);
 
   const loadOrders = useCallback(async () => {
@@ -132,7 +131,17 @@ const MyOrders = (): JSX.Element => {
           raiContext.standNumber === activeContext.standNumber
         );
       }),
-    [activeContext, orders],
+    [
+      activeContext.accountId,
+      activeContext.actingOnBehalfOfAccountId,
+      activeContext.delegationId,
+      activeContext.eventId,
+      activeContext.exhibitorId,
+      activeContext.hall,
+      activeContext.id,
+      activeContext.standNumber,
+      orders,
+    ],
   );
 
   const groupedOrders = useMemo(() => {
@@ -150,31 +159,84 @@ const MyOrders = (): JSX.Element => {
   return (
     <Container maxW="container.xl" py={{ base: 6, md: 10 }}>
       <VStack align="stretch" spacing={6}>
-        <Stack direction={{ base: "column", md: "row" }} justify="space-between" spacing={4}>
+        <Stack
+          direction={{ base: "column", md: "row" }}
+          justify="space-between"
+          spacing={4}
+        >
           <Box>
             <Heading size="xl">My orders</Heading>
             <Text color="chakra-subtle-text" mt={2}>
               Order history grouped by RAI event, stand, and ExhibitorID.
             </Text>
           </Box>
-          <Button as={RouterLink} to="/products" colorScheme="blue" alignSelf="flex-start">
+          <Button
+            as={RouterLink}
+            to="/products"
+            colorScheme="blue"
+            alignSelf="flex-start"
+          >
             Continue shopping
           </Button>
         </Stack>
 
-        <Box border="1px solid" borderColor="blackAlpha.200" rounded="xl" p={5} bg="white">
+        <Box
+          border="1px solid"
+          borderColor="blackAlpha.200"
+          rounded="xl"
+          p={5}
+          bg="white"
+        >
           {/* Demo-only: Production filtering would use Momentus AccountID, ExhibitorID, event, stand, and delegated-access relationships from the profile service / middleware. */}
           <HStack spacing={2} mb={3} flexWrap="wrap">
-            <Badge colorScheme="purple" variant="subtle">Active RAI context</Badge>
-            {isDelegated && <Badge colorScheme="orange" variant="subtle">Delegated ordering</Badge>}
+            <Badge colorScheme="purple" variant="subtle">
+              Active RAI context
+            </Badge>
+            {isDelegated && (
+              <Badge colorScheme="orange" variant="subtle">
+                Delegated ordering
+              </Badge>
+            )}
           </HStack>
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
-            <Text><Text as="span" fontWeight="700">Company:</Text> {isDelegated ? activeContext.actorCompanyName : activeContext.companyName}</Text>
-            <Text><Text as="span" fontWeight="700">Event:</Text> {activeContext.eventName}</Text>
-            <Text><Text as="span" fontWeight="700">ExhibitorID:</Text> {activeContext.exhibitorId}</Text>
-            <Text><Text as="span" fontWeight="700">Hall:</Text> {activeContext.hall}</Text>
-            <Text><Text as="span" fontWeight="700">Stand number:</Text> {activeContext.standNumber}</Text>
-            <Text><Text as="span" fontWeight="700">AccountID:</Text> {activeContext.accountId}</Text>
+            <Text>
+              <Text as="span" fontWeight="700">
+                Company:
+              </Text>{" "}
+              {isDelegated
+                ? activeContext.actorCompanyName
+                : activeContext.companyName}
+            </Text>
+            <Text>
+              <Text as="span" fontWeight="700">
+                Event:
+              </Text>{" "}
+              {activeContext.eventName}
+            </Text>
+            <Text>
+              <Text as="span" fontWeight="700">
+                ExhibitorID:
+              </Text>{" "}
+              {activeContext.exhibitorId}
+            </Text>
+            <Text>
+              <Text as="span" fontWeight="700">
+                Hall:
+              </Text>{" "}
+              {activeContext.hall}
+            </Text>
+            <Text>
+              <Text as="span" fontWeight="700">
+                Stand number:
+              </Text>{" "}
+              {activeContext.standNumber}
+            </Text>
+            <Text>
+              <Text as="span" fontWeight="700">
+                AccountID:
+              </Text>{" "}
+              {activeContext.accountId}
+            </Text>
           </SimpleGrid>
           {isDelegated && (
             <Alert status="info" rounded="md" mt={4}>
@@ -185,12 +247,28 @@ const MyOrders = (): JSX.Element => {
         </Box>
 
         {loading && <Spinner size="xl" alignSelf="center" />}
-        {error && <Alert status="error" rounded="md"><AlertIcon />{error}</Alert>}
+        {error && (
+          <Alert status="error" rounded="md">
+            <AlertIcon />
+            {error}
+          </Alert>
+        )}
 
         {!loading && !error && currentContextOrders.length === 0 && (
-          <Box textAlign="center" border="1px dashed" borderColor="blackAlpha.300" rounded="xl" py={12} px={6}>
-            <Heading size="md" mb={3}>No orders for this event and stand yet.</Heading>
-            <Button as={RouterLink} to="/products" colorScheme="blue">Continue shopping</Button>
+          <Box
+            textAlign="center"
+            border="1px dashed"
+            borderColor="blackAlpha.300"
+            rounded="xl"
+            py={12}
+            px={6}
+          >
+            <Heading size="md" mb={3}>
+              No orders for this event and stand yet.
+            </Heading>
+            <Button as={RouterLink} to="/products" colorScheme="blue">
+              Continue shopping
+            </Button>
           </Box>
         )}
 
@@ -199,35 +277,77 @@ const MyOrders = (): JSX.Element => {
           return (
             <VStack key={groupKey} align="stretch" spacing={4}>
               <Heading size="md">
-                {groupContext.eventId} · {groupContext.hall} · Stand {groupContext.standNumber} · {groupContext.exhibitorId}
+                {groupContext.eventId} · {groupContext.hall} · Stand{" "}
+                {groupContext.standNumber} · {groupContext.exhibitorId}
               </Heading>
               {groupOrders.map((order) => {
                 const delegation = getOrderDelegation(order);
                 return (
-                  <Box key={order.ID} border="1px solid" borderColor="blackAlpha.200" rounded="xl" p={5} bg="white" shadow="sm">
-                    <Stack direction={{ base: "column", lg: "row" }} justify="space-between" spacing={4}>
+                  <Box
+                    key={order.ID}
+                    border="1px solid"
+                    borderColor="blackAlpha.200"
+                    rounded="xl"
+                    p={5}
+                    bg="white"
+                    shadow="sm"
+                  >
+                    <Stack
+                      direction={{ base: "column", lg: "row" }}
+                      justify="space-between"
+                      spacing={4}
+                    >
                       <VStack align="start" spacing={1}>
                         <Heading size="sm">Order ID: {order.ID}</Heading>
-                        <Text fontSize="sm" color="chakra-subtle-text">Momentus Order: {getMomentusOrderReference(order.ID)}</Text>
-                        <Text fontSize="sm">Date: {formatOrderDate(getOrderDate(order))}</Text>
+                        <Text fontSize="sm" color="chakra-subtle-text">
+                          Momentus Order: {getMomentusOrderReference(order.ID)}
+                        </Text>
+                        <Text fontSize="sm">
+                          Date: {formatOrderDate(getOrderDate(order))}
+                        </Text>
                       </VStack>
                       <VStack align={{ base: "start", lg: "end" }} spacing={2}>
-                        <Badge colorScheme="blue" variant="subtle">{order.Status || "Open"}</Badge>
+                        <Badge colorScheme="blue" variant="subtle">
+                          {order.Status || "Open"}
+                        </Badge>
                         <Text fontWeight="700">{formatPrice(order.Total)}</Text>
-                        <Text fontSize="sm">Payment method: {getPaymentMethod(order)}</Text>
-                        <Badge colorScheme={order.DateSubmitted ? "green" : "purple"} variant="subtle">
-                          {order.DateSubmitted ? "Confirmed in Momentus (mocked)" : "Queued for Momentus"}
+                        <Text fontSize="sm">
+                          Payment method: {getPaymentMethod(order)}
+                        </Text>
+                        <Badge
+                          colorScheme={order.DateSubmitted ? "green" : "purple"}
+                          variant="subtle"
+                        >
+                          {order.DateSubmitted
+                            ? "Confirmed in Momentus (mocked)"
+                            : "Queued for Momentus"}
                         </Badge>
                       </VStack>
                     </Stack>
 
                     {delegation?.DelegatedOrder && (
-                      <Box bg="purple.50" border="1px solid" borderColor="purple.100" rounded="md" p={3} mt={4}>
+                      <Box
+                        bg="purple.50"
+                        border="1px solid"
+                        borderColor="purple.100"
+                        rounded="md"
+                        p={3}
+                        mt={4}
+                      >
                         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={1}>
-                          <Text fontSize="sm">Ordered by: {delegation.ActorCompanyName}</Text>
-                          <Text fontSize="sm">Ordering for: {delegation.ActingOnBehalfOfCompanyName}</Text>
-                          <Text fontSize="sm">DelegationID: {delegation.DelegationID}</Text>
-                          <Text fontSize="sm">Invoice attribution: {delegation.InvoiceTo}</Text>
+                          <Text fontSize="sm">
+                            Ordered by: {delegation.ActorCompanyName}
+                          </Text>
+                          <Text fontSize="sm">
+                            Ordering for:{" "}
+                            {delegation.ActingOnBehalfOfCompanyName}
+                          </Text>
+                          <Text fontSize="sm">
+                            DelegationID: {delegation.DelegationID}
+                          </Text>
+                          <Text fontSize="sm">
+                            Invoice attribution: {delegation.InvoiceTo}
+                          </Text>
                         </SimpleGrid>
                       </Box>
                     )}
@@ -237,15 +357,33 @@ const MyOrders = (): JSX.Element => {
                         <Divider />
                         {order.LineItems?.map((lineItem) => {
                           const rai = (lineItem.xp as any)?.RAI;
-                          const type = rai?.ServiceDetailsType as RaiServiceDetailsType | undefined;
+                          const type = rai?.ServiceDetailsType as
+                            | RaiServiceDetailsType
+                            | undefined;
                           return (
-                            <HStack key={lineItem.ID || lineItem.ProductID} justify="space-between" align="start" spacing={4}>
+                            <HStack
+                              key={lineItem.ID || lineItem.ProductID}
+                              justify="space-between"
+                              align="start"
+                              spacing={4}
+                            >
                               <Box>
-                                <Text fontWeight="700" fontSize="sm">{lineItem.Product?.Name || lineItem.ProductID}</Text>
-                                <Text fontSize="xs" color="chakra-subtle-text">Supplier route: {getSupplierRoute(type)}</Text>
-                                <Text fontSize="xs" color="chakra-subtle-text">{formatServiceDetails(type, rai?.ServiceDetails)}</Text>
+                                <Text fontWeight="700" fontSize="sm">
+                                  {lineItem.Product?.Name || lineItem.ProductID}
+                                </Text>
+                                <Text fontSize="xs" color="chakra-subtle-text">
+                                  Supplier route: {getSupplierRoute(type)}
+                                </Text>
+                                <Text fontSize="xs" color="chakra-subtle-text">
+                                  {formatServiceDetails(
+                                    type,
+                                    rai?.ServiceDetails,
+                                  )}
+                                </Text>
                               </Box>
-                              <Badge colorScheme="blue" variant="subtle">Qty {lineItem.Quantity}</Badge>
+                              <Badge colorScheme="blue" variant="subtle">
+                                Qty {lineItem.Quantity}
+                              </Badge>
                             </HStack>
                           );
                         })}

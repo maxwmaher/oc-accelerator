@@ -21,6 +21,7 @@ export interface RaiDemoContext {
 }
 
 export const RAI_DEMO_CONTEXT_STORAGE_KEY = "rai-demo-context-id";
+export const RAI_DEMO_CONTEXT_CHANGED_EVENT = "rai-demo-context-changed";
 
 // Demo-only: production would retrieve these contexts from the post-Keycloak
 // Momentus/profile-service call, then keep OrderCloud catalog and Buyer context
