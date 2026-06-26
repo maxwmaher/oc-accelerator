@@ -134,7 +134,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder }) => {
           orderWorksheet?.Order.PromotionDiscount > 0 && (
             <Flex justify="space-between">
               <Text>Promotion Discount</Text>
-              <Text>- {formatPrice(orderWorksheet?.Order?.PromotionDiscount)}</Text>
+              <Text>
+                - {formatPrice(orderWorksheet?.Order?.PromotionDiscount)}
+              </Text>
             </Flex>
           )}
         <Flex justify="space-between">
@@ -146,8 +148,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder }) => {
           <Text>{formatPrice(orderWorksheet?.Order?.Total)}</Text>
         </Flex>
         <Text fontSize="sm" color="chakra-subtle-text">
-          No parcel shipping is required. Fulfillment is handled through RAI
-          supplier work orders.
+          Fulfillment is handled through Momentus handoff and RAI supplier work
+          orders for the active event and stand.
         </Text>
       </Stack>
     </VStack>

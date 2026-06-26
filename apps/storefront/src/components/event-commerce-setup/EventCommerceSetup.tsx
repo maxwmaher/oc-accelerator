@@ -68,7 +68,7 @@ const routingSteps = [
   "Webshop captures complete order and line-level service attributes",
   "Middleware receives OrderCloud order payload",
   "Momentus creates invoice and supplier work orders",
-  "Supplier routing comes from Momentus resource mapping, not parcel shipping",
+  "Supplier routing comes from Momentus resource mapping and RAI operations queues",
   "Supplier mappings can vary by event/hall/resource",
 ] as const;
 
@@ -122,7 +122,9 @@ const EventCommerceSetup: FC = () => {
                     DevWorld 2026 commerce setup
                   </Heading>
                   <HStack spacing={2} flexWrap="wrap">
-                    <Badge colorScheme="green">Business user configurable</Badge>
+                    <Badge colorScheme="green">
+                      Business user configurable
+                    </Badge>
                     <Badge colorScheme="purple" variant="subtle">
                       Draft commerce configuration
                     </Badge>
@@ -150,7 +152,9 @@ const EventCommerceSetup: FC = () => {
                     <Text fontSize="xs" color="gray.500" fontWeight="bold">
                       Status
                     </Text>
-                    <Text fontWeight="semibold">Draft commerce configuration</Text>
+                    <Text fontWeight="semibold">
+                      Draft commerce configuration
+                    </Text>
                   </Box>
                   <Box>
                     <Text fontSize="xs" color="gray.500" fontWeight="bold">
@@ -185,18 +189,24 @@ const EventCommerceSetup: FC = () => {
                 </SimpleGrid>
                 <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={4}>
                   <Box p={4} bg="white" borderWidth="1px" borderRadius="lg">
-                    <Text fontSize="sm" color="gray.500">Reused commerce baseline</Text>
+                    <Text fontSize="sm" color="gray.500">
+                      Reused commerce baseline
+                    </Text>
                     <Text fontWeight="semibold">DevWorld 2025</Text>
                   </Box>
                   <Box p={4} bg="white" borderWidth="1px" borderRadius="lg">
-                    <Text fontSize="sm" color="gray.500">Shared commerce setup</Text>
+                    <Text fontSize="sm" color="gray.500">
+                      Shared commerce setup
+                    </Text>
                     <Text fontWeight="semibold">
                       Catalogue structure, product groups, service-field
                       templates, supplier routes
                     </Text>
                   </Box>
                   <Box p={4} bg="white" borderWidth="1px" borderRadius="lg">
-                    <Text fontSize="sm" color="gray.500">Event overrides</Text>
+                    <Text fontSize="sm" color="gray.500">
+                      Event overrides
+                    </Text>
                     <Text fontWeight="semibold">
                       Pricing dates, availability windows, hall visibility,
                       supplier mapping
@@ -215,7 +225,13 @@ const EventCommerceSetup: FC = () => {
                 </Heading>
                 <SimpleGrid columns={{ base: 1, md: 2, xl: 5 }} spacing={4}>
                   {orderingPhases.map(([name, start, end]) => (
-                    <Box key={name} p={4} bg="white" borderWidth="1px" borderRadius="lg">
+                    <Box
+                      key={name}
+                      p={4}
+                      bg="white"
+                      borderWidth="1px"
+                      borderRadius="lg"
+                    >
                       <Text fontWeight="bold">{name}</Text>
                       <Text color="gray.600" fontSize="sm">
                         {start} to {end}
@@ -235,7 +251,12 @@ const EventCommerceSetup: FC = () => {
           <Card>
             <CardBody>
               <Stack spacing={4}>
-                <Flex justify="space-between" gap={3} align="start" flexWrap="wrap">
+                <Flex
+                  justify="space-between"
+                  gap={3}
+                  align="start"
+                  flexWrap="wrap"
+                >
                   <Heading as="h2" size="md">
                     Assortment visibility rules
                   </Heading>
@@ -253,7 +274,9 @@ const EventCommerceSetup: FC = () => {
                       py={4}
                     >
                       <Text fontWeight="bold">{audience}</Text>
-                      <Text color="gray.600" maxW="3xl">{rule}</Text>
+                      <Text color="gray.600" maxW="3xl">
+                        {rule}
+                      </Text>
                     </Flex>
                   ))}
                 </Stack>
@@ -269,8 +292,16 @@ const EventCommerceSetup: FC = () => {
                 </Heading>
                 <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={4}>
                   {productServiceRules.map((product) => (
-                    <Box key={product.name} p={5} bg="white" borderWidth="1px" borderRadius="xl">
-                      <Heading as="h3" size="sm" mb={3}>{product.name}</Heading>
+                    <Box
+                      key={product.name}
+                      p={5}
+                      bg="white"
+                      borderWidth="1px"
+                      borderRadius="xl"
+                    >
+                      <Heading as="h3" size="sm" mb={3}>
+                        {product.name}
+                      </Heading>
                       <Stack spacing={2}>
                         {product.details.map((detail) => (
                           <Text key={detail} color="gray.600" fontSize="sm">
@@ -313,7 +344,9 @@ const EventCommerceSetup: FC = () => {
                     {commerceAuthorities.map(([system, scope]) => (
                       <Box key={system} py={3}>
                         <Text fontWeight="bold">{system}</Text>
-                        <Text color="gray.600" fontSize="sm">{scope}</Text>
+                        <Text color="gray.600" fontSize="sm">
+                          {scope}
+                        </Text>
                       </Box>
                     ))}
                   </Stack>
@@ -322,7 +355,13 @@ const EventCommerceSetup: FC = () => {
             </Card>
           </SimpleGrid>
 
-          <Box p={5} bg="purple.50" borderWidth="1px" borderColor="purple.100" borderRadius="xl">
+          <Box
+            p={5}
+            bg="purple.50"
+            borderWidth="1px"
+            borderColor="purple.100"
+            borderRadius="xl"
+          >
             <Text color="purple.900" fontSize="sm">
               Demo-only view: production would sync event, pricing phase,
               account, stand, resource, and supplier data from Momentus.
