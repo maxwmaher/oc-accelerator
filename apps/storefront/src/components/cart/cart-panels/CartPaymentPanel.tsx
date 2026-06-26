@@ -69,8 +69,13 @@ export const CartPaymentPanel = ({
           <VStack alignItems="stretch" spacing={4}>
             <Box>
               <Heading size="md" mb={2}>
-                Payment method
+                Payment terms
               </Heading>
+              <Text fontSize="sm" color="chakra-subtle-text" mb={2}>
+                Momentus determines whether the account can pay by invoice.
+                Exhibitors may also choose an immediate payment method when
+                available.
+              </Text>
               <Badge colorScheme="purple" variant="subtle">
                 Mocked Momentus payment terms
               </Badge>
@@ -130,7 +135,7 @@ export const CartPaymentPanel = ({
         mt={6}
         isDisabled={submitting}
       >
-        {submitting ? "Submitting" : "Submit Order"}
+        {submitting ? "Submitting" : "Submit stand service order"}
       </Button>
     </>
   );

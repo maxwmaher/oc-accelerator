@@ -5,6 +5,7 @@ import {
   FormLabel,
   Heading,
   HStack,
+  Text,
   Input,
   Select,
   Stack,
@@ -87,9 +88,14 @@ export const CartInformationPanel = ({
         />
       </Stack>
 
-      <Heading size="md" my={6}>
-        Shipping address
+      <Heading size="md" mt={6} mb={2}>
+        Confirm order details
       </Heading>
+      <Text fontSize="sm" color="chakra-subtle-text" mb={4}>
+        These services will be submitted for the selected event and stand
+        context. RAI and supplier teams use these details for downstream
+        processing.
+      </Text>
 
       <Stack direction={["column", "row"]} spacing={6}>
         <FormControl isInvalid={formErrors.FirstName}>
