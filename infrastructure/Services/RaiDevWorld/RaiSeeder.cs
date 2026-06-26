@@ -430,7 +430,7 @@ public class RaiSeeder
         /* OrderCloud SDK 0.13 dynamic calls are intentionally isolated so dry-run/tests do not need credentials. */
         var typedPayloads = BuildAndValidateTypedPayloads(s, o.CatalogId);
 
-        var prunedCategories = await PruneRaiManagedCategoriesAsync(oc, o.CatalogId, typedPayloads.Categories.Select(c => c.ID), log);
+        var prunedCategories = await PruneRaiManagedCategoriesAsync((object)oc, o.CatalogId, typedPayloads.Categories.Select(c => c.ID), log);
 
         foreach (var category in typedPayloads.Categories)
             await log.WriteLineAsync($"Saving curated category {category.ID}");
@@ -463,23 +463,25 @@ public class RaiSeeder
         return typedPayloads with { PrunedCategories = prunedCategories };
     }
 
-    static async Task<int> PruneRaiManagedCategoriesAsync(dynamic oc, string catalogId, IEnumerable<string> curatedCategoryIds, TextWriter log)
+    static async Task<int> PruneRaiManagedCategoriesAsync(object ocClient, string catalogId, IEnumerable<string> curatedCategoryIds, TextWriter log)
     {
+        dynamic oc = ocClient;
         var curated = new HashSet<string>(curatedCategoryIds, StringComparer.OrdinalIgnoreCase);
-        var existing = await ListRaiManagedCategoryIdsAsync(oc, catalogId);
-        var stale = existing.Where(id => !curated.Contains(id)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        List<string> existing = await ListRaiManagedCategoryIdsAsync((object)oc, catalogId);
+        List<string> stale = existing.Where(id => !curated.Contains(id)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         await log.WriteLineAsync($"RAI category cleanup: pruning {stale.Count} stale RAI-managed categories; keeping {curated.Count} curated categories.");
-        foreach (var categoryId in stale)
+        foreach (string categoryId in stale)
         {
             await log.WriteLineAsync($"Pruning stale RAI category {categoryId}");
-            await DeleteCategoryProductAssignmentsAsync(oc, catalogId, categoryId);
+            await DeleteCategoryProductAssignmentsAsync((object)oc, catalogId, categoryId);
             await Retry(async () => await oc.Categories.DeleteAsync(catalogId, categoryId, false, null), "category", categoryId);
         }
         return stale.Count;
     }
 
-    static async Task<List<string>> ListRaiManagedCategoryIdsAsync(dynamic oc, string catalogId)
+    static async Task<List<string>> ListRaiManagedCategoryIdsAsync(object ocClient, string catalogId)
     {
+        dynamic oc = ocClient;
         var ids = new List<string>();
         for (var page = 1; ; page++)
         {
@@ -496,18 +498,19 @@ public class RaiSeeder
         return ids;
     }
 
-    static async Task DeleteCategoryProductAssignmentsAsync(dynamic oc, string catalogId, string categoryId)
+    static async Task DeleteCategoryProductAssignmentsAsync(object ocClient, string catalogId, string categoryId)
     {
+        dynamic oc = ocClient;
         for (var page = 1; ; page++)
         {
             dynamic response = await oc.Categories.ListProductAssignmentsAsync(catalogId, categoryId, null, page, 100, null, false, null);
-            var productIds = new List<string>();
+            List<string> productIds = new();
             foreach (var item in response.Items)
             {
                 string? productId = item.ProductID;
                 if (!string.IsNullOrWhiteSpace(productId)) productIds.Add(productId!);
             }
-            foreach (var productId in productIds)
+            foreach (string productId in productIds)
                 await Retry(async () => await oc.Categories.DeleteProductAssignmentAsync(catalogId, categoryId, productId, false, null), "category product assignment", $"{categoryId}/{productId}");
             int metaPage = response.Meta.Page;
             int totalPages = response.Meta.TotalPages;
