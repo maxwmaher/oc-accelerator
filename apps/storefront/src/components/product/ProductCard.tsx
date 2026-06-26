@@ -40,6 +40,13 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
     product,
     selectedRaiContext,
   );
+  const raiServiceLabels = raiLifecycleMessaging
+    ? {
+        catering: ["Requires service details", "Delivery window required"],
+        utility: ["Supplier routed", "Placement required"],
+        flooring: ["Requires service details", "Supplier routed"],
+      }[raiLifecycleMessaging.family]
+    : [];
 
   return (
     <>
@@ -117,6 +124,11 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                     {raiVisibilityBadge}
                   </Badge>
                 )}
+                {raiServiceLabels.map((label) => (
+                  <Badge key={label} colorScheme="gray" variant="subtle">
+                    {label}
+                  </Badge>
+                ))}
                 {product.PriceSchedule?.PriceBreaks && (
                   <Text fontSize="md" fontWeight="normal">
                     {formatPrice(

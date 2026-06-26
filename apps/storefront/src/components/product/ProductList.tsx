@@ -13,6 +13,8 @@ import {
   GridItem,
   Heading,
   HStack,
+  LinkBox,
+  LinkOverlay,
   SimpleGrid,
   Spinner,
   Tag,
@@ -36,6 +38,7 @@ import {
   useNavigate,
   useParams,
   useSearchParams,
+  Link as RouterLink,
 } from "react-router-dom";
 import Pagination from "../shared/pagination/Pagination";
 import FilterSearchMenu, {
@@ -60,6 +63,48 @@ import {
 export interface ProductListProps {
   renderItem?: (product: BuyerProduct) => JSX.Element;
 }
+
+const RAI_DEMO_SERVICE_GROUPS = [
+  {
+    title: "Food, beverages & catering",
+    body: "Breakfast items, catering services, delivery windows, and stand-contact details.",
+    cta: "Browse catering",
+    href: "/shop/buyer/categories/rai-devworld-cat-food-breakfast-catering/products",
+  },
+  {
+    title: "Power, internet & water",
+    body: "Power connections, sockets, placement details, and technical supplier instructions.",
+    cta: "Browse power services",
+    href: "/shop/buyer/categories/rai-devworld-cat-power-sockets/products",
+  },
+  {
+    title: "Stand construction",
+    body: "Raised flooring, ramp requirements, finishes, and build-up-sensitive services.",
+    cta: "Browse stand construction",
+    href: "/shop/buyer/categories/rai-devworld-cat-raised-flooring/products",
+  },
+] as const;
+
+const RAI_DEMO_CATEGORY_PAGE_COPY: Record<
+  string,
+  { heading: string; description: string }
+> = {
+  "rai-devworld-cat-food-breakfast-catering": {
+    heading: "Breakfast & catering",
+    description:
+      "Food and beverage services with delivery timing and stand-contact details.",
+  },
+  "rai-devworld-cat-power-sockets": {
+    heading: "Power & sockets",
+    description:
+      "Electrical services that may require grid placement, required-by timing, and technical contact details.",
+  },
+  "rai-devworld-cat-raised-flooring": {
+    heading: "Raised flooring",
+    description:
+      "Stand construction services with area, ramp, finish, and build-up planning details.",
+  },
+};
 
 const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
   const { catalogId, categoryId } = useParams<{
@@ -140,6 +185,10 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
     () => getRaiDemoCatalogueSegment(selectedRaiContext),
     [selectedRaiContext],
   );
+
+  const categoryPageCopy = categoryId
+    ? RAI_DEMO_CATEGORY_PAGE_COPY[categoryId]
+    : undefined;
 
   const filteredProducts = useMemo(() => {
     return (data?.Items ?? []).filter((product) =>
@@ -249,26 +298,76 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
           </Button>
         </GridItem>
         <GridItem>
+          <VStack alignItems="stretch" spacing={4} mb={4}>
+            <VStack alignItems="flex-start" spacing={2}>
+              <HStack flexWrap="wrap">
+                <Heading as="h1" size="xl">
+                  Shop stand services
+                </Heading>
+                <Tag colorScheme="teal" size="sm">
+                  Context-aware catalogue · Mocked Momentus visibility rules
+                </Tag>
+              </HStack>
+              <Text color="chakra-subtle-text" maxW="4xl">
+                Browse the services available for the active event, hall, stand,
+                and ordering phase. Catalogue visibility and recommendations are
+                shaped by the selected Momentus profile context.
+              </Text>
+            </VStack>
+
+            <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={4}>
+              {RAI_DEMO_SERVICE_GROUPS.map((group) => (
+                <LinkBox
+                  as={Card}
+                  key={group.href}
+                  borderWidth="1px"
+                  borderColor="teal.100"
+                  transition="all .15s ease"
+                  _hover={{ shadow: "md", transform: "translateY(-1px)" }}
+                >
+                  <CardBody as={VStack} alignItems="flex-start" spacing={3}>
+                    <Heading size="md">{group.title}</Heading>
+                    <Text fontSize="sm" color="chakra-subtle-text">
+                      {group.body}
+                    </Text>
+                    <LinkOverlay as={RouterLink} to={group.href}>
+                      <Button size="sm" colorScheme="teal" variant="outline">
+                        {group.cta}
+                      </Button>
+                    </LinkOverlay>
+                  </CardBody>
+                </LinkBox>
+              ))}
+            </SimpleGrid>
+
+            {categoryPageCopy && (
+              <Card borderWidth="1px">
+                <CardBody>
+                  <Heading as="h2" size="lg" mb={2}>
+                    {categoryPageCopy.heading}
+                  </Heading>
+                  <Text color="chakra-subtle-text">
+                    {categoryPageCopy.description}
+                  </Text>
+                </CardBody>
+              </Card>
+            )}
+          </VStack>
+
           <Card mb={4} borderColor="teal.100" borderWidth="1px">
             <CardBody>
               {/* Demo-only: production would enforce visibility with OrderCloud catalog assignments, user groups, price schedules, and/or middleware-driven product visibility from Momentus. */}
               <HStack justifyContent="space-between" alignItems="flex-start">
                 <VStack alignItems="flex-start" spacing={2}>
                   <HStack flexWrap="wrap">
-                    <Heading size="sm">Catalogue tailored for this stand</Heading>
-                    <Tag colorScheme="teal" size="sm">
-                      Mocked Momentus visibility rules
-                    </Tag>
+                    <Heading size="sm">Current stand context</Heading>
                     {isDelegatedRaiDemoContext(selectedRaiContext) && (
                       <Tag colorScheme="purple" size="sm">
-                        Delegated catalogue view
+                        Ordering on behalf of{" "}
+                        {selectedRaiContext.actingOnBehalfOfCompanyName}
                       </Tag>
                     )}
                   </HStack>
-                  <Text fontSize="sm">
-                    Assortment is filtered by event, hall, stand type, and stand
-                    package.
-                  </Text>
                   <Text fontSize="sm" color="chakra-subtle-text">
                     {raiCatalogueSegment.emphasis}
                   </Text>
@@ -281,15 +380,22 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
                     </WrapItem>
                     <WrapItem>
                       <Tag size="sm">
-                        Stand: {selectedRaiContext.standNumber}
+                        Stand number: {selectedRaiContext.standNumber}
                       </Tag>
                     </WrapItem>
                     <WrapItem>
-                      <Tag size="sm">Type: {selectedRaiContext.standType}</Tag>
+                      <Tag size="sm">
+                        Stand type: {selectedRaiContext.standType}
+                      </Tag>
                     </WrapItem>
                     <WrapItem>
                       <Tag size="sm">
-                        Package: {selectedRaiContext.standPackage}
+                        Stand package: {selectedRaiContext.standPackage}
+                      </Tag>
+                    </WrapItem>
+                    <WrapItem>
+                      <Tag size="sm">
+                        ExhibitorID: {selectedRaiContext.exhibitorId}
                       </Tag>
                     </WrapItem>
                   </Wrap>
