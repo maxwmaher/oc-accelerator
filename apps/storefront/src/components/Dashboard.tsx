@@ -17,15 +17,15 @@ import { DASHBOARD_HERO_IMAGE } from "../constants";
 const contextCards = [
   {
     title: "Context-aware catalogue",
-    body: "Assortment and recommendations adapt by event, hall, stand type, stand package, and delegated access context.",
+    body: "Assortment and recommendations adapt by event, hall, stand type, stand package, and delegated access.",
   },
   {
-    title: "Service details captured early",
-    body: "Catering time slots, utility placement, stand-grid location, and supplier instructions are captured before checkout.",
+    title: "Operational details captured early",
+    body: "Delivery windows, stand contacts, utility placement, grid location, and technical instructions are captured before checkout.",
   },
   {
     title: "Ready for Momentus handoff",
-    body: "Submitted orders carry VAT, payment method, ExhibitorID, stand context, and line-level service attributes for downstream processing.",
+    body: "Submitted orders carry ExhibitorID, stand context, VAT, payment method, and line-level service attributes for downstream processing.",
   },
 ];
 
@@ -33,21 +33,27 @@ const serviceFeatures = [
   {
     title: "Power and sockets",
     body: "Capture placement, required-by timing, and technical contact details for electrical services.",
+    cta: "Browse power services",
+    link: "/shop/buyer/categories/rai-devworld-cat-power-sockets/products",
   },
   {
     title: "Catering",
     body: "Select delivery windows and stand contacts for food and beverage orders.",
+    cta: "Browse catering",
+    link: "/shop/buyer/categories/rai-devworld-cat-food-breakfast-catering/products",
   },
   {
     title: "Stand construction",
     body: "Configure raised flooring, ramp requirements, finishes, and build-up-sensitive services.",
+    cta: "Browse stand construction",
+    link: "/shop/buyer/categories/rai-devworld-cat-raised-flooring/products",
   },
 ];
 
 const Dashboard: FC = () => {
   return (
     <Container maxW="full" px={0}>
-      <SimpleGrid gridTemplateColumns={{ base: "1fr", lg: "1fr 1fr" }}>
+      <SimpleGrid gridTemplateColumns={{ base: "1fr", lg: "1.08fr 0.92fr" }}>
         <Stack
           direction="column"
           justifyContent="center"
@@ -64,10 +70,10 @@ const Dashboard: FC = () => {
             DevWorld 2026 exhibitor services
           </Heading>
           <Text maxW="2xl" fontSize={{ base: "lg", md: "xl" }} fontWeight="semibold">
-            Order the services your stand needs, at the right time, for the right hall, stand, and event phase.
+            Order the stand services your team needs for the right event, hall, stand, and ordering phase.
           </Text>
           <Text maxW="2xl" color="gray.600">
-            This demo shows an event-driven webshop experience for RAI Amsterdam exhibitors and stand builders. Catalogue visibility, ordering windows, required service details, payment terms, and supplier routing are shaped by the active Momentus profile context.
+            This demo shows a context-aware webshop for RAI Amsterdam exhibitors and stand builders. Catalogue visibility, service requirements, payment terms, VAT display, and supplier routing are shaped by the active event and stand context.
           </Text>
           <Stack direction={{ base: "column", sm: "row" }} gap={3} pt={2}>
             <Button as={RouterLink} to="/products" colorScheme="blue">
@@ -77,6 +83,16 @@ const Dashboard: FC = () => {
               Review my orders
             </Button>
           </Stack>
+          <Box borderWidth="1px" borderColor="blue.100" bg="blue.50" borderRadius="lg" p={5} maxW="2xl">
+            <Stack gap={2}>
+              <Heading as="h2" size="sm" color="blue.900">
+                Start with your stand context
+              </Heading>
+              <Text color="blue.900">
+                Switch between exhibitor stands or delegated stand-builder access to see how the catalogue, order capture, and downstream handoff adapt.
+              </Text>
+            </Stack>
+          </Box>
         </Stack>
         <Image
           h={{ base: "45dvh", lg: "75dvh" }}
@@ -107,16 +123,19 @@ const Dashboard: FC = () => {
             Everything exhibitors need to prepare their stand
           </Heading>
           <Text color="gray.600" fontSize="lg">
-            Browse event services, choose the products that apply to your stand, and capture the operational details suppliers need before build-up begins.
+            Browse event services, choose the products that apply to your stand, and capture the information suppliers need before build-up begins.
           </Text>
         </Stack>
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={5}>
           {serviceFeatures.map((feature) => (
-            <Stack key={feature.title} gap={3} p={6} borderRadius="lg" borderWidth="1px" h="full">
+            <Stack key={feature.title} gap={4} p={6} borderRadius="lg" borderWidth="1px" h="full" alignItems="flex-start">
               <Heading as="h3" size="md">
                 {feature.title}
               </Heading>
-              <Text color="gray.600">{feature.body}</Text>
+              <Text color="gray.600" flex="1">{feature.body}</Text>
+              <Button as={RouterLink} to={feature.link} variant="link" colorScheme="blue">
+                {feature.cta}
+              </Button>
             </Stack>
           ))}
         </SimpleGrid>
@@ -145,7 +164,7 @@ const Dashboard: FC = () => {
           Designed around RAI’s operating model
         </Heading>
         <Text color="gray.600" fontSize="lg">
-          OrderCloud manages the storefront, cart, order capture, and buyer experience. Momentus remains authoritative for event, account, stand, pricing, invoice, and supplier work-order data. The demo uses mocked Momentus and profile-service context to make the target integration flow visible.
+          OrderCloud manages the storefront, cart, order capture, and buyer experience. Momentus remains authoritative for event, account, stand, pricing phase, invoice, and supplier work-order data. This demo uses mocked Momentus and profile-service context to make the target integration flow visible.
         </Text>
         <Text color="gray.500" fontSize="sm">
           Demo-only: integrations, payment terms, event phases, and stand context are represented with realistic mocked data for the in-person demo.
