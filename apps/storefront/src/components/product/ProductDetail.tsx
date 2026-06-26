@@ -52,8 +52,8 @@ import RaiProductInfo from "./product-detail/RaiProductInfo";
 import {
   getRaiDemoContextById,
   isDelegatedRaiDemoContext,
-  RAI_DEMO_CONTEXT_STORAGE_KEY,
 } from "../../demo/raiDemoContexts";
+import { useRaiDemoContext } from "../../hooks/useRaiDemoContext";
 import {
   SelectedSpec,
   SpecLike,
@@ -239,8 +239,9 @@ const RaiOrderingWindow: React.FC<RaiOrderingWindowProps> = ({ messaging }) => {
         </Text>
       </HStack>
       <Text fontSize="xs" color="chakra-subtle-text">
-        Availability and pricing windows are event-relative and would be sourced
-        from Momentus in the production flow.
+        Availability, pricing phase, and deadline sensitivity are event-relative.
+        In production, Momentus remains authoritative for this lifecycle data
+        before OrderCloud captures the service line.
       </Text>
     </VStack>
   );
@@ -273,8 +274,9 @@ const RaiDependencyRecommendations: React.FC<
       <VStack alignItems="flex-start" spacing={1}>
         <Heading size="sm">Recommended for this stand service</Heading>
         <Text fontSize="xs" color="chakra-subtle-text">
-          Related services help prevent incomplete stand-service orders, such as
-          power without sockets or catering without required delivery details.
+          Related RAI exhibitor services help prevent incomplete stand orders,
+          such as catering without delivery details, power without sockets, or
+          raised flooring without access requirements.
         </Text>
       </VStack>
       <VStack alignItems="stretch" spacing={2}>
@@ -366,13 +368,15 @@ const RaiServiceDetailsForm: React.FC<RaiServiceDetailsFormProps> = ({
     >
       <Heading size="sm">Required service details</Heading>
       <Text fontSize="xs" color="chakra-subtle-text">
-        These details are captured before checkout so RAI and supplier teams can
-        prepare the service for the selected stand. {" "}
+        Complete the stand-service details RAI needs before checkout. OrderCloud
+        stores the captured values on the line item, then the Momentus handoff
+        uses them to prepare invoice context and supplier work orders for this
+        exact hall and stand. {" "}
         {type === "utility"
-          ? "Placement and technical details are passed downstream for electrical services."
+          ? "Placement and technical contacts guide electrical service planning."
           : type === "catering"
-            ? "Delivery timing and stand contact details are passed downstream for catering operations."
-            : "Area, ramp, and finish details are passed downstream for stand construction planning."}
+            ? "Delivery timing and stand contact details guide catering operations."
+            : "Area, ramp, and finish details guide stand construction planning and deadline-sensitive fulfilment."}
       </Text>
       {type === "catering" && (
         <>
@@ -516,9 +520,10 @@ const RaiStandPlacementMock: React.FC<RaiStandPlacementMockProps> = ({
         <Badge colorScheme="purple">Mocked Art of Fiber grid</Badge>
       </HStack>
       <Text fontSize="xs" color="chakra-subtle-text">
-        Select the approximate stand-grid location for this service. In
-        production, this placement could be returned from the Art of Fiber
-        configurator through RAI middleware.
+        Select where RAI should place this utility service on the active stand.
+        This mocked Art of Fiber grid captures the installation zone used by
+        electrical teams; in production, RAI middleware could return precise
+        placement coordinates from the stand configurator into OrderCloud.
       </Text>
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
         <SimpleGrid columns={2} spacing={2} aria-label="Stand placement grid">
@@ -699,8 +704,11 @@ const RaiSupplierRoutingCallout: React.FC<{ type?: RaiServiceDetailsType }> = ({
       </Badge>
     </HStack>
     <Text fontSize="sm" color="chakra-subtle-text">
-      When submitted, this line item carries service details and stand context
-      for downstream Momentus and supplier work-order processing.
+      After checkout, OrderCloud submits this configured service line with the
+      event, exhibitor, hall, stand, quantity, and required service details.
+      Momentus remains authoritative for invoicing and operational handoff, then
+      routes the line to the appropriate RAI operational or supplier work-order
+      queue for fulfilment.
     </Text>
   </VStack>
 );
@@ -756,15 +764,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     () => getRaiDependencyRecommendations(product, raiServiceDetailsType),
     [product, raiServiceDetailsType],
   );
-  const selectedRaiContext = useMemo(
-    () =>
-      getRaiDemoContextById(
-        typeof window === "undefined"
-          ? undefined
-          : window.localStorage.getItem(RAI_DEMO_CONTEXT_STORAGE_KEY),
-      ),
-    [],
-  );
+  const { selectedContext: selectedRaiContext } = useRaiDemoContext();
   const outOfStock = useMemo(
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable],
