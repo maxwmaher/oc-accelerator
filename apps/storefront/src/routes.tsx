@@ -7,6 +7,7 @@ import { ShoppingCart } from "./components/cart/ShoppingCart";
 import CategoryList from "./components/category/CategoryList";
 import ProductDetailWrapper from "./components/product/ProductDetailWrapper";
 import ProductList from "./components/product/ProductList";
+import EventConfiguration from "./components/event-configuration/EventConfiguration";
 
 const routes: RouteObject[] = [
   {
@@ -24,6 +25,10 @@ const routes: RouteObject[] = [
       {
         path: "/orders",
         element: <MyOrders />,
+      },
+      {
+        path: "/event-configuration",
+        element: <EventConfiguration />,
       },
 
       {
