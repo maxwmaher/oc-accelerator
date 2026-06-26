@@ -325,6 +325,14 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
             )}
             <Button
               as={RouterLink}
+              to="/event-commerce-setup"
+              variant="ghost"
+              size="sm"
+            >
+              Commerce setup
+            </Button>
+            <Button
+              as={RouterLink}
               to="/event-configuration"
               variant="ghost"
               size="sm"

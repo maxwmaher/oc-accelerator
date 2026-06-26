@@ -8,6 +8,7 @@ import CategoryList from "./components/category/CategoryList";
 import ProductDetailWrapper from "./components/product/ProductDetailWrapper";
 import ProductList from "./components/product/ProductList";
 import EventConfiguration from "./components/event-configuration/EventConfiguration";
+import EventCommerceSetup from "./components/event-commerce-setup/EventCommerceSetup";
 
 const routes: RouteObject[] = [
   {
@@ -29,6 +30,10 @@ const routes: RouteObject[] = [
       {
         path: "/event-configuration",
         element: <EventConfiguration />,
+      },
+      {
+        path: "/event-commerce-setup",
+        element: <EventCommerceSetup />,
       },
 
       {
