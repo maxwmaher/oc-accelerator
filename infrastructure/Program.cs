@@ -23,7 +23,7 @@ namespace OC_Accelerator
                 try
                 {
                     var summary = await new RaiSeeder().RunAsync(RaiSeeder.Parse(args.Skip(1).ToArray()), Console.Out);
-                    Console.WriteLine($"RAI seed complete. DryRun={summary.DryRun}; Products={summary.Products}; Categories={summary.Categories}; PriceSchedules={summary.PriceSchedules}; Specs={summary.Specs}; Options={summary.Options}; CatalogAssignments={summary.CatalogAssignments}; CategoryAssignments={summary.CategoryAssignments}; Failed={summary.Failed}");
+                    Console.WriteLine($"RAI seed complete. DryRun={summary.DryRun}; Products={summary.Products}; CuratedCategories={summary.Categories}; PrunedCategories={summary.PrunedCategories}; PriceSchedules={summary.PriceSchedules}; Specs={summary.Specs}; Options={summary.Options}; CatalogAssignments={summary.CatalogAssignments}; CategoryAssignments={summary.CategoryAssignments}; Failed={summary.Failed}");
                     Environment.ExitCode = summary.Failed == 0 ? 0 : 1;
                 }
                 catch (Exception ex)

@@ -6,7 +6,7 @@ using OrderCloud.SDK;
 namespace OC_Accelerator.Services.RaiDevWorld;
 
 public record RaiSeedOptions(string DataPath, bool DryRun, bool ForceUpdate, string ApiUrl, string ClientId, string ClientSecret, string BuyerId, string CatalogId);
-public record RaiSeedSummary(int Products, int Categories, int PriceSchedules, int Specs, int Options, int CatalogAssignments, int CategoryAssignments, int Failed, bool DryRun, int MaxCategoryXpLength = 0, int MaxProductXpLength = 0, int SnapshotProductRecords = 0, int DuplicateProductRecordsCollapsed = 0);
+public record RaiSeedSummary(int Products, int Categories, int PriceSchedules, int Specs, int Options, int CatalogAssignments, int CategoryAssignments, int Failed, bool DryRun, int MaxCategoryXpLength = 0, int MaxProductXpLength = 0, int SnapshotProductRecords = 0, int DuplicateProductRecordsCollapsed = 0, int PrunedCategories = 0);
 
 public class RaiSeeder
 {
@@ -24,17 +24,16 @@ public class RaiSeeder
         Validate(snap);
         var specs = snap.Products.Sum(p => p.Pricing.Options.Count);
         var opts = snap.Products.SelectMany(p => p.Pricing.Options).Sum(x => x.Values.Count);
-        var catAssign = snap.Products.SelectMany(p => p.CategoryPaths.SelectMany(path => path.Select((_, i) => string.Join("/", path.Take(i + 1))))).Distinct().Count();
-
         if (o.DryRun)
         {
             var categories = BuildCategories(snap).ToList();
             var dryRunPayloads = BuildAndValidateTypedPayloads(snap, o.CatalogId, categories);
             await log.WriteLineAsync($"Dry run: {snap.Products.Count} snapshot product records, {snap.Categories.Count} source categories, {specs} specs, {opts} options.");
-            await log.WriteLineAsync($"Dry run validated typed OrderCloud payloads for catalog '{o.CatalogId}': {dryRunPayloads.Categories.Count} unique categories, {dryRunPayloads.PriceSchedules.Count} unique price schedules, {dryRunPayloads.Products.Count} unique products, {dryRunPayloads.CatalogAssignments.Count} unique catalog assignments, {dryRunPayloads.CategoryAssignments.Count} unique category assignments.");
+            await log.WriteLineAsync($"Dry run validated typed OrderCloud payloads for catalog '{o.CatalogId}': {dryRunPayloads.Categories.Count} curated categories, {dryRunPayloads.PriceSchedules.Count} unique price schedules, {dryRunPayloads.Products.Count} unique products, {dryRunPayloads.CatalogAssignments.Count} unique catalog assignments, {dryRunPayloads.CategoryAssignments.Count} unique category assignments.");
+            await log.WriteLineAsync($"Dry run cleanup: would keep {CuratedCategoryIds.Count} curated RAI categories and prune {CountSnapshotRaiCategoriesToPrune(snap)} scraped/source RAI categories not in the curated set. A real run also checks existing remote RAI-managed categories before pruning.");
             await log.WriteLineAsync($"Dry run duplicates: {dryRunPayloads.SnapshotProductRecords} snapshot product records, {dryRunPayloads.Products.Count} unique product writes, {dryRunPayloads.DuplicateProductRecordsCollapsed} duplicate product records collapsed.");
             await log.WriteLineAsync($"Dry run XP lengths: max category xp {dryRunPayloads.MaxCategoryXpLength} chars, max product xp {dryRunPayloads.MaxProductXpLength} chars.");
-            return new(dryRunPayloads.Products.Count, dryRunPayloads.Categories.Count, dryRunPayloads.PriceSchedules.Count, specs, opts, dryRunPayloads.CatalogAssignments.Count, dryRunPayloads.CategoryAssignments.Count, 0, true, dryRunPayloads.MaxCategoryXpLength, dryRunPayloads.MaxProductXpLength, dryRunPayloads.SnapshotProductRecords, dryRunPayloads.DuplicateProductRecordsCollapsed);
+            return new(dryRunPayloads.Products.Count, dryRunPayloads.Categories.Count, dryRunPayloads.PriceSchedules.Count, specs, opts, dryRunPayloads.CatalogAssignments.Count, dryRunPayloads.CategoryAssignments.Count, 0, true, dryRunPayloads.MaxCategoryXpLength, dryRunPayloads.MaxProductXpLength, dryRunPayloads.SnapshotProductRecords, dryRunPayloads.DuplicateProductRecordsCollapsed, CountSnapshotRaiCategoriesToPrune(snap));
         }
 
         if (string.IsNullOrWhiteSpace(o.ClientId) || string.IsNullOrWhiteSpace(o.ClientSecret))
@@ -43,7 +42,7 @@ public class RaiSeeder
         var oc = new OrderCloudClient(new OrderCloudClientConfig { ApiUrl = o.ApiUrl, AuthUrl = o.ApiUrl, ClientId = o.ClientId, ClientSecret = o.ClientSecret, Roles = new[] { ApiRole.FullAccess } });
         await log.WriteLineAsync($"Authenticated OrderCloud client for {o.ApiUrl}; credentials redacted.");
         var seedPayloads = await SeedDynamicAsync((dynamic)oc, snap, o, log);
-        return new(seedPayloads.Products.Count, seedPayloads.Categories.Count, seedPayloads.PriceSchedules.Count, specs, opts, seedPayloads.CatalogAssignments.Count, seedPayloads.CategoryAssignments.Count, 0, false, seedPayloads.MaxCategoryXpLength, seedPayloads.MaxProductXpLength, seedPayloads.SnapshotProductRecords, seedPayloads.DuplicateProductRecordsCollapsed);
+        return new(seedPayloads.Products.Count, seedPayloads.Categories.Count, seedPayloads.PriceSchedules.Count, specs, opts, seedPayloads.CatalogAssignments.Count, seedPayloads.CategoryAssignments.Count, 0, false, seedPayloads.MaxCategoryXpLength, seedPayloads.MaxProductXpLength, seedPayloads.SnapshotProductRecords, seedPayloads.DuplicateProductRecordsCollapsed, seedPayloads.PrunedCategories);
     }
 
     public static RaiSnapshot Load(string path)
@@ -63,7 +62,29 @@ public class RaiSeeder
         }
     }
 
-    public static IEnumerable<Category> BuildCategories(RaiSnapshot s) => s.Categories.Select(BuildCategory);
+    const string RaiCategoryIdPrefix = "rai-devworld-cat-";
+
+    public static readonly IReadOnlySet<string> CuratedCategoryIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "rai-devworld-cat-food-beverages-catering",
+        "rai-devworld-cat-food-breakfast-catering",
+        "rai-devworld-cat-stand-construction",
+        "rai-devworld-cat-raised-flooring",
+        "rai-devworld-cat-power-internet-water",
+        "rai-devworld-cat-power-sockets"
+    };
+
+    static readonly IReadOnlyList<CuratedRaiCategory> CuratedCategories = new List<CuratedRaiCategory>
+    {
+        new("rai-devworld-cat-food-beverages-catering", "Food, beverages & catering", null, 1),
+        new("rai-devworld-cat-food-breakfast-catering", "Breakfast & catering", "rai-devworld-cat-food-beverages-catering", 1),
+        new("rai-devworld-cat-stand-construction", "Stand construction", null, 2),
+        new("rai-devworld-cat-raised-flooring", "Raised flooring", "rai-devworld-cat-stand-construction", 1),
+        new("rai-devworld-cat-power-internet-water", "Power, internet & water", null, 3),
+        new("rai-devworld-cat-power-sockets", "Power & sockets", "rai-devworld-cat-power-internet-water", 1)
+    };
+
+    public static IEnumerable<Category> BuildCategories(RaiSnapshot s) => CuratedCategories.Select(BuildCuratedCategory);
 
     public static Category BuildCategory(RaiCategory c)
     {
@@ -81,6 +102,22 @@ public class RaiSeeder
             xp = BuildXpString(new { RAI = new { Managed = true, SourceUrl = c.Url, SourcePath = c.Path } }, "Category", categoryId)
         };
     }
+
+    static Category BuildCuratedCategory(CuratedRaiCategory c) => new()
+    {
+        ID = c.Id,
+        Name = c.Name,
+        ParentID = c.ParentId,
+        Active = true,
+        ListOrder = c.ListOrder,
+        xp = BuildXpString(new { RAI = new { Managed = true, Curated = true } }, "Category", c.Id)
+    };
+
+    static int CountSnapshotRaiCategoriesToPrune(RaiSnapshot s) => s.Categories
+        .Select(c => c.OcId)
+        .Where(id => IsRaiManagedCategoryId(id) && !CuratedCategoryIds.Contains(id!))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Count();
 
 
     public static string BuildXpString(object xp, string resourceType, string resourceId)
@@ -183,11 +220,23 @@ public class RaiSeeder
     };
 
     public static IEnumerable<CategoryProductAssignment> BuildCategoryProductAssignments(RaiProduct p) =>
-        p.CategoryPaths.SelectMany(path => Enumerable.Range(1, path.Count).Select(i => new CategoryProductAssignment
+        GetCuratedCategoryIdsForProduct(p).Select(categoryId => new CategoryProductAssignment
         {
-            CategoryID = RaiId.Create(new[] { "cat" }.Concat(path.Take(i))),
+            CategoryID = categoryId,
             ProductID = p.OcId
-        }));
+        });
+
+    static IEnumerable<string> GetCuratedCategoryIdsForProduct(RaiProduct p)
+    {
+        var sourceSku = p.SourceSku ?? string.Empty;
+        if (sourceSku.StartsWith("CAT-FOOD-", StringComparison.OrdinalIgnoreCase) || sourceSku.StartsWith("FNB-", StringComparison.OrdinalIgnoreCase))
+            return new[] { "rai-devworld-cat-food-beverages-catering", "rai-devworld-cat-food-breakfast-catering" };
+        if (sourceSku.StartsWith("FLOOR-", StringComparison.OrdinalIgnoreCase))
+            return new[] { "rai-devworld-cat-stand-construction", "rai-devworld-cat-raised-flooring" };
+        if (sourceSku.StartsWith("POWER-", StringComparison.OrdinalIgnoreCase))
+            return new[] { "rai-devworld-cat-power-internet-water", "rai-devworld-cat-power-sockets" };
+        return Array.Empty<string>();
+    }
 
     public static RaiTypedPayloads BuildAndValidateTypedPayloads(RaiSnapshot s, string catalogId, IEnumerable<Category>? categories = null)
     {
@@ -381,8 +430,10 @@ public class RaiSeeder
         /* OrderCloud SDK 0.13 dynamic calls are intentionally isolated so dry-run/tests do not need credentials. */
         var typedPayloads = BuildAndValidateTypedPayloads(s, o.CatalogId);
 
+        var prunedCategories = await PruneRaiManagedCategoriesAsync(oc, o.CatalogId, typedPayloads.Categories.Select(c => c.ID), log);
+
         foreach (var category in typedPayloads.Categories)
-            await log.WriteLineAsync($"Saving category {category.ID}");
+            await log.WriteLineAsync($"Saving curated category {category.ID}");
         await SaveCategoriesAsync(oc, o.CatalogId, typedPayloads.Categories);
 
         foreach (var priceSchedule in typedPayloads.PriceSchedules)
@@ -409,8 +460,62 @@ public class RaiSeeder
             await Retry(async () => await oc.Categories.SaveProductAssignmentAsync(o.CatalogId, categoryAssignment), "category product assignment", $"{categoryAssignment.CategoryID}/{categoryAssignment.ProductID}");
         }
 
-        return typedPayloads;
+        return typedPayloads with { PrunedCategories = prunedCategories };
     }
+
+    static async Task<int> PruneRaiManagedCategoriesAsync(dynamic oc, string catalogId, IEnumerable<string> curatedCategoryIds, TextWriter log)
+    {
+        var curated = new HashSet<string>(curatedCategoryIds, StringComparer.OrdinalIgnoreCase);
+        var existing = await ListRaiManagedCategoryIdsAsync(oc, catalogId);
+        var stale = existing.Where(id => !curated.Contains(id)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        await log.WriteLineAsync($"RAI category cleanup: pruning {stale.Count} stale RAI-managed categories; keeping {curated.Count} curated categories.");
+        foreach (var categoryId in stale)
+        {
+            await log.WriteLineAsync($"Pruning stale RAI category {categoryId}");
+            await DeleteCategoryProductAssignmentsAsync(oc, catalogId, categoryId);
+            await Retry(async () => await oc.Categories.DeleteAsync(catalogId, categoryId, false, null), "category", categoryId);
+        }
+        return stale.Count;
+    }
+
+    static async Task<List<string>> ListRaiManagedCategoryIdsAsync(dynamic oc, string catalogId)
+    {
+        var ids = new List<string>();
+        for (var page = 1; ; page++)
+        {
+            dynamic response = await oc.Categories.ListAsync(catalogId, null, null, null, page, 100, null, false, null);
+            foreach (var item in response.Items)
+            {
+                string? id = item.ID;
+                if (IsRaiManagedCategoryId(id)) ids.Add(id!);
+            }
+            int metaPage = response.Meta.Page;
+            int totalPages = response.Meta.TotalPages;
+            if (metaPage >= totalPages || totalPages == 0) break;
+        }
+        return ids;
+    }
+
+    static async Task DeleteCategoryProductAssignmentsAsync(dynamic oc, string catalogId, string categoryId)
+    {
+        for (var page = 1; ; page++)
+        {
+            dynamic response = await oc.Categories.ListProductAssignmentsAsync(catalogId, categoryId, null, page, 100, null, false, null);
+            var productIds = new List<string>();
+            foreach (var item in response.Items)
+            {
+                string? productId = item.ProductID;
+                if (!string.IsNullOrWhiteSpace(productId)) productIds.Add(productId!);
+            }
+            foreach (var productId in productIds)
+                await Retry(async () => await oc.Categories.DeleteProductAssignmentAsync(catalogId, categoryId, productId, false, null), "category product assignment", $"{categoryId}/{productId}");
+            int metaPage = response.Meta.Page;
+            int totalPages = response.Meta.TotalPages;
+            if (metaPage >= totalPages || totalPages == 0) break;
+        }
+    }
+
+    static bool IsRaiManagedCategoryId(string? id) => id?.StartsWith(RaiCategoryIdPrefix, StringComparison.OrdinalIgnoreCase) == true;
 
     static async Task Retry(Func<Task> op, string resourceType, string resourceId)
     {
@@ -483,4 +588,7 @@ public record RaiTypedPayloads(
     int MaxCategoryXpLength,
     int MaxProductXpLength,
     int SnapshotProductRecords,
-    int DuplicateProductRecordsCollapsed);
+    int DuplicateProductRecordsCollapsed,
+    int PrunedCategories = 0);
+
+public record CuratedRaiCategory(string Id, string Name, string? ParentId, int ListOrder);

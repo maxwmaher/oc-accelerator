@@ -36,15 +36,16 @@ public class RaiDevWorldCategorySeedTests
 
         await new RaiSeeder().SaveCategoriesAsync(fake, snapshot, options);
 
-        Assert.That(fake.Categories.Calls, Has.Count.EqualTo(1));
-        var call = fake.Categories.Calls.Single();
+        Assert.That(fake.Categories.Calls, Has.Count.EqualTo(6));
+        var call = fake.Categories.Calls.First(c => c.CategoryId == "rai-devworld-cat-food-beverages-catering");
         Assert.That(call.CatalogId, Is.EqualTo("catalog-1"));
-        Assert.That(call.CategoryId, Is.EqualTo("rai-devworld-cat-printing"));
+        Assert.That(call.CategoryId, Is.EqualTo("rai-devworld-cat-food-beverages-catering"));
         Assert.That(call.Category, Is.TypeOf<OrderCloud.SDK.Category>());
-        Assert.That(call.Category.ID, Is.EqualTo("rai-devworld-cat-printing"));
-        Assert.That(call.Category.Name, Is.EqualTo("Printing"));
+        Assert.That(call.Category.ID, Is.EqualTo("rai-devworld-cat-food-beverages-catering"));
+        Assert.That(call.Category.Name, Is.EqualTo("Food, beverages & catering"));
         Assert.That(call.Category.Active, Is.True);
         Assert.That(call.Category.ListOrder, Is.EqualTo(1));
+        Assert.That(fake.Categories.Calls.Single(c => c.CategoryId == "rai-devworld-cat-food-breakfast-catering").Category.ParentID, Is.EqualTo("rai-devworld-cat-food-beverages-catering"));
     }
 
     private sealed class FakeOrderCloudClient
@@ -217,8 +218,8 @@ public class RaiDevWorldDistinctPayloadTests
     [Test]
     public void Duplicate_product_records_collapse_product_and_price_schedule_writes_while_preserving_assignments()
     {
-        var productA = BuildProduct(new List<List<string>> { new() { "Food" } });
-        var productB = BuildProduct(new List<List<string>> { new() { "Printing" } });
+        var productA = BuildProduct(new List<List<string>> { new() { "Food" } }) with { SourceSku = "CAT-FOOD-1" };
+        var productB = BuildProduct(new List<List<string>> { new() { "Printing" } }) with { SourceSku = "POWER-1" };
         var snapshot = BuildSnapshot(productA, productB);
 
         var payloads = RaiSeeder.BuildAndValidateTypedPayloads(snapshot, "catalog-1");
@@ -230,21 +231,21 @@ public class RaiDevWorldDistinctPayloadTests
         Assert.That(payloads.PriceSchedules, Has.Count.EqualTo(1));
         Assert.That(payloads.PriceSchedules.Single().ID, Is.EqualTo("ps-duplicate"));
         Assert.That(payloads.CatalogAssignments, Has.Count.EqualTo(1));
-        Assert.That(payloads.CategoryAssignments.Select(a => a.CategoryID), Is.EquivalentTo(new[] { "cat-food", "cat-printing" }));
+        Assert.That(payloads.CategoryAssignments.Select(a => a.CategoryID), Is.EquivalentTo(new[] { "rai-devworld-cat-food-beverages-catering", "rai-devworld-cat-food-breakfast-catering", "rai-devworld-cat-power-internet-water", "rai-devworld-cat-power-sockets" }));
     }
 
     [Test]
     public void Duplicate_category_assignments_collapse_by_category_and_product()
     {
-        var productA = BuildProduct(new List<List<string>> { new() { "Food" } });
-        var productB = BuildProduct(new List<List<string>> { new() { "Food" } });
+        var productA = BuildProduct(new List<List<string>> { new() { "Food" } }) with { SourceSku = "FNB-1" };
+        var productB = BuildProduct(new List<List<string>> { new() { "Food" } }) with { SourceSku = "FNB-1" };
         var snapshot = BuildSnapshot(productA, productB);
 
         var payloads = RaiSeeder.BuildAndValidateTypedPayloads(snapshot, "catalog-1");
 
-        Assert.That(payloads.CategoryAssignments, Has.Count.EqualTo(1));
-        Assert.That(payloads.CategoryAssignments.Single().CategoryID, Is.EqualTo("cat-food"));
-        Assert.That(payloads.CategoryAssignments.Single().ProductID, Is.EqualTo("prod-duplicate"));
+        Assert.That(payloads.CategoryAssignments, Has.Count.EqualTo(2));
+        Assert.That(payloads.CategoryAssignments.Select(a => a.CategoryID), Is.EquivalentTo(new[] { "rai-devworld-cat-food-beverages-catering", "rai-devworld-cat-food-breakfast-catering" }));
+        Assert.That(payloads.CategoryAssignments.Select(a => a.ProductID), Is.All.EqualTo("prod-duplicate"));
     }
 
     [Test]
