@@ -482,7 +482,7 @@ public class RaiSeeder
         {
             await log.WriteLineAsync($"Pruning stale RAI category {categoryId}");
             await DeleteCategoryProductAssignmentsAsync((object)oc, catalogId, categoryId, log);
-            await RetryIdempotentDeleteAsync(async () => await oc.Categories.DeleteAsync(catalogId, categoryId, false, null), "category", categoryId, log);
+            await RetryIdempotentDeleteAsync(async () => await oc.Categories.DeleteAsync(catalogId, categoryId, null), "category", categoryId, log);
         }
         return stale.Count;
     }
@@ -493,7 +493,7 @@ public class RaiSeeder
         var ids = new List<string>();
         for (var page = 1; ; page++)
         {
-            dynamic response = await oc.Categories.ListAsync(catalogId, null, null, null, page, 100, null, false, null);
+            dynamic response = await oc.Categories.ListAsync(catalogId, null, null, null, null, page, 100, null, null);
             foreach (var item in response.Items)
             {
                 string? id = item.ID;
@@ -514,7 +514,7 @@ public class RaiSeeder
             dynamic response;
             try
             {
-                response = await oc.Categories.ListProductAssignmentsAsync(catalogId, categoryId, null, page, 100, null, false, null);
+                response = await oc.Categories.ListProductAssignmentsAsync(catalogId, categoryId, null, page, 100, null);
             }
             catch (OrderCloudException ex) when (IsNotFound(ex))
             {
@@ -528,7 +528,7 @@ public class RaiSeeder
                 if (!string.IsNullOrWhiteSpace(productId)) productIds.Add(productId!);
             }
             foreach (string productId in productIds)
-                await RetryIdempotentDeleteAsync(async () => await oc.Categories.DeleteProductAssignmentAsync(catalogId, categoryId, productId, false, null), "category product assignment", $"{categoryId}/{productId}", log);
+                await RetryIdempotentDeleteAsync(async () => await oc.Categories.DeleteProductAssignmentAsync(catalogId, categoryId, productId, null), "category product assignment", $"{categoryId}/{productId}", log);
             int metaPage = response.Meta.Page;
             int totalPages = response.Meta.TotalPages;
             if (metaPage >= totalPages || totalPages == 0) break;
