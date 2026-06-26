@@ -97,7 +97,7 @@ const Dashboard: FC = () => {
           h={{ base: "45dvh", lg: "75dvh" }}
           w="full"
           objectFit="cover"
-          objectPosition="center center"
+          objectPosition="left center"
           src={devWorldHeroImage}
           alt="DevWorld 2026 exhibitor services"
         />
