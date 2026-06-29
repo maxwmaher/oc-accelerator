@@ -66,4 +66,22 @@ describe("auditProductXp", () => {
     auditProductXp(product(xp))
     expect(xp).toEqual(original)
   })
+
+  it("detects missing compact metadata fields on stringified compact xp", () => {
+    const { SourceSystem, SourceProductID, SourceCategoryPaths, ScrapedAtUtc, ...raiWithoutMetadata } = validXp.RAI
+    const result = auditProductXp(product(JSON.stringify({ ...validXp, RAI: raiWithoutMetadata })))
+    expect(result.issues.map((i) => `${i.issueType}:${i.xpPath}`)).toEqual(expect.arrayContaining([
+      "stringified xp:$",
+      "missing field:$.RAI.SourceSystem",
+      "missing field:$.RAI.SourceProductID",
+      "missing field:$.RAI.SourceCategoryPaths",
+      "missing field:$.RAI.ScrapedAtUtc",
+    ]))
+  })
+
+  it("skips non-object parsed string xp for repair", () => {
+    const result = auditProductXp(product(JSON.stringify(["not", "object"])))
+    expect(result.parsedStringifiedXp).toBeUndefined()
+    expect(result.stringifiedXpSchemaValid).toBe(false)
+  })
 })
