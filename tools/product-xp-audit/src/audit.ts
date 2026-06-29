@@ -1,20 +1,18 @@
 import { productXpSchema, type SchemaNode } from "./productXpSchema"
 
 export type Product = { ID: string; Name?: string; xp?: unknown; [key: string]: unknown }
-export type IssueKind = "missing" | "unexpected" | "type"
-export type Safety = "safe" | "unsafe"
+export type IssueKind = "missing field" | "wrong type" | "null value" | "unexpected field"
 export type XpIssue = {
   productID: string
   productName: string
-  issuePath: string
-  issueKind: IssueKind
+  xpPath: string
+  issueType: IssueKind
   expectedType: string
   actualType: string
   currentValue: unknown
-  proposedNormalizedValue: unknown
-  safety: Safety
+  proposedNormalizedValue?: unknown
 }
-export type AuditResult = { issues: XpIssue[]; normalizedXp: unknown; safeToApply: boolean }
+export type AuditResult = { issues: XpIssue[]; normalizedXp: unknown }
 
 const defaults: Record<string, unknown> = {
   "$.Images": [],
@@ -49,56 +47,64 @@ function defaultFor(node: SchemaNode, path: string): unknown {
   if (node.type === "array") return []
   return ""
 }
-function coercePrimitive(value: unknown, node: SchemaNode, path: string, force: boolean): { value: unknown; safe: boolean } {
-  if (node.type !== "string") return { value: defaultFor(node, path), safe: false }
-  if (typeof value === "string") return { value, safe: true }
-  if (force && (typeof value === "number" || typeof value === "boolean")) return { value: String(value), safe: true }
-  return { value: defaultFor(node, path), safe: false }
+function arrayItemPath(path: string) {
+  return path.replace(/\[\d+\]/g, "[]")
+}
+function proposedValue(value: unknown, node: SchemaNode, path: string): unknown | undefined {
+  if (value === undefined || value === null) return defaultFor(node, arrayItemPath(path))
+  if (node.type === "string" && (typeof value === "number" || typeof value === "boolean")) return String(value)
+  return undefined
 }
 
-export function auditProductXp(product: Product, options: { force?: boolean } = {}): AuditResult {
+export function auditProductXp(product: Product): AuditResult {
   const issues: XpIssue[] = []
-  let safeToApply = true
   const name = product.Name ?? ""
-  const force = options.force === true
-  const add = (path: string, kind: IssueKind, node: SchemaNode, current: unknown, proposed: unknown, safe: boolean) => {
-    if (!safe) safeToApply = false
-    issues.push({ productID: product.ID, productName: name, issuePath: path, issueKind: kind, expectedType: expectedType(node), actualType: actualType(current), currentValue: current, proposedNormalizedValue: proposed, safety: safe ? "safe" : "unsafe" })
+  const add = (path: string, issueType: IssueKind, node: SchemaNode, current: unknown) => {
+    const proposed = proposedValue(current, node, path)
+    issues.push({
+      productID: product.ID,
+      productName: name,
+      xpPath: path,
+      issueType,
+      expectedType: issueType === "unexpected field" ? "not defined in schema" : expectedType(node),
+      actualType: actualType(current),
+      currentValue: current,
+      ...(proposed !== undefined ? { proposedNormalizedValue: proposed } : {}),
+    })
   }
   const visit = (value: unknown, node: SchemaNode, path: string): unknown => {
     if (value === undefined) {
-      const proposed = defaultFor(node, path)
-      add(path, "missing", node, value, proposed, true)
-      return proposed
+      add(path, "missing field", node, value)
+      return defaultFor(node, arrayItemPath(path))
+    }
+    if (value === null) {
+      add(path, "null value", node, value)
+      return defaultFor(node, arrayItemPath(path))
     }
     if (node.type === "object") {
       if (!isRecord(value)) {
-        const proposed = defaultFor(node, path)
-        add(path, "type", node, value, proposed, value === null || value === undefined)
-        return proposed
+        add(path, "wrong type", node, value)
+        return defaultFor(node, arrayItemPath(path))
       }
-      const out: Record<string, unknown> = {}
+      const out: Record<string, unknown> = { ...value }
       for (const key of Object.keys(value)) {
-        if (!(key in node.fields)) add(`${path}.${key}`, "unexpected", { type: "object", fields: {} }, value[key], undefined, true)
+        if (!(key in node.fields)) add(`${path}.${key}`, "unexpected field", { type: "object", fields: {} }, value[key])
       }
       for (const [key, child] of Object.entries(node.fields)) out[key] = visit(value[key], child, `${path}.${key}`)
       return out
     }
     if (node.type === "array") {
       if (!Array.isArray(value)) {
-        const proposed = defaultFor(node, path)
-        add(path, "type", node, value, proposed, false)
-        return proposed
+        add(path, "wrong type", node, value)
+        return defaultFor(node, arrayItemPath(path))
       }
       return value.map((item, i) => visit(item, node.items, `${path}[${i}]`))
     }
     if (typeof value !== node.type) {
-      const coerced = coercePrimitive(value, node, path, force)
-      add(path, "type", node, value, coerced.value, coerced.safe)
-      if (!coerced.safe) safeToApply = false
-      return coerced.value
+      add(path, "wrong type", node, value)
+      return proposedValue(value, node, path) ?? defaultFor(node, arrayItemPath(path))
     }
     return value
   }
-  return { issues, normalizedXp: visit(product.xp, productXpSchema, "$"), safeToApply }
+  return { issues, normalizedXp: visit(product.xp, productXpSchema, "$") }
 }
