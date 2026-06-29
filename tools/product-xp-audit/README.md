@@ -1,19 +1,21 @@
 # Product XP Audit
 
-TypeScript CLI for auditing and optionally normalizing OrderCloud Product `xp` against the canonical schema in `src/productXpSchema.ts`.
+Audit-only TypeScript CLI for checking OrderCloud Product `xp` against the canonical schema in `src/productXpSchema.ts`.
 
-Dry-run is the default and never mutates products:
+## Run
 
 ```bash
-ORDERCLOUD_ACCESS_TOKEN=... npm run audit
+ORDERCLOUD_ACCESS_TOKEN=... npm --prefix tools/product-xp-audit run audit
 ```
 
-Options:
+Environment variables only:
 
-- `--apply` writes changes with `PUT /Products.Save` semantics after creating a JSON backup and re-fetching every product immediately before saving.
-- `--force` allows primitive coercions such as number/boolean to string. Without it, unsafe or ambiguous coercions are reported and skipped.
-- `--touch-valid` re-saves products that already match the schema when `--apply` is also present, refreshing product index/cache behavior without changing `xp`.
-- `--out-dir <dir>` changes where JSON/CSV reports and backups are written.
-- `--api-url <url>` overrides `https://api.ordercloud.io`.
+- `ORDERCLOUD_ACCESS_TOKEN` (required)
+- `ORDERCLOUD_API_URL` (optional, defaults to `https://api.ordercloud.io`)
+- `PRODUCT_XP_AUDIT_OUT_DIR` (optional, defaults to `product-xp-audit-reports`)
 
-Credentials must be supplied through the environment or CLI at runtime; do not commit credentials or read them from source-controlled files.
+Optional CLI argument:
+
+- `--out-dir DIR` writes JSON and CSV reports to a custom directory.
+
+The command is dry-run/audit-only. It lists products through the OrderCloud SDK, writes JSON and CSV reports, and does not apply, save, PUT, patch, or otherwise mutate OrderCloud data.
