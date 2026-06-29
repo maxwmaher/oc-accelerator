@@ -84,14 +84,14 @@ public class RaiDevWorldXpTests
     }
 
     [Test]
-    public void Product_xp_is_compact_json_string_with_storefront_fields_only()
+    public void Product_xp_is_compact_object_with_storefront_fields_only()
     {
         var snapshot = BuildSnapshot(BuildProduct());
 
         var ocProduct = RaiSeeder.BuildProduct(snapshot.Products.Single(), snapshot);
 
-        Assert.That(ocProduct.xp, Is.TypeOf<string>());
-        var json = (string)ocProduct.xp;
+        Assert.That(ocProduct.xp, Is.Not.TypeOf<string>());
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(ocProduct.xp, Newtonsoft.Json.Formatting.None);
         Assert.That(json, Does.Not.Contain("\n"));
         Assert.That(json.Length, Is.LessThanOrEqualTo(8000));
         dynamic parsed = Newtonsoft.Json.JsonConvert.DeserializeObject(json)!;
@@ -101,10 +101,10 @@ public class RaiDevWorldXpTests
         Assert.That((string)parsed.RAI.SourceSKU, Is.EqualTo("sku-1"));
         Assert.That((string)parsed.RAI.SourceUrl, Is.EqualTo("https://example.test/product"));
         Assert.That((string)parsed.RAI.SourceHash, Is.EqualTo("hash-1"));
-        Assert.That(json, Does.Not.Contain("SourceSystem"));
-        Assert.That(json, Does.Not.Contain("SourceProductID"));
-        Assert.That(json, Does.Not.Contain("SourceCategoryPaths"));
-        Assert.That(json, Does.Not.Contain("ScrapedAtUtc"));
+        Assert.That((string)parsed.RAI.SourceSystem, Is.EqualTo("RAI"));
+        Assert.That((string)parsed.RAI.SourceProductID, Is.EqualTo("source-1"));
+        Assert.That((string)parsed.RAI.SourceCategoryPaths[0], Is.EqualTo("Food"));
+        Assert.That((string)parsed.RAI.ScrapedAtUtc, Is.EqualTo("2026-06-25T00:00:00Z"));
         Assert.That(json, Does.Not.Contain("Pricing"));
         Assert.That(json, Does.Not.Contain("Ordering"));
         Assert.That(json, Does.Not.Contain("Attributes"));
@@ -122,7 +122,7 @@ public class RaiDevWorldXpTests
 
         var ocProduct = RaiSeeder.BuildProduct(product, snapshot);
 
-        var json = (string)ocProduct.xp;
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(ocProduct.xp, Newtonsoft.Json.Formatting.None);
         dynamic parsed = Newtonsoft.Json.JsonConvert.DeserializeObject(json)!;
         Assert.That(parsed.Images.Count, Is.EqualTo(3));
         Assert.That((string)parsed.Images[0].Url, Is.EqualTo("https://example.test/image-1.jpg"));
@@ -138,7 +138,7 @@ public class RaiDevWorldXpTests
         var snapshot = RaiSeeder.Load(snapshotPath);
 
         var maxProductXpLength = snapshot.Products
-            .Select(product => ((string)RaiSeeder.BuildProduct(product, snapshot).xp).Length)
+            .Select(product => Newtonsoft.Json.JsonConvert.SerializeObject(RaiSeeder.BuildProduct(product, snapshot).xp, Newtonsoft.Json.Formatting.None).Length)
             .Max();
 
         Assert.That(maxProductXpLength, Is.LessThanOrEqualTo(8000));
@@ -157,7 +157,7 @@ public class RaiDevWorldXpTests
 
         var ocProduct = RaiSeeder.BuildProduct(product, snapshot);
 
-        Assert.That(((string)ocProduct.xp).Length, Is.LessThanOrEqualTo(8000));
+        Assert.That(Newtonsoft.Json.JsonConvert.SerializeObject(ocProduct.xp, Newtonsoft.Json.Formatting.None).Length, Is.LessThanOrEqualTo(8000));
     }
 
     [Test]
