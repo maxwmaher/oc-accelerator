@@ -29,11 +29,7 @@ export const productXp : OpenAPIV3.SchemaObject = {
         "SourceProductID": { "type": "string" },
         "SourceSKU": { "type": "string" },
         "SourceUrl": { "type": "string" },
-        "SourceCategoryPaths": { "type": "array", "items": { "type": "array", "items": { "type": "string" } } },
-        "Descriptions": { "type": "object" },
-        "Attributes": { "type": "array", "items": { "type": "object" } },
-        "Pricing": { "type": "object" },
-        "Ordering": { "type": "object" },
+        "SourceCategoryPaths": { "type": "array", "items": { "type": "string" } },
         "ScrapedAtUtc": { "type": "string" },
         "SourceHash": { "type": "string" }
       }
