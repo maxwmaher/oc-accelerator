@@ -1,0 +1,1 @@
+{"name":"product-xp-audit","private":true,"type":"module","scripts":{"audit":"tsx src/cli.ts","test":"vitest run","typecheck":"tsc --noEmit"},"dependencies":{"tsx":"^4.16.2"},"devDependencies":{"vitest":"^1.6.0","typescript":"^5.5.4"}}
