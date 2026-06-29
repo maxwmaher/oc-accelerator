@@ -7,8 +7,8 @@ import { auditProductXp, type Product, type XpIssue } from "./audit"
 
 type Args = { outDir: string; apiUrl: string; token?: string; apply: boolean; yes: boolean; fixStringifiedXp: boolean; snapshotPath?: string }
 type ProductListPage = { Items: Product[]; Meta?: { Page: number; TotalPages: number } }
-type RepairResult = { scanned: number; repaired: number; skipped: number; backupDir?: string; remainingIssues: XpIssue[]; defaulted: string[] }
-type SnapshotProduct = { OcId?: string; SourceProductId?: string; CategoryPaths?: string[][] }
+type RepairResult = { scanned: number; repaired: number; skipped: number; failed: number; backupDir?: string; remainingIssues: XpIssue[]; defaulted: string[] }
+type SnapshotProduct = { OcId?: string; ocId?: string; SourceProductId?: string; sourceProductId?: string; CategoryPaths?: string[][]; categoryPaths?: string[][] }
 type Snapshot = { source?: { system?: string; scrapedAtUtc?: string }; products?: SnapshotProduct[] }
 type Metadata = { SourceSystem: string; SourceProductID: string; SourceCategoryPaths: string[]; ScrapedAtUtc: string; usedDefaults: string[] }
 
@@ -78,7 +78,7 @@ async function loadSnapshot(args: Args): Promise<Snapshot | undefined> {
   try { return JSON.parse(await fs.readFile(args.snapshotPath, "utf8")) as Snapshot } catch { console.warn(`Unable to load RAI snapshot at ${args.snapshotPath}; repair will use safe defaults when needed.`); return undefined }
 }
 function metadataFor(productID: string, snapshot?: Snapshot): Metadata {
-  const sourceProduct = snapshot?.products?.find((p) => p.OcId === productID)
+  const sourceProduct = snapshot?.products?.find((p) => (p.OcId ?? p.ocId) === productID)
   const usedDefaults: string[] = []
   const value = <T>(name: string, snapshotValue: T | undefined, fallback: T): T => {
     if (snapshotValue !== undefined && snapshotValue !== null && snapshotValue !== "") return snapshotValue
@@ -87,8 +87,8 @@ function metadataFor(productID: string, snapshot?: Snapshot): Metadata {
   }
   return {
     SourceSystem: value("SourceSystem", snapshot?.source?.system, "RAI DevWorld"),
-    SourceProductID: value("SourceProductID", sourceProduct?.SourceProductId, productID),
-    SourceCategoryPaths: value("SourceCategoryPaths", sourceProduct?.CategoryPaths?.map((p) => p.join(" > ")), []),
+    SourceProductID: value("SourceProductID", sourceProduct?.SourceProductId ?? sourceProduct?.sourceProductId, productID),
+    SourceCategoryPaths: value("SourceCategoryPaths", (sourceProduct?.CategoryPaths ?? sourceProduct?.categoryPaths)?.map((p) => p.join(" > ")), []),
     ScrapedAtUtc: value("ScrapedAtUtc", snapshot?.source?.scrapedAtUtc, ""),
     usedDefaults,
   }
@@ -101,13 +101,14 @@ export function repairXpObject(productID: string, parsedXp: Record<string, unkno
 }
 export async function repairStringifiedXp(args: Args, products: Product[]): Promise<RepairResult> {
   const initialIssues = products.flatMap((product) => auditProductXp(product).issues)
-  if (!(args.apply && args.yes && args.fixStringifiedXp)) return { scanned: products.length, repaired: 0, skipped: 0, remainingIssues: initialIssues, defaulted: [] }
+  if (!(args.apply && args.yes && args.fixStringifiedXp)) return { scanned: products.length, repaired: 0, skipped: 0, failed: 0, remainingIssues: initialIssues, defaulted: [] }
   configure(args)
   const snapshot = await loadSnapshot(args)
   const backupDir = path.join(args.outDir, "backups", new Date().toISOString().replace(/[:.]/g, "-"))
   await fs.mkdir(backupDir, { recursive: true })
   let repaired = 0
   let skipped = 0
+  let failed = 0
   const defaulted: string[] = []
   for (const product of products) {
     const result = auditProductXp(product)
@@ -121,9 +122,22 @@ export async function repairStringifiedXp(args: Args, products: Product[]): Prom
     if (repairedXp.usedDefaults.length) defaulted.push(`${product.ID}: ${repairedXp.usedDefaults.join(", ")}`)
     fresh.xp = repairedXp.xp
     await Products.Save<OrderCloudProduct>(product.ID, fresh as OrderCloudProduct, { accessToken: requireToken(args) })
+    const verified = (await Products.Get<OrderCloudProduct>(product.ID, { accessToken: requireToken(args) })) as Product
+    const verifiedResult = auditProductXp(verified)
+    if (verifiedResult.parsedStringifiedXp) {
+      failed++
+      console.warn(`${product.ID}: attempted to save object xp, but verification GET still returned stringified xp. Existing stringified-xp products require delete-and-reseed.`)
+      continue
+    }
+    const remaining = verifiedResult.issues
+    if (remaining.some((issue) => issue.issueType === "stringified xp" || issue.issueType === "invalid stringified xp" || issue.xpPath === "$")) {
+      failed++
+      console.warn(`${product.ID}: attempted to save object xp, but verification still found root xp issues. Existing stringified-xp products require delete-and-reseed.`)
+      continue
+    }
     repaired++
   }
-  return { scanned: products.length, repaired, skipped, backupDir, remainingIssues: [], defaulted }
+  return { scanned: products.length, repaired, skipped, failed, backupDir, remainingIssues: [], defaulted }
 }
 export async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv)
@@ -134,7 +148,8 @@ export async function main(argv = process.argv.slice(2)) {
   const counts = issues.reduce<Record<string, number>>((acc, issue) => { acc[issue.issueType] = (acc[issue.issueType] ?? 0) + 1; return acc }, {})
   console.log(`Audited ${products.length} products; found ${issues.length} issues. Stringified XP: ${counts["stringified xp"] ?? 0}; missing compact metadata fields: ${issues.filter((i) => i.issueType === "missing field" && i.xpPath.startsWith("$.RAI.")).length}; invalid unparseable XP: ${counts["invalid stringified xp"] ?? 0}.`)
   if (args.apply && args.yes && args.fixStringifiedXp) {
-    console.log(`Repair scanned ${repair.scanned} products; repaired ${repair.repaired}; skipped ${repair.skipped}; backup path: ${repair.backupDir ?? ""}; remaining issues: ${repair.remainingIssues.length}.`)
+    console.log(`Repair scanned ${repair.scanned} products; repaired ${repair.repaired}; skipped ${repair.skipped}; failed ${repair.failed}; backup path: ${repair.backupDir ?? ""}; remaining issues: ${repair.remainingIssues.length}.`)
+    if (repair.failed) console.log("One or more products still have stringified xp after save verification. Existing stringified-xp products require delete-and-reseed.")
     for (const entry of repair.defaulted) console.log(`Used safe metadata defaults for ${entry}.`)
   } else console.log("No OrderCloud data was changed.")
   console.log(`JSON report: ${reports.jsonPath}`)
