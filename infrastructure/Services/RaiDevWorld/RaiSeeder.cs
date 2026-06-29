@@ -1,5 +1,6 @@
 using System.Reflection;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using OC_Accelerator.Models.RaiDevWorld;
 using OrderCloud.SDK;
 
@@ -121,7 +122,15 @@ public class RaiSeeder
         .Count();
 
 
-    public static string BuildXpString(object xp, string resourceType, string resourceId)
+    public static string BuildXpString(object xp, string resourceType, string resourceId) => ValidateSerializedXp(xp, resourceType, resourceId);
+
+    public static JObject BuildXpObject(object xp, string resourceType, string resourceId)
+    {
+        ValidateSerializedXp(xp, resourceType, resourceId);
+        return JObject.FromObject(xp);
+    }
+
+    static string ValidateSerializedXp(object xp, string resourceType, string resourceId)
     {
         var json = JsonConvert.SerializeObject(xp, Formatting.None);
         if (string.IsNullOrWhiteSpace(json) || json == "null")
@@ -195,7 +204,7 @@ public class RaiSeeder
             Active = true,
             Returnable = false,
             DefaultPriceScheduleID = priceScheduleId,
-            xp = BuildXpString(new
+            xp = BuildXpObject(new
             {
                 Images = p.Images.Take(3).Select(i => new
                 {
@@ -205,10 +214,14 @@ public class RaiSeeder
                 RAI = new
                 {
                     Managed = true,
-                    SourceSKU = p.SourceSku,
+                    SourceSystem = s.Source.System,
+                    Event = s.Source.Event,
+                    SourceProductID = p.SourceProductId ?? string.Empty,
+                    SourceSKU = p.SourceSku ?? string.Empty,
                     SourceUrl = p.CanonicalUrl,
-                    SourceHash = p.SourceHash,
-                    Event = s.Source.Event
+                    SourceCategoryPaths = p.CategoryPaths.Select(path => string.Join(" > ", path)),
+                    ScrapedAtUtc = s.Source.ScrapedAtUtc,
+                    SourceHash = p.SourceHash
                 }
             }, "Product", productId)
         };
@@ -368,10 +381,9 @@ public class RaiSeeder
         var maxLength = 0;
         foreach (var payload in payloads)
         {
-            if (payload.Xp is not string json)
-                throw new InvalidOperationException($"{payload.ResourceType} '{payload.ResourceId}' xp must be a compact JSON string.");
+            var json = JsonConvert.SerializeObject(payload.Xp, Formatting.None);
             if (string.IsNullOrWhiteSpace(json))
-                throw new InvalidOperationException($"{payload.ResourceType} '{payload.ResourceId}' xp must be non-empty JSON.");
+                throw new InvalidOperationException($"{payload.ResourceType} '{payload.ResourceId}' xp must serialize to non-empty JSON.");
             try
             {
                 JsonConvert.DeserializeObject(json);

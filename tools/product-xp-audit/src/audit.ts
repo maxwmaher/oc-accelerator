@@ -1,7 +1,7 @@
 import { productXpSchema, type SchemaNode } from "./productXpSchema"
 
 export type Product = { ID: string; Name?: string; xp?: unknown; [key: string]: unknown }
-export type IssueKind = "missing field" | "wrong type" | "null value" | "unexpected field"
+export type IssueKind = "missing field" | "wrong type" | "null value" | "unexpected field" | "stringified xp" | "invalid stringified xp"
 export type XpIssue = {
   productID: string
   productName: string
@@ -12,7 +12,7 @@ export type XpIssue = {
   currentValue: unknown
   proposedNormalizedValue?: unknown
 }
-export type AuditResult = { issues: XpIssue[]; normalizedXp: unknown }
+export type AuditResult = { issues: XpIssue[]; normalizedXp: unknown; parsedStringifiedXp?: Record<string, unknown>; stringifiedXpSchemaValid?: boolean }
 
 function defaultFor(node: SchemaNode): unknown {
   if (node.type === "object") {
@@ -61,39 +61,58 @@ export function auditProductXp(product: Product): AuditResult {
       ...(proposed !== undefined ? { proposedNormalizedValue: proposed } : {}),
     })
   }
-  const visit = (value: unknown, node: SchemaNode, path: string): unknown => {
+  const visit = (value: unknown, node: SchemaNode, path: string, collectIssues = true): unknown => {
+    const addIfCollecting = (issuePath: string, issueType: IssueKind, issueNode: SchemaNode, current: unknown) => {
+      if (collectIssues) add(issuePath, issueType, issueNode, current)
+    }
     if (value === undefined) {
-      add(path, "missing field", node, value)
+      addIfCollecting(path, "missing field", node, value)
       return defaultFor(node)
     }
     if (value === null) {
-      add(path, "null value", node, value)
+      addIfCollecting(path, "null value", node, value)
       return defaultFor(node)
     }
     if (node.type === "object") {
       if (!isRecord(value)) {
-        add(path, "wrong type", node, value)
+        addIfCollecting(path, "wrong type", node, value)
         return defaultFor(node)
       }
       const out: Record<string, unknown> = { ...value }
       for (const key of Object.keys(value)) {
-        if (!(key in node.fields)) add(`${path}.${key}`, "unexpected field", { type: "object", fields: {} }, value[key])
+        if (!(key in node.fields)) addIfCollecting(`${path}.${key}`, "unexpected field", { type: "object", fields: {} }, value[key])
       }
-      for (const [key, child] of Object.entries(node.fields)) out[key] = visit(value[key], child, `${path}.${key}`)
+      for (const [key, child] of Object.entries(node.fields)) out[key] = visit(value[key], child, `${path}.${key}`, collectIssues)
       return out
     }
     if (node.type === "array") {
       if (!Array.isArray(value)) {
-        add(path, "wrong type", node, value)
+        addIfCollecting(path, "wrong type", node, value)
         return defaultFor(node)
       }
-      return value.map((item, i) => visit(item, node.items, `${path}[${i}]`))
+      return value.map((item, i) => visit(item, node.items, `${path}[${i}]`, collectIssues))
     }
     if (typeof value !== node.type) {
-      add(path, "wrong type", node, value)
+      addIfCollecting(path, "wrong type", node, value)
       return proposedValue(value, node) ?? defaultFor(node)
     }
     return value
+  }
+  if (typeof product.xp === "string") {
+    try {
+      const parsed: unknown = JSON.parse(product.xp)
+      if (isRecord(parsed)) {
+        const before = issues.length
+        add("$", "stringified xp", productXpSchema, product.xp)
+        const normalizedXp = visit(parsed, productXpSchema, "$")
+        return { issues, normalizedXp, parsedStringifiedXp: parsed, stringifiedXpSchemaValid: issues.length === before + 1 }
+      }
+      add("$", "wrong type", productXpSchema, product.xp)
+      return { issues, normalizedXp: defaultFor(productXpSchema), stringifiedXpSchemaValid: false }
+    } catch {
+      add("$", "invalid stringified xp", productXpSchema, product.xp)
+      return { issues, normalizedXp: defaultFor(productXpSchema), stringifiedXpSchemaValid: false }
+    }
   }
   return { issues, normalizedXp: visit(product.xp, productXpSchema, "$") }
 }
