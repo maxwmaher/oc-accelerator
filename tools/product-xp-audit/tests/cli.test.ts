@@ -1,13 +1,14 @@
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import fs from "node:fs/promises"
 
 const sdk = vi.hoisted(() => ({
   saved: [] as unknown[],
   getCalls: [] as string[],
+  getResponses: [] as unknown[],
   Products: {
     Get: vi.fn(async (id: string) => {
       sdk.getCalls.push(id)
-      return { ID: id, Name: "Product", xp: JSON.stringify({ Images: [], RAI: { Managed: true, Event: "DevWorld", SourceSKU: "sku-1", SourceUrl: "https://example.test/p", SourceHash: "abc123" } }), untouched: true }
+      return sdk.getResponses.shift() ?? { ID: id, Name: "Product", xp: JSON.stringify({ Images: [], RAI: { Managed: true, Event: "DevWorld", SourceSKU: "sku-1", SourceUrl: "https://example.test/p", SourceHash: "abc123" } }), untouched: true }
     }),
     Save: vi.fn(async (_id: string, product: unknown) => { sdk.saved.push(product) }),
     List: vi.fn(),
@@ -25,6 +26,14 @@ const validXp = {
 }
 
 describe("repairStringifiedXp helpers", () => {
+  beforeEach(() => {
+    sdk.saved.length = 0
+    sdk.getCalls.length = 0
+    sdk.getResponses.length = 0
+    sdk.Products.Get.mockClear()
+    sdk.Products.Save.mockClear()
+  })
+
   it("repairs stringified compact xp into object xp and adds missing metadata", () => {
     const repaired = repairXpObject("p1", validXp, undefined)
     expect(repaired.xp).toMatchObject({ RAI: { Managed: true, SourceSystem: "RAI DevWorld", SourceProductID: "p1", SourceCategoryPaths: [], ScrapedAtUtc: "" } })
@@ -42,11 +51,12 @@ describe("repairStringifiedXp helpers", () => {
     expect(result.scanned).toBe(1)
   })
 
-  it("writes a full-product backup before save", async () => {
+  it("does not report repair success when verification still returns string xp", async () => {
     const outDir = await fs.mkdtemp("/tmp/product-xp-audit-")
     const result = await repairStringifiedXp({ outDir, apiUrl: "https://api.ordercloud.io", token: "token", apply: true, yes: true, fixStringifiedXp: true }, [{ ID: "p1", xp: JSON.stringify(validXp) }])
-    expect(result.repaired).toBe(1)
-    expect(sdk.Products.Get).toHaveBeenCalledTimes(2)
+    expect(result.repaired).toBe(0)
+    expect(result.failed).toBe(1)
+    expect(sdk.Products.Get).toHaveBeenCalledTimes(3)
     expect(sdk.Products.Save).toHaveBeenCalledTimes(1)
     const backup = await fs.readFile(`${result.backupDir}/p1.json`, "utf8")
     expect(backup).toContain('"untouched": true')
