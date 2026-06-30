@@ -505,7 +505,7 @@ public class RaiSeeder
         var ids = new List<string>();
         for (var page = 1; ; page++)
         {
-            dynamic response = await oc.Categories.ListAsync(catalogId, null, null, null, null, page, 100, null, null);
+            dynamic response = await oc.Categories.ListAsync(catalogId, null, null, null, null, page, 100, "all", null);
             foreach (var item in response.Items)
             {
                 string? id = item.ID;

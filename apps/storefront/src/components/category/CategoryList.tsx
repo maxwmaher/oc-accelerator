@@ -3,6 +3,7 @@ import { Category } from "ordercloud-javascript-sdk";
 import React, { FunctionComponent, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import CategoryCard from "./CategoryCard";
+import { isStaleRaiCategoryId } from "./raiCategories";
 import { useOcResourceList } from "@ordercloud/react-sdk";
 
 export interface CategoryListProps {
@@ -24,7 +25,10 @@ const CategoryList: FunctionComponent<CategoryListProps> = ({ renderItem }) => {
     }
   );
 
-  const categories = useMemo(() => data?.Items, [data]);
+  const categories = useMemo(
+    () => data?.Items?.filter((category) => !isStaleRaiCategoryId(category.ID)),
+    [data]
+  );
 
   if (isLoading) {
     return (
