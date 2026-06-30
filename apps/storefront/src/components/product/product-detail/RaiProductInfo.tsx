@@ -32,11 +32,47 @@ interface RaiProductInfoXp {
     Notes?: string[];
   };
   Attributes?: RaiProductAttribute[];
-  SourceCategoryPaths?: string[][];
+  SourceCategoryPaths?: Array<string | string[]>;
 }
 
-const RaiProductInfo: React.FC<{ rai?: RaiProductInfoXp }> = ({ rai }) =>
-  !rai ? null : (
+export const getFirstSourceCategoryPathLabel = (
+  sourceCategoryPaths?: unknown,
+): string | undefined => {
+  if (!Array.isArray(sourceCategoryPaths) || sourceCategoryPaths.length === 0) {
+    return undefined;
+  }
+
+  const [firstPath] = sourceCategoryPaths;
+
+  if (Array.isArray(firstPath)) {
+    if (
+      firstPath.length === 0 ||
+      firstPath.some((part) => typeof part !== "string")
+    ) {
+      return undefined;
+    }
+
+    const label = firstPath.join(" › ");
+    return label || undefined;
+  }
+
+  if (typeof firstPath === "string") {
+    const label = firstPath.includes(" > ")
+      ? firstPath.split(" > ").join(" › ")
+      : firstPath;
+
+    return label || undefined;
+  }
+
+  return undefined;
+};
+
+const RaiProductInfo: React.FC<{ rai?: RaiProductInfoXp }> = ({ rai }) => {
+  const sourceCategoryPathLabel = getFirstSourceCategoryPathLabel(
+    rai?.SourceCategoryPaths,
+  );
+
+  return !rai ? null : (
     <VStack align="stretch" spacing={4} w="full">
       {rai.Descriptions?.Full && (
         <Box>
@@ -85,12 +121,13 @@ const RaiProductInfo: React.FC<{ rai?: RaiProductInfoXp }> = ({ rai }) =>
           </Tbody>
         </Table>
       )}
-      {rai.SourceCategoryPaths?.[0] && (
+      {sourceCategoryPathLabel && (
         <Text fontSize="sm" color="chakra-subtle-text">
-          Source category: {rai.SourceCategoryPaths[0].join(" › ")}
+          Source category: {sourceCategoryPathLabel}
         </Text>
       )}
     </VStack>
   );
+};
 
 export default RaiProductInfo;
