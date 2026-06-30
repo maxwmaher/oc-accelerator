@@ -32,6 +32,8 @@ import {
   InventoryRecord,
   OrderCloudError,
   Me,
+  Cart,
+  LineItem,
 } from "ordercloud-javascript-sdk";
 import pluralize from "pluralize";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -780,7 +782,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable],
   );
-  const { addCartLineItem } = useShopper();
+  const { addCartLineItem, refreshWorksheet } = useShopper();
 
   useEffect(() => {
     setQuantity(product?.PriceSchedule?.MinQuantity ?? 1);
@@ -916,15 +918,40 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         },
       };
 
-      await addCartLineItem({
-        ProductID: productId,
-        Quantity: quantity,
-        InventoryRecordID: activeRecordId,
-        Specs: Object.values(selectedSpecs).filter(
-          (s) => s.OptionID || s.Value,
-        ),
-        xp: raiLineItemXp,
-      } as Parameters<typeof addCartLineItem>[0]);
+      const isBundleProduct =
+        product.IsBundle === true ||
+        product.ID === "rai-demo-exhibitor-stand-starter-bundle";
+
+      if (isBundleProduct) {
+        // The OrderCloud cart bundle endpoint accepts BundleItems, whose SDK
+        // type only exposes component LineItems and has no top-level Quantity.
+        // Required bundle components are generated server-side, so add one
+        // true bundle entry per selected quantity instead of creating normal
+        // unrelated component line items.
+        const bundleAdds = Array.from({ length: quantity }, async () => {
+          const bundleLineItem = await Cart.CreateBundleItem<LineItem>(
+            product.ID!,
+            {},
+          );
+
+          if (bundleLineItem.ID) {
+            await Cart.PatchLineItem(bundleLineItem.ID, { xp: raiLineItemXp });
+          }
+        });
+
+        await Promise.all(bundleAdds);
+        await refreshWorksheet();
+      } else {
+        await addCartLineItem({
+          ProductID: productId,
+          Quantity: quantity,
+          InventoryRecordID: activeRecordId,
+          Specs: Object.values(selectedSpecs).filter(
+            (s) => s.OptionID || s.Value,
+          ),
+          xp: raiLineItemXp,
+        } as Parameters<typeof addCartLineItem>[0]);
+      }
       setAddingToCart(false);
       toast({
         title: `${quantity} ${pluralize("item", quantity)} added to cart`,
@@ -962,6 +989,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     productId,
     toast,
     addCartLineItem,
+    refreshWorksheet,
     quantity,
     navigate,
     specs,
