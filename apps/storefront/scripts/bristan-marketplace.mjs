@@ -560,12 +560,12 @@ async function saveCategoryProductAssignment(catalogID, categoryID, productID, r
   logSeedOperation(operation);
   try {
     await ocPost(path, payload);
-    console.log(`ASSIGNED category product ${productID} to ${categoryID}`);
+    console.log(`ASSIGNED category product ${productID} to category ${categoryID} in catalog ${catalogID} at ${path}`);
   } catch (err) {
     const status = err?.status ?? err?.response?.status;
     const body = err?.body ?? err?.response?.data ?? err?.response?.body ?? err?.data;
     if (isExistingCategoryProductAssignmentError(status, body)) {
-      console.log(`category product assignment already exists: ${productID} to ${categoryID}`);
+      console.log(`category product assignment already exists: ${productID} to category ${categoryID} in catalog ${catalogID} at ${path}`);
       return;
     }
     const lines = [
