@@ -2,7 +2,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Categories, Configuration, PriceSchedules, Products } from 'ordercloud-javascript-sdk';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = path.join(ROOT, 'scrape-output', 'bristan-products.json');
@@ -446,10 +445,8 @@ function isOrderCloudNotFound(err) {
 }
 async function ocInit() {
   const baseApiUrl = orderCloudBaseApiUrl();
-  Configuration.Set({ baseApiUrl });
   const token = await fetchOrderCloudToken(baseApiUrl);
   if (!token.access_token) throw new Error(`OrderCloud auth failed for ${orderCloudAuthRoot(baseApiUrl)}/oauth/token: missing access_token in response`);
-  Configuration.Set({ baseApiUrl, accessToken: token.access_token });
   ocContext = { baseApiUrl: baseApiUrl.replace(/\/$/, ''), accessToken: token.access_token };
   return ocContext;
 }
@@ -512,30 +509,54 @@ async function seed() {
   );
   for (const p of products) {
     const ps = priceScheduleFor(p);
-    if (ps) await safeSave('priceSchedule', PriceSchedules.Get, PriceSchedules.Save, ps, report, { getLog: `GET priceSchedule ${ps.ID}`, saveLog: `SAVE priceSchedule ${ps.ID}`, getMethod: 'PriceSchedules.Get', saveMethod: 'PriceSchedules.Save' }); else report.skipped++;
+    if (ps) {
+      const priceSchedulePath = (id) => `/priceschedules/${encodeURIComponent(id)}`;
+      await safeSave(
+        'priceSchedule',
+        (id) => ocGet(priceSchedulePath(id)),
+        (id, body) => ocPut(priceSchedulePath(id), body),
+        ps,
+        report,
+        {
+          getLog: `GET priceSchedule ${ps.ID} at ${priceSchedulePath(ps.ID)}`,
+          saveLog: `SAVE priceSchedule ${ps.ID} at ${priceSchedulePath(ps.ID)}`,
+          getEndpoint: `${ocContext.baseApiUrl}${priceSchedulePath(ps.ID)}`,
+          saveEndpoint: `${ocContext.baseApiUrl}${priceSchedulePath(ps.ID)}`,
+        }
+      );
+    } else report.skipped++;
     const prod = productFor(p);
-    const getProductOperation = { name: `GET product ${p.id}`, sdkMethod: 'Products.Get', payloadID: p.id };
+    const productPath = (id) => `/products/${encodeURIComponent(id)}`;
+    const getProductOperation = { name: `GET product ${p.id} at ${productPath(p.id)}`, endpoint: `${ocContext.baseApiUrl}${productPath(p.id)}`, payloadID: p.id };
     logSeedOperation(getProductOperation.name);
     try {
-      const existing = await withOrderCloudError(getProductOperation, () => Products.Get(p.id));
+      const existing = await withOrderCloudError(getProductOperation, () => ocGet(productPath(p.id)));
       if (typeof existing.xp === 'string') {
-        const deleteProductOperation = { name: `DELETE product ${p.id} with malformed xp`, sdkMethod: 'Products.Delete', payloadID: p.id };
+        const deleteProductOperation = { name: `DELETE malformed product ${p.id} at ${productPath(p.id)}`, endpoint: `${ocContext.baseApiUrl}${productPath(p.id)}`, payloadID: p.id };
         logSeedOperation(deleteProductOperation.name);
-        await withOrderCloudError(deleteProductOperation, () => Products.Delete(p.id));
+        await withOrderCloudError(deleteProductOperation, () => ocDelete(productPath(p.id)));
         report.deleted++;
       }
     } catch (err) {
       if (!isOrderCloudNotFound(err)) throw err;
     }
-    await safeSave('product', Products.Get, Products.Save, prod, report, { getLog: `GET product ${prod.ID}`, saveLog: `SAVE product ${prod.ID}`, getMethod: 'Products.Get', saveMethod: 'Products.Save' });
-    if (ps) {
-      const assignPsOperation = { name: `ASSIGN priceSchedule ${ps.ID} to product ${p.id}`, sdkMethod: 'Products.SaveAssignment', payloadID: p.id };
-      logSeedOperation(assignPsOperation.name);
-      await withOrderCloudError(assignPsOperation, () => Products.SaveAssignment({ ProductID: p.id, PriceScheduleID: ps.ID }));
-    }
-    const assignCategoryOperation = { name: `ASSIGN category product ${p.id} to category ${p.categoryID} in catalog ${CATALOG_ID}`, sdkMethod: 'Categories.SaveProductAssignment', payloadID: p.id };
+    await safeSave(
+      'product',
+      (id) => ocGet(productPath(id)),
+      (id, body) => ocPut(productPath(id), body),
+      prod,
+      report,
+      {
+        getLog: `GET product ${prod.ID} at ${productPath(prod.ID)}`,
+        saveLog: `SAVE product ${prod.ID} at ${productPath(prod.ID)}`,
+        getEndpoint: `${ocContext.baseApiUrl}${productPath(prod.ID)}`,
+        saveEndpoint: `${ocContext.baseApiUrl}${productPath(prod.ID)}`,
+      }
+    );
+    const categoryAssignmentPath = `/catalogs/${encodeURIComponent(CATALOG_ID)}/categories/${encodeURIComponent(p.categoryID)}/productassignments/${encodeURIComponent(p.id)}`;
+    const assignCategoryOperation = { name: `ASSIGN category product ${p.id} to category ${p.categoryID} in catalog ${CATALOG_ID} at ${categoryAssignmentPath}`, endpoint: `${ocContext.baseApiUrl}${categoryAssignmentPath}`, payloadID: p.id };
     logSeedOperation(assignCategoryOperation.name);
-    await withOrderCloudError(assignCategoryOperation, () => Categories.SaveProductAssignment(CATALOG_ID, p.categoryID, { ProductID: p.id }));
+    await withOrderCloudError(assignCategoryOperation, () => ocPut(categoryAssignmentPath, { ProductID: p.id }));
   }
   console.log(`Bristan seed report: ${JSON.stringify(report)}`);
   return report;
