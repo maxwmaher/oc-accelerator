@@ -30,6 +30,7 @@ import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "../Layout/MegaMenu";
 import {
   getBristanDemoCatalogId,
+  getBristanDemoProductsRoute,
   getBristanDemoTargetRoute,
   shouldRedirectBristanDemoRoute,
 } from "../components/bristan/bristanDemoRoutes";
@@ -58,13 +59,8 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   const catalogs = useMemo(() => catalogData?.Items ?? [], [catalogData]);
 
   const bristanDemoCatalogId = getBristanDemoCatalogId(user?.Username);
-  const activeCatalogId =
-    bristanDemoCatalogId &&
-    catalogs.some((catalog) => catalog.ID === bristanDemoCatalogId)
-      ? bristanDemoCatalogId
-      : catalogs.length > 0
-        ? catalogs[0]?.ID
-        : undefined;
+  const activeCatalogId = bristanDemoCatalogId ?? catalogs[0]?.ID;
+  const bristanDemoProductsRoute = getBristanDemoProductsRoute(user?.Username);
 
   const { data: categoryData } = useOcResourceList<Category>(
     "Me.Categories",
@@ -106,6 +102,14 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   }, [orderWorksheet?.LineItems]);
 
   const renderCatalogMenu = () => {
+    if (bristanDemoProductsRoute) {
+      return (
+        <Button as={RouterLink} to={bristanDemoProductsRoute} variant="ghost">
+          Shop All Products
+        </Button>
+      );
+    }
+
     if (catalogs?.length && catalogs.length > 1) {
       return (
         <Menu>
@@ -186,14 +190,6 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               </Button>
             )}
             {renderCatalogMenu()}
-            <Button
-              as={RouterLink}
-              to="/bristan-demo"
-              variant="ghost"
-              size="sm"
-            >
-              Demo Accounts
-            </Button>
           </HStack>
           <HStack>
             {isLoggedIn && (
