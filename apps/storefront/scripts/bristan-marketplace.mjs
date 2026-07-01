@@ -99,17 +99,22 @@ async function importPlaywright() {
     }
   }
 }
-async function findProductLinksWithBrowser(url, listingName = url) {
+async function findProductLinksWithBrowser(url, listingName = url, staticCandidateCount = 0) {
   const { chromium } = await importPlaywright();
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+    console.log(`${listingName}: opening ${url}`);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    console.log(`${listingName}: DOM loaded`);
     for (const label of [/accept all/i, /^accept$/i, /allow all/i, /agree/i, /ok/i]) {
       const button = page.getByRole('button', { name: label }).first();
-      if (await button.isVisible().catch(() => false)) { await button.click().catch(() => {}); break; }
+      if (await button.isVisible().catch(() => false)) {
+        await button.click().catch(() => {});
+        await page.waitForTimeout(300);
+        break;
+      }
     }
-    await page.waitForLoadState('networkidle').catch(() => {});
     const collect = async () => uniq(await page.$$eval('a[href*="/products/"]', (anchors) => anchors
       .filter((a) => {
         const text = (a.textContent || '').trim();
@@ -128,12 +133,20 @@ async function findProductLinksWithBrowser(url, listingName = url) {
       const before = links.length;
       await control.click().catch(() => {});
       clicks++;
-      await page.waitForLoadState('networkidle').catch(() => {});
-      await page.waitForTimeout(750);
+      await page.waitForFunction((previousCount) => [...document.querySelectorAll('a[href*="/products/"]')]
+        .filter((a) => {
+          const text = (a.textContent || '').trim();
+          const card = a.closest('article, li, [class*="product" i], [data-testid*="product" i]');
+          return card || /view item|view product|details/i.test(text);
+        }).length > previousCount, before, { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(500);
       links = await collect();
       if (links.length <= before) break;
     }
     console.log(`${listingName}: browser candidate count ${links.length}`);
+    if (!links.length) {
+      throw new Error(`${listingName}: no browser product links found for ${url} (static candidates: ${staticCandidateCount}). Retry with BRISTAN_FORCE_BROWSER=true. If links are still missing, inspect the page manually because Bristan may have changed selectors.`);
+    }
     return links.slice(0, 10);
   } finally {
     await browser.close();
@@ -174,7 +187,7 @@ async function validatedProductsForListing(listing) {
   const staticUrls = forceBrowser ? [] : findProductLinks(listingHtml);
   console.log(`${listing.name}: static candidate count ${staticUrls.length}`);
   let browserUrls = [];
-  if (forceBrowser || staticUrls.length < 10) browserUrls = await findProductLinksWithBrowser(listing.url, listing.name);
+  if (forceBrowser || staticUrls.length < 10) browserUrls = await findProductLinksWithBrowser(listing.url, listing.name, staticUrls.length);
   let candidates = browserUrls.length ? uniq([...browserUrls, ...staticUrls]) : staticUrls;
   const products = [], rejected = [];
   for (const url of candidates) {
@@ -185,7 +198,7 @@ async function validatedProductsForListing(listing) {
     products.push(productFromDetail(page.html, url, listing, products.length + 1));
   }
   if (products.length < 10 && !browserUrls.length) {
-    browserUrls = await findProductLinksWithBrowser(listing.url, listing.name);
+    browserUrls = await findProductLinksWithBrowser(listing.url, listing.name, staticUrls.length);
     candidates = uniq([...browserUrls, ...staticUrls]).filter((u) => !products.some((p) => p.url === u) && !rejected.some((r) => r.url === u));
     for (const url of candidates) {
       if (products.length >= 10) break;
