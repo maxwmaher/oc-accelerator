@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -123,6 +123,29 @@ namespace Accelerator.Commands
             return Math.Round(subtotal * percentage, 2, MidpointRounding.AwayFromZero);
         }
 
+        private sealed class SubtotalResult
+        {
+            public SubtotalResult(decimal subtotal, bool usedFallback)
+            {
+                Subtotal = subtotal;
+                Value = subtotal;
+                UsedFallback = usedFallback;
+                UsedLineItemFallback = usedFallback;
+                SubtotalUnavailable = usedFallback;
+            }
+
+            public decimal Subtotal { get; }
+            public decimal Value { get; }
+            public bool UsedFallback { get; }
+            public bool UsedLineItemFallback { get; }
+            public bool SubtotalUnavailable { get; }
+
+            public void Deconstruct(out decimal subtotal, out bool usedFallback)
+            {
+                subtotal = Subtotal;
+                usedFallback = UsedFallback;
+            }
+        }
         private static SubtotalResult CalculateSubtotal(OrderCheckoutIEPayload payload)
         {
             var orderSubtotal = GetDecimalValue(payload?.OrderWorksheet?.Order, "Subtotal");
