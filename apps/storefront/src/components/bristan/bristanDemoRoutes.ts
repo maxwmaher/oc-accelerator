@@ -60,14 +60,26 @@ export const BRISTAN_DEMO_USER_TARGETS: Record<string, string> =
     {} as Record<string, string>,
   );
 
+export const BRISTAN_DEMO_USER_CATALOG_IDS: Record<string, string> =
+  BRISTAN_DEMO_ACCOUNTS.reduce(
+    (catalogIds, account) => ({
+      ...catalogIds,
+      [account.username]: account.catalogID,
+    }),
+    {} as Record<string, string>,
+  );
+
 const BRISTAN_DEMO_LEGACY_ROUTE_PREFIX = "/shop/buyer";
 
 export const getBristanDemoTargetRoute = (username?: string) =>
   username ? BRISTAN_DEMO_USER_TARGETS[username] : undefined;
 
-export const getBristanDemoCatalogId = (username?: string) => {
-  const targetRoute = getBristanDemoTargetRoute(username);
-  return targetRoute?.split("/")[2];
+export const getBristanDemoCatalogId = (username?: string) =>
+  username ? BRISTAN_DEMO_USER_CATALOG_IDS[username] : undefined;
+
+export const getBristanDemoProductsRoute = (username?: string) => {
+  const catalogId = getBristanDemoCatalogId(username);
+  return catalogId ? `/shop/${catalogId}/products` : undefined;
 };
 
 export const shouldRedirectBristanDemoRoute = (
