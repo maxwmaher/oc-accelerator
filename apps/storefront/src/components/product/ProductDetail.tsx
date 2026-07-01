@@ -1,4 +1,8 @@
 import {
+  Alert,
+  AlertIcon,
+  Badge,
+  Box,
   Button,
   Card,
   CardBody,
@@ -9,7 +13,14 @@ import {
   HStack,
   SimpleGrid,
   Spinner,
+  Table,
+  TableContainer,
+  Tbody,
+  Td,
   Text,
+  Th,
+  Thead,
+  Tr,
   useToast,
   VStack,
 } from "@chakra-ui/react";
@@ -20,9 +31,11 @@ import {
 } from "ordercloud-javascript-sdk";
 import pluralize from "pluralize";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
+import { useCurrentUser } from "../../hooks/currentUser";
+import { isBristanDemoSupplierBuyerBulkContext } from "../bristan/bristanDemoRoutes";
 import OcQuantityInput from "../cart/OcQuantityInput";
 import ProductImageGallery from "./product-detail/ProductImageGallery";
 import {
@@ -41,32 +54,48 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   renderProductDetail,
 }) => {
   const navigate = useNavigate();
+  const { catalogId } = useParams<{ catalogId: string }>();
   const toast = useToast();
+  const { data: user } = useCurrentUser();
   const [activeRecordId, setActiveRecordId] = useState<string>();
   const { data: product, isLoading: loading } = useOcResourceGet<BuyerProduct>(
     "Me.Products",
-    { productID: productId }
+    { productID: productId },
   );
   const { data: inventoryRecords } = useOcResourceList<InventoryRecord>(
     "Me.ProductInventoryRecords",
     undefined,
     { productID: productId },
-    { disabled: !IS_MULTI_LOCATION_INVENTORY }
+    { disabled: !IS_MULTI_LOCATION_INVENTORY },
   );
 
   const [addingToCart, setAddingToCart] = useState(false);
   const [quantity, setQuantity] = useState(
-    product?.PriceSchedule?.MinQuantity ?? 1
+    product?.PriceSchedule?.MinQuantity ?? 1,
   );
   const outOfStock = useMemo(
     () => product?.Inventory?.QuantityAvailable === 0,
-    [product?.Inventory?.QuantityAvailable]
+    [product?.Inventory?.QuantityAvailable],
   );
+  const minimumQuantity = product?.PriceSchedule?.MinQuantity ?? 1;
+  const priceBreaks = product?.PriceSchedule?.PriceBreaks ?? [];
+  const isSupplierBuyerBulkContext = isBristanDemoSupplierBuyerBulkContext(
+    user?.Username,
+    catalogId,
+  );
+  const basePriceBreak = priceBreaks[0];
+  const isBelowMinimumQuantity = quantity < minimumQuantity;
   const { addCartLineItem } = useShopper();
 
   useEffect(() => {
+    if (product?.PriceSchedule?.MinQuantity) {
+      setQuantity(product.PriceSchedule.MinQuantity);
+    }
+  }, [product?.ID, product?.PriceSchedule?.MinQuantity]);
+
+  useEffect(() => {
     const availableRecord = inventoryRecords?.Items.find(
-      (item) => item.QuantityAvailable > 0
+      (item) => item.QuantityAvailable > 0,
     );
     if (availableRecord) {
       setActiveRecordId(availableRecord.ID);
@@ -87,6 +116,17 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         duration: 5000,
         isClosable: true,
       });
+    }
+
+    if (quantity < minimumQuantity) {
+      toast({
+        title: `Minimum order quantity is ${minimumQuantity}`,
+        description: `Increase the quantity to at least ${minimumQuantity} units before adding this product to cart.`,
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
     }
 
     try {
@@ -127,7 +167,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         });
       }
     }
-  }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate]);
+  }, [
+    product,
+    activeRecordId,
+    productId,
+    toast,
+    addCartLineItem,
+    quantity,
+    minimumQuantity,
+    navigate,
+  ]);
 
   return loading ? (
     <Center h="50vh">
@@ -156,12 +205,75 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           <Text fontSize="3xl" fontWeight="medium">
             {formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}
           </Text>
+          {isSupplierBuyerBulkContext && (
+            <Box
+              borderWidth="1px"
+              borderColor="primary.200"
+              borderRadius="md"
+              bg="primary.50"
+              p={4}
+              w="full"
+              maxW="2xl"
+            >
+              <HStack mb={2}>
+                <Badge colorScheme="primary" fontSize="sm">
+                  Bristan trade bulk account
+                </Badge>
+              </HStack>
+              <Text fontWeight="semibold">
+                Minimum order quantity: {minimumQuantity} units
+              </Text>
+              <Text color="chakra-subtle-text" fontSize="sm" mt={1}>
+                Your Bristan supplier buyer account includes account-specific
+                bulk price breaks. Increase quantity to unlock lower unit
+                prices.
+              </Text>
+              {priceBreaks.length > 0 && (
+                <TableContainer mt={4}>
+                  <Table size="sm" variant="simple">
+                    <Thead>
+                      <Tr>
+                        <Th>Quantity</Th>
+                        <Th>Unit price</Th>
+                        <Th>Approx. savings vs first break</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {priceBreaks.map((priceBreak) => {
+                        const savings = basePriceBreak?.Price
+                          ? basePriceBreak.Price - priceBreak.Price
+                          : 0;
+                        return (
+                          <Tr key={priceBreak.Quantity}>
+                            <Td>{priceBreak.Quantity}+</Td>
+                            <Td>{formatPrice(priceBreak.Price)}</Td>
+                            <Td>
+                              {savings > 0
+                                ? `${formatPrice(savings)} per unit`
+                                : "Base bulk price"}
+                            </Td>
+                          </Tr>
+                        );
+                      })}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Box>
+          )}
+          {isBelowMinimumQuantity && (
+            <Alert status="warning" borderRadius="md" maxW="2xl">
+              <AlertIcon />
+              Minimum order quantity is {minimumQuantity} units for this
+              product.
+            </Alert>
+          )}
           <HStack alignItems="center" gap={4} my={3}>
             <Button
               colorScheme="primary"
               type="button"
               onClick={handleAddToCart}
-              isDisabled={addingToCart || outOfStock}
+              isDisabled={addingToCart || outOfStock || isBelowMinimumQuantity}
             >
               {outOfStock ? "Out of stock" : "Add To Cart"}
             </Button>

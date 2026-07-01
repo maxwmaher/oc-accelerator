@@ -116,6 +116,9 @@ function categoryPayload(category) { return { ...category, Active: true, xp: { D
 function priceSchedule(id, name, base, multipliers = [1]) {
   return { ID: id, Name: name, ApplyTax: false, ApplyShipping: false, MinQuantity: 1, MaxQuantity: 10000, RestrictedQuantity: false, PriceBreaks: multipliers.map(([Quantity, factor]) => ({ Quantity, Price: money(base * factor) })), xp: { Demo: 'BristanMarketplace' } };
 }
+function bulkPriceSchedule(id, name, base, supplierDiscount) {
+  return { ID: id, Name: name, ApplyTax: false, ApplyShipping: false, MinQuantity: 10, MaxQuantity: 10000, RestrictedQuantity: false, PriceBreaks: [{ Quantity: 10, Price: money(base * (0.9 - supplierDiscount)) }, { Quantity: 50, Price: money(base * (0.82 - supplierDiscount)) }, { Quantity: 100, Price: money(base * (0.76 - supplierDiscount)) }], xp: { Demo: 'BristanMarketplace', Journey: 'SupplierBuyingFromBristan' } };
+}
 function offerProduct(supplier, product, index) {
   const id = `bristan-demo-offer-${supplier.key}-${product.id}`;
   return {
@@ -159,7 +162,7 @@ async function seed() {
     for (const c of CATEGORIES) await saveEntity('supplier buyer category', `/catalogs/${supplier.catalogID}/categories`, categoryPayload(c));
     for (const p of products) await assign('supplier buyer category product', `/catalogs/${supplier.catalogID}/categories/productassignments`, { CategoryID: p.categoryID, ProductID: p.id });
     for (const p of products.slice(0, 12)) {
-      const ps = priceSchedule(`bristan-demo-bulk-${supplier.key}-${p.id}`, `${supplier.name} bulk price - ${p.name}`, productPrice(p), [[1, 1], [10, 0.9 - supplier.discount], [50, 0.82 - supplier.discount], [100, 0.76 - supplier.discount]]);
+      const ps = bulkPriceSchedule(`bristan-demo-bulk-${supplier.key}-${p.id}`, `${supplier.name} bulk price - ${p.name}`, productPrice(p), supplier.discount);
       await saveEntity('bulk priceSchedule', '/priceschedules', ps);
       await assignProductToBuyerWithPriceSchedule(p.id, supplier.buyerID, ps.ID);
     }

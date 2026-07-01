@@ -69,6 +69,31 @@ export const BRISTAN_DEMO_USER_CATALOG_IDS: Record<string, string> =
     {} as Record<string, string>,
   );
 
+export const BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES = [
+  "bristan-demo-supplier-north-buyer-user",
+  "bristan-demo-supplier-south-buyer-user",
+] as const;
+
+export const BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS = [
+  BRISTAN_DEMO_CATALOG_IDS.supplierNorth,
+  BRISTAN_DEMO_CATALOG_IDS.supplierSouth,
+] as const;
+
+export const isBristanDemoSupplierBuyerBulkContext = (
+  username?: string,
+  catalogId?: string,
+) =>
+  Boolean(
+    (username &&
+      BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES.includes(
+        username as (typeof BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES)[number],
+      )) ||
+    (catalogId &&
+      BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS.includes(
+        catalogId as (typeof BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS)[number],
+      )),
+  );
+
 const BRISTAN_DEMO_LEGACY_ROUTE_PREFIX = "/shop/buyer";
 
 export const getBristanDemoTargetRoute = (username?: string) =>
@@ -88,6 +113,6 @@ export const shouldRedirectBristanDemoRoute = (
 ) =>
   Boolean(
     getBristanDemoTargetRoute(username) &&
-      (pathname === "/products" ||
-        pathname.startsWith(BRISTAN_DEMO_LEGACY_ROUTE_PREFIX)),
+    (pathname === "/products" ||
+      pathname.startsWith(BRISTAN_DEMO_LEGACY_ROUTE_PREFIX)),
   );
