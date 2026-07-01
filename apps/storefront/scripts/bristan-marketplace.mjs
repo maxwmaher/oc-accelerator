@@ -553,9 +553,9 @@ function isExistingCategoryProductAssignmentError(status, body) {
   return /\b(already exists|duplicate|conflict|ProductID.+CategoryID.+exists|assignment.+exists)\b/i.test(text);
 }
 async function saveCategoryProductAssignment(catalogID, categoryID, productID, report) {
-  const path = `/catalogs/${encodeURIComponent(catalogID)}/categories/${encodeURIComponent(categoryID)}/productassignments`;
+  const path = `/catalogs/${encodeURIComponent(catalogID)}/categories/productassignments`;
   const endpoint = `${ocContext.baseApiUrl}${path}`;
-  const payload = { ProductID: productID };
+  const payload = { CategoryID: categoryID, ProductID: productID };
   const operation = `ASSIGN category product ${productID} to category ${categoryID} in catalog ${catalogID} at ${path}`;
   logSeedOperation(operation);
   try {
