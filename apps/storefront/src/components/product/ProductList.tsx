@@ -19,7 +19,12 @@ import {
 } from "@chakra-ui/react";
 import { BuyerProduct } from "ordercloud-javascript-sdk";
 import { parse } from "querystring";
-import React, { FunctionComponent, useCallback, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+} from "react";
 import {
   useLocation,
   useNavigate,
@@ -33,6 +38,8 @@ import FilterSearchMenu, {
 import FacetList from "./facets/FacetList";
 import ProductCard from "./ProductCard";
 import { useOcResourceListWithFacets } from "@ordercloud/react-sdk";
+import { getBristanDemoTargetRoute } from "../bristan/bristanDemoRoutes";
+import { useCurrentUser } from "../../hooks/currentUser";
 
 export interface ProductListProps {
   renderItem?: (product: BuyerProduct) => JSX.Element;
@@ -47,6 +54,14 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { data: user } = useCurrentUser();
+  const bristanDemoTargetRoute = getBristanDemoTargetRoute(user?.Username);
+
+  useEffect(() => {
+    if (bristanDemoTargetRoute && location.pathname === "/products") {
+      navigate(bristanDemoTargetRoute, { replace: true });
+    }
+  }, [bristanDemoTargetRoute, location.pathname, navigate]);
 
   const searchTerm = useMemo(() => {
     return searchParams.get("search") || undefined;
@@ -75,7 +90,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
       catalogId,
       categoryId,
       ...filters,
-    }
+    },
   );
 
   const handleRoutingChange = useCallback(
@@ -84,7 +99,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
         const searchParams = new URLSearchParams(location.search);
         const hasPageParam = Boolean(searchParams.get("page"));
         const isFilterParam = !["search", "page", "pageSize"].includes(
-          queryKey
+          queryKey,
         );
 
         // filters can have multiple values for one key i.e. SpecCount > 0 AND SpecCount < 2
@@ -104,16 +119,16 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
         } else if (prevValue) {
           searchParams.delete(
             queryKey,
-            index !== undefined ? prevValue[index] : undefined
+            index !== undefined ? prevValue[index] : undefined,
           );
         }
 
         navigate(
           { pathname: location.pathname, search: searchParams.toString() },
-          { state: { shallow: true } }
+          { state: { shallow: true } },
         );
       },
-    [location.pathname, location.search, navigate]
+    [location.pathname, location.search, navigate],
   );
 
   const listOptions = useMemo(() => {
