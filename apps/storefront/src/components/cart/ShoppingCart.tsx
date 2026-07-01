@@ -60,8 +60,8 @@ export const ShoppingCart = (): JSX.Element => {
   const toast = useToast();
 
   const submitOrder = useCallback(async () => {
-    setSubmitting(true);
     if (!orderWorksheet?.Order?.ID) return;
+    setSubmitting(true);
     try {
       await submitCart();
       setSubmitting(false);
@@ -190,6 +190,7 @@ export const ShoppingCart = (): JSX.Element => {
 
                         <TabPanel display="flex" flexDirection="column">
                           <CartPaymentPanel
+                            orderWorksheet={orderWorksheet}
                             submitOrder={submitOrder}
                             submitting={submitting}
                           />

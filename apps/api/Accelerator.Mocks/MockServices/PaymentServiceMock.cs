@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using OrderCloud.Catalyst;
@@ -16,7 +17,17 @@ namespace Accelerator.MockServices
 
         public Task<CCTransactionResult> AuthorizeOnlyAsync(AuthorizeCCTransaction transaction, OCIntegrationConfig overrideConfig = null)
         {
-            throw new NotImplementedException();
+            var orderID = string.IsNullOrWhiteSpace(transaction?.OrderID) ? "UNKNOWN" : transaction.OrderID;
+            var token = transaction?.CardDetails?.Token ?? transaction?.CardDetails?.SavedCardID ?? orderID;
+            var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{orderID}:{token}")))[..12];
+
+            return Task.FromResult(new CCTransactionResult
+            {
+                Succeeded = true,
+                TransactionID = $"BRISTAN-DEMO-{fingerprint}",
+                AuthorizationCode = $"DEMO{fingerprint[..6]}",
+                Message = "Demo credit card authorization approved."
+            });
         }
 
         public Task<CCTransactionResult> CapturePaymentAsync(FollowUpCCTransaction transaction, OCIntegrationConfig overrideConfig = null)
