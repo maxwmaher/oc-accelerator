@@ -106,6 +106,9 @@ async function assign(label, endpoint, payload) {
   try { await ocPost(endpoint, payload); report.assigned++; }
   catch (err) { if (isExistingAssignmentError(err)) { report.skipped++; console.log(`SKIP existing ${label}`); return; } throw err; }
 }
+async function assignProductToBuyerWithPriceSchedule(productID, buyerID, priceScheduleID) {
+  await assign('product priceSchedule to supplier buyer', '/products/assignments', { ProductID: productID, BuyerID: buyerID, PriceScheduleID: priceScheduleID });
+}
 function user(id, username, email) { return { ID: id, Username: username, FirstName: 'Bristan', LastName: 'Demo', Email: email, Active: true, xp: { Demo: 'BristanMarketplace' } }; }
 function categoryPayload(category) { return { ...category, Active: true, xp: { Demo: 'BristanMarketplace', BristanOwnedCategory: true } }; }
 function priceSchedule(id, name, base, multipliers = [1]) {
@@ -156,7 +159,7 @@ async function seed() {
     for (const p of products.slice(0, 12)) {
       const ps = priceSchedule(`bristan-demo-bulk-${supplier.key}-${p.id}`, `${supplier.name} bulk price - ${p.name}`, productPrice(p), [[1, 1], [10, 0.9 - supplier.discount], [50, 0.82 - supplier.discount], [100, 0.76 - supplier.discount]]);
       await saveEntity('bulk priceSchedule', '/priceschedules', ps);
-      await assign('bulk priceSchedule to supplier buyer', '/priceschedules/assignments', { PriceScheduleID: ps.ID, BuyerID: supplier.buyerID });
+      await assignProductToBuyerWithPriceSchedule(p.id, supplier.buyerID, ps.ID);
     }
     for (const [index, p] of offerCanonicals.entries()) {
       const offer = offerProduct(supplier, p, index);
