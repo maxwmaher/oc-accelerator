@@ -156,6 +156,9 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               </Button>
             )}
             {renderCatalogMenu()}
+            <Button as={RouterLink} to="/bristan-demo" variant="ghost" size="sm">
+              Bristan Demo
+            </Button>
           </HStack>
           <HStack>
             {isLoggedIn && (

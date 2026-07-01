@@ -8,6 +8,7 @@ const OUTPUT = path.join(ROOT, 'scrape-output', 'bristan-products.json');
 const DEFAULT_API = 'https://westeurope-sandbox.ordercloud.io/v1';
 const args = new Set(process.argv.slice(2));
 let dryRun = args.has('--dry-run');
+const DEMO_PASSWORD = process.env.BRISTAN_DEMO_PASSWORD || 'BristanDemo123!';
 
 const CATEGORIES = [
   { ID: 'bristan-taps', Name: 'Taps' },
@@ -110,6 +111,7 @@ async function assignProductToBuyerWithPriceSchedule(productID, buyerID, priceSc
   await assign('product priceSchedule to supplier buyer', '/products/assignments', { ProductID: productID, BuyerID: buyerID, PriceScheduleID: priceScheduleID });
 }
 function user(id, username, email) { return { ID: id, Username: username, FirstName: 'Bristan', LastName: 'Demo', Email: email, Active: true, xp: { Demo: 'BristanMarketplace' } }; }
+function buyerUser(id, username, email) { return { ...user(id, username, email), Password: DEMO_PASSWORD }; }
 function categoryPayload(category) { return { ...category, Active: true, xp: { Demo: 'BristanMarketplace', BristanOwnedCategory: true } }; }
 function priceSchedule(id, name, base, multipliers = [1]) {
   return { ID: id, Name: name, ApplyTax: false, ApplyShipping: false, MinQuantity: 1, MaxQuantity: 10000, RestrictedQuantity: false, PriceBreaks: multipliers.map(([Quantity, factor]) => ({ Quantity, Price: money(base * factor) })), xp: { Demo: 'BristanMarketplace' } };
@@ -137,8 +139,8 @@ async function seed() {
   await saveEntity('buyer', '/buyers', { ID: 'bristan-demo-marketplace-buyer', Name: 'Bristan Demo Marketplace Buyer', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'MarketplaceBuyer' } });
   await saveEntity('catalog', '/catalogs', { ID: 'bristan-demo-spares-catalog', Name: 'Bristan Demo Spare Parts Catalog', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'SpareParts' } });
   await saveEntity('catalog', '/catalogs', { ID: 'bristan-demo-marketplace-catalog', Name: 'Bristan Demo Marketplace Catalog', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'MarketplaceBuyer' } });
-  await saveEntity('buyer user', '/buyers/bristan-demo-spares-buyer/users', user('bristan-demo-spares-user', 'bristan-demo-spares-user', 'bristan-demo-spares@example.com'));
-  await saveEntity('buyer user', '/buyers/bristan-demo-marketplace-buyer/users', user('bristan-demo-marketplace-user', 'bristan-demo-marketplace-user', 'bristan-demo-marketplace@example.com'));
+  await saveEntity('buyer user', '/buyers/bristan-demo-spares-buyer/users', buyerUser('bristan-demo-spares-user', 'bristan-demo-spares-user', 'bristan-demo-spares@example.com'));
+  await saveEntity('buyer user', '/buyers/bristan-demo-marketplace-buyer/users', buyerUser('bristan-demo-marketplace-user', 'bristan-demo-marketplace-user', 'bristan-demo-marketplace@example.com'));
   await assign('catalog to spares buyer', '/catalogs/assignments', { CatalogID: 'bristan-demo-spares-catalog', BuyerID: 'bristan-demo-spares-buyer', ViewAllCategories: true, ViewAllProducts: true });
   await assign('catalog to marketplace buyer', '/catalogs/assignments', { CatalogID: 'bristan-demo-marketplace-catalog', BuyerID: 'bristan-demo-marketplace-buyer', ViewAllCategories: true, ViewAllProducts: true });
 
@@ -151,7 +153,7 @@ async function seed() {
     await saveEntity('supplier', '/suppliers', { ID: supplier.id, Name: supplier.name, Active: true, xp: { Demo: 'BristanMarketplace' } });
     await saveEntity('buyer', '/buyers', { ID: supplier.buyerID, Name: `${supplier.name} Bulk Buyer`, Active: true, xp: { Demo: 'BristanMarketplace', SupplierID: supplier.id, Journey: 'SupplierBuyingFromBristan' } });
     await saveEntity('catalog', '/catalogs', { ID: supplier.catalogID, Name: `${supplier.name} Bulk Bristan Catalog`, Active: true, xp: { Demo: 'BristanMarketplace', SupplierID: supplier.id } });
-    await saveEntity('buyer user', `/buyers/${supplier.buyerID}/users`, user(`${supplier.buyerID}-user`, `${supplier.buyerID}-user`, `${supplier.buyerID}@example.com`));
+    await saveEntity('buyer user', `/buyers/${supplier.buyerID}/users`, buyerUser(`${supplier.buyerID}-user`, `${supplier.buyerID}-user`, `${supplier.buyerID}@example.com`));
     await saveEntity('supplier user', `/suppliers/${supplier.id}/users`, user(`${supplier.id}-seller-user`, `${supplier.id}-seller-user`, `${supplier.id}@example.com`));
     await assign('catalog to supplier buyer', '/catalogs/assignments', { CatalogID: supplier.catalogID, BuyerID: supplier.buyerID, ViewAllCategories: true, ViewAllProducts: true });
     for (const c of CATEGORIES) await saveEntity('supplier buyer category', `/catalogs/${supplier.catalogID}/categories`, categoryPayload(c));

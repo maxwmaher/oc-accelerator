@@ -6,6 +6,7 @@ import { ShoppingCart } from "./components/cart/ShoppingCart";
 import CategoryList from "./components/category/CategoryList";
 import ProductDetailWrapper from "./components/product/ProductDetailWrapper";
 import ProductList from "./components/product/ProductList";
+import BristanDemoJourneys from "./components/bristan/BristanDemoJourneys";
 
 const routes: RouteObject[] = [
   {
@@ -19,6 +20,10 @@ const routes: RouteObject[] = [
       {
         path: "/cart",
         element: <ShoppingCart />,
+      },
+      {
+        path: "/bristan-demo",
+        element: <BristanDemoJourneys />,
       },
 
       {
