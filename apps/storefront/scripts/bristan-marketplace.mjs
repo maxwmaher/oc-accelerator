@@ -536,7 +536,54 @@ async function ocRequest(method, path, body) {
 }
 async function ocGet(path) { return ocRequest('GET', path); }
 async function ocPut(path, body) { return ocRequest('PUT', path, body); }
+async function ocPost(path, body) { return ocRequest('POST', path, body); }
 async function ocDelete(path) { return ocRequest('DELETE', path); }
+
+function parseOrderCloudBody(body) {
+  if (!body || typeof body !== 'string') return body;
+  try { return JSON.parse(body); } catch { return body; }
+}
+function orderCloudBodyText(body) {
+  return typeof body === 'string' ? body : JSON.stringify(body);
+}
+function isExistingCategoryProductAssignmentError(status, body) {
+  if (status === 409) return true;
+  const parsed = parseOrderCloudBody(body);
+  const text = orderCloudBodyText(parsed) || '';
+  return /\b(already exists|duplicate|conflict|ProductID.+CategoryID.+exists|assignment.+exists)\b/i.test(text);
+}
+async function saveCategoryProductAssignment(catalogID, categoryID, productID, report) {
+  const path = `/catalogs/${encodeURIComponent(catalogID)}/categories/${encodeURIComponent(categoryID)}/productassignments`;
+  const endpoint = `${ocContext.baseApiUrl}${path}`;
+  const payload = { ProductID: productID };
+  const operation = `ASSIGN category product ${productID} to category ${categoryID} in catalog ${catalogID} at ${path}`;
+  logSeedOperation(operation);
+  try {
+    await ocPost(path, payload);
+    console.log(`ASSIGNED category product ${productID} to ${categoryID}`);
+  } catch (err) {
+    const status = err?.status ?? err?.response?.status;
+    const body = err?.body ?? err?.response?.data ?? err?.response?.body ?? err?.data;
+    if (isExistingCategoryProductAssignmentError(status, body)) {
+      console.log(`category product assignment already exists: ${productID} to ${categoryID}`);
+      return;
+    }
+    const lines = [
+      `OrderCloud category product assignment failed: ${operation}`,
+      `method: POST`,
+      `endpoint: ${endpoint}`,
+      `payload: ${JSON.stringify(payload)}`,
+      `catalogID: ${catalogID}`,
+      `categoryID: ${categoryID}`,
+      `productID: ${productID}`,
+    ];
+    if (status) lines.push(`status: ${status}${err?.statusText ? ` ${err.statusText}` : ''}`);
+    if (body) lines.push(`orderCloudBody: ${orderCloudBodyText(parseOrderCloudBody(body))}`);
+    if (err?.message) lines.push(`message: ${err.message}`);
+    throw new Error(lines.join('\n'), { cause: err });
+  }
+}
+
 async function safeSave(label, get, save, payload, report, options = {}) {
   const readOperation = { name: options.getLog || `GET ${label} ${payload.ID}`, sdkMethod: options.getMethod, endpoint: options.getEndpoint, payloadID: payload.ID };
   logSeedOperation(readOperation.name);
@@ -616,10 +663,7 @@ async function seed() {
         saveEndpoint: `${ocContext.baseApiUrl}${productPath(prod.ID)}`,
       }
     );
-    const categoryAssignmentPath = `/catalogs/${encodeURIComponent(CATALOG_ID)}/categories/${encodeURIComponent(p.categoryID)}/productassignments/${encodeURIComponent(p.id)}`;
-    const assignCategoryOperation = { name: `ASSIGN category product ${p.id} to category ${p.categoryID} in catalog ${CATALOG_ID} at ${categoryAssignmentPath}`, endpoint: `${ocContext.baseApiUrl}${categoryAssignmentPath}`, payloadID: p.id };
-    logSeedOperation(assignCategoryOperation.name);
-    await withOrderCloudError(assignCategoryOperation, () => ocPut(categoryAssignmentPath, { ProductID: p.id }));
+    await saveCategoryProductAssignment(CATALOG_ID, p.categoryID, p.id, report);
   }
   console.log(`Bristan seed report: ${JSON.stringify(report)}`);
   return report;
