@@ -1,4 +1,4 @@
-﻿@minLength(3)
+@minLength(3)
 @maxLength(10)
 @description('Provide a prefix for your resources (hyphens will be removed)')
 param prefix string = 'ocstart'
@@ -36,7 +36,7 @@ resource functionApp 'Microsoft.Web/sites@2018-11-01' = {
       use32BitWorkerProcess: false
       ftpsState: 'Disabled'
       alwaysOn: true
-      netFrameworkVersion: 'v6.0'
+      netFrameworkVersion: 'v8.0'
     }
     clientAffinityEnabled: false
     httpsOnly: true
