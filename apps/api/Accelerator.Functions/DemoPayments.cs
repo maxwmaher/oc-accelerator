@@ -53,7 +53,8 @@ namespace Accelerator.Functions
                 return new BadRequestObjectResult("Only demo checkout payments can be accepted by this endpoint.");
             }
 
-            if (!string.Equals(payment.Type, request.PaymentMethod, StringComparison.OrdinalIgnoreCase))
+            if (!Enum.TryParse<PaymentType>(request.PaymentMethod, ignoreCase: true, out var requestedPaymentType)
+                || payment.Type != requestedPaymentType)
             {
                 return new BadRequestObjectResult("Payment method does not match the OrderCloud payment type.");
             }

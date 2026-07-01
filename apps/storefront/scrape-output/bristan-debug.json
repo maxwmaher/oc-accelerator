@@ -1,0 +1,621 @@
+{
+  "url": "https://www.bristan.com/products/bathroom-taps",
+  "anchors": [
+    {
+      "text": "Bathroom Taps",
+      "href": "https://www.bristan.com/bathroom-taps",
+      "className": ""
+    },
+    {
+      "text": "Kitchen Taps",
+      "href": "https://www.bristan.com/kitchen-taps",
+      "className": ""
+    },
+    {
+      "text": "Showers",
+      "href": "https://www.bristan.com/showers",
+      "className": ""
+    },
+    {
+      "text": "Shower Packs",
+      "href": "https://www.bristan.com/search?query=SHWR%20PK",
+      "className": ""
+    },
+    {
+      "text": "Build Your Own Shower",
+      "href": "https://www.bristan.com/build-your-own-shower",
+      "className": ""
+    },
+    {
+      "text": "Concealed Shower",
+      "href": "https://www.bristan.com/concealed-showers",
+      "className": ""
+    },
+    {
+      "text": "Exposed Showers",
+      "href": "https://www.bristan.com/exposed-showers",
+      "className": ""
+    },
+    {
+      "text": "Easyfit Showers",
+      "href": "https://www.bristan.com/installers-home/wallmount-12",
+      "className": ""
+    },
+    {
+      "text": "Bathroom Accessories",
+      "href": "https://www.bristan.com/accessories",
+      "className": ""
+    },
+    {
+      "text": "Shower Accessories",
+      "href": "https://www.bristan.com/products/accessories?type=shower",
+      "className": ""
+    },
+    {
+      "text": "Complementary Accessories",
+      "href": "https://www.bristan.com/products/accessories?type=complementary",
+      "className": ""
+    },
+    {
+      "text": "",
+      "href": "https://www.bristan.com/products/browse-your-style",
+      "className": ""
+    },
+    {
+      "text": "Bathroom Taps",
+      "href": "https://www.bristan.com/products/product-filters",
+      "className": ""
+    },
+    {
+      "text": "Basin Taps",
+      "href": "javascript:void(0)",
+      "className": ""
+    },
+    {
+      "text": "Bath Taps",
+      "href": "javascript:void(0)",
+      "className": ""
+    },
+    {
+      "text": "Bidet Taps",
+      "href": "javascript:void(0)",
+      "className": ""
+    },
+    {
+      "text": "1901 3 Hole Basin Mixer with Pop-up Waste N 3HBAS C CD £342.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=n%203hbas%20c%20cd",
+      "className": ""
+    },
+    {
+      "text": "1901 Basin Mixer with Pop-up Waste N BAS C CD £164.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=n%20bas%20c%20cd",
+      "className": ""
+    },
+    {
+      "text": "1901 Basin Taps N 1/2 C CD £127.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=n%201/2%20c%20cd",
+      "className": ""
+    },
+    {
+      "text": "1901 Bath Filler N BF C CD £327.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=n%20bf%20c%20cd",
+      "className": ""
+    },
+    {
+      "text": "1901 Bath Shower Mixer N BSM C CD £426.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=n%20bsm%20c%20cd",
+      "className": ""
+    },
+    {
+      "text": "1901 Bath Taps N 3/4 C CD £152.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=n%203/4%20c%20cd",
+      "className": ""
+    },
+    {
+      "text": "1901 Vanity Basin Taps N VAN C CD £119.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=n%20van%20c%20cd",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 2 Taphole Wall Mounted Basin Mixer AL 2TH WMBAS BB £264.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%202th%20wmbas%20bb",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 2 Taphole Wall Mounted Basin Mixer AL 2TH WMBAS BLK £239.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%202th%20wmbas%20blk",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 2 Taphole Wall Mounted Basin Mixer AL 2TH WMBAS C £235.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%202th%20wmbas%20c",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 3 Taphole Basin Mixer AL 3TH BAS BB £305.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%203th%20bas%20bb",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 3 Taphole Basin Mixer AL 3TH BAS BLK £298.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%203th%20bas%20blk",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 3 Taphole Basin Mixer AL 3TH BAS C £291.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%203th%20bas%20c",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 3 Taphole Wall Mounted Basin Mixer AL 3TH WMBAS BB £299.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%203th%20wmbas%20bb",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 3 Taphole Wall Mounted Basin Mixer AL 3TH WMBAS BLK £291.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%203th%20wmbas%20blk",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 3 Taphole Wall Mounted Basin Mixer AL 3TH WMBAS C £267.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%203th%20wmbas%20c",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 3 Taphole Wall Mounted Bath Filler AL 3TH WMBF BB £399.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%203th%20wmbf%20bb",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 3 Taphole Wall Mounted Bath Filler AL 3TH WMBF BLK £365.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%203th%20wmbf%20blk",
+      "className": ""
+    },
+    {
+      "text": "ALTUM 3 Taphole Wall Mounted Bath Filler AL 3TH WMBF C £328.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%203th%20wmbf%20c",
+      "className": ""
+    },
+    {
+      "text": "ALTUM Basin Mixer AL ES BAS BB £190.00 RRP View Item",
+      "href": "https://www.bristan.com/products/bathroom-taps?code=al%20es%20bas%20bb",
+      "className": ""
+    },
+    {
+      "text": "Bathroom Taps",
+      "href": "https://www.bristan.com/bathroom-taps",
+      "className": ""
+    },
+    {
+      "text": "Kitchen Taps",
+      "href": "https://www.bristan.com/kitchen-taps",
+      "className": ""
+    },
+    {
+      "text": "Showers",
+      "href": "https://www.bristan.com/products/showers?type=mixer",
+      "className": ""
+    },
+    {
+      "text": "Bathroom Accessories",
+      "href": "https://www.bristan.com/accessories",
+      "className": ""
+    },
+    {
+      "text": "Shower Accessories",
+      "href": "https://www.bristan.com/products/accessories?type=shower",
+      "className": ""
+    },
+    {
+      "text": "Infrared Sensor Taps",
+      "href": "https://www.bristan.com/infrared-sensor-taps",
+      "className": "be-related-link"
+    },
+    {
+      "text": "New Mila Range of Bathroom Taps",
+      "href": "https://www.bristan.com/homeowners-home/homeowners-inspiration/black-taps-made-brilliant",
+      "className": "be-related-link"
+    }
+  ],
+  "buttons": [
+    {
+      "text": "Load more",
+      "className": "button-blue"
+    },
+    {
+      "text": "Accept all cookies",
+      "className": "cookie-accept-btn"
+    },
+    {
+      "text": "Update Settings",
+      "className": "cookie-accept-btn"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/products/bathroom-taps",
+      "resourceType": "document"
+    },
+    {
+      "status": 200,
+      "url": "https://www.bristan.com/products/bathroom-taps",
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.google.com/recaptcha/api.js",
+      "resourceType": "script"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/supernav-ctas/homeowner--register-a-product.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/basin-mixer.ashx",
+      "resourceType": "image"
+    },
+    {
+      "status": 200,
+      "url": "https://www.google.com/recaptcha/api.js",
+      "contentType": "text/javascript; charset=utf-8"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/product-icons/3-hole-basin-mixer.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/basin-mixer-tall.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/basin-mixer-wall-mounted.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/basin-taps.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/product-icons/electronic-tap.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/product-icons/vanity-taps2.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/product-icons/1-hole-bath-filler.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/bath-filler.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/bath-filler-3hole.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/product-icons/wall-mounted-bath-filler.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/bath-shower-mixer.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/bath-shower-mixer-5hole.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/product-icons/wall-mounted-shower-mixer.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/bath-taps.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/floor-standing-bath-shower-mixer.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/globe-tap.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/side-bodies.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/spout-wall-mounted.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/basin-round.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/basin-softened-square.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/basin-square.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/basin-square-round.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/-/media/bristan/icons/filter-illustrations/traditional-style.ashx",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/Assets/custom/search.js",
+      "resourceType": "script"
+    },
+    {
+      "method": "POST",
+      "url": "https://www.bristan.com/ajax/searchdata/FilterProducts",
+      "resourceType": "xhr"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.google.com/recaptcha/api2/anchor?ar=1&k=6LeJ8iojAAAAANydmOYxZWlQQJYTAd0NIpG_JvgX&co=aHR0cHM6Ly93d3cuYnJpc3Rhbi5jb206NDQz&hl=en&v=TnA7HacJFoBWt9hnlunBlYfK&size=normal&anchor-ms=20000&execute-ms=30000&cb=7xsi9nbxc1rf",
+      "resourceType": "document"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.facebook.com/tr/?id=702444973466420&ev=PageView&dl=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&rl=&if=false&ts=1782922386012&iw=false&sw=1280&sh=720&v=2.9.347&r=stable&ec=0&o=12318&aems=0%3B0&fbp=fb.1.1782922386004.716715872766105427&cs_est=true&ler=empty&cdl=API_unavailable&pmd[title]=Product%20Filters&pmd[locale]=en&pmd[keywords]=Product%20Filters%2C%20Bristan&pmd[description]=Product%20Filters&plt=3649&iss=1&imft=1&tz=-300&it=1782922385805&coo=false&expv2[0]=pl1&expv2[1]=el3&expv2[2]=bc1&expv2[3]=ra2&expv2[4]=rp2&expv2[5]=ct3&expv2[6]=hf1&rqm=GET",
+      "resourceType": "image"
+    },
+    {
+      "method": "POST",
+      "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=1284950313&t=pageview&_s=1&dl=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&ul=en-us&dt=Product%20Filters&sr=1280x720&vp=1265x720&_u=YEBAAAABAAAAAC~&jid=522285727&gjid=1510317042&cid=1563054947.1782922386&tid=UA-13030369-1&_gid=889620294.1782922386&_r=1&_slc=1&gtm=45He66t1n71NLPLNMza200&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115938465~115938469~118395335~119027224&z=1882447860",
+      "resourceType": "xhr"
+    },
+    {
+      "status": 200,
+      "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=1284950313&t=pageview&_s=1&dl=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&ul=en-us&dt=Product%20Filters&sr=1280x720&vp=1265x720&_u=YEBAAAABAAAAAC~&jid=522285727&gjid=1510317042&cid=1563054947.1782922386&tid=UA-13030369-1&_gid=889620294.1782922386&_r=1&_slc=1&gtm=45He66t1n71NLPLNMza200&gcd=13l3l3l3l1l1&dma=0&tag_exp=0~115938465~115938469~118395335~119027224&z=1882447860",
+      "contentType": "text/plain"
+    },
+    {
+      "status": 200,
+      "url": "https://www.facebook.com/tr/?id=702444973466420&ev=PageView&dl=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&rl=&if=false&ts=1782922386012&iw=false&sw=1280&sh=720&v=2.9.347&r=stable&ec=0&o=12318&aems=0%3B0&fbp=fb.1.1782922386004.716715872766105427&cs_est=true&ler=empty&cdl=API_unavailable&pmd[title]=Product%20Filters&pmd[locale]=en&pmd[keywords]=Product%20Filters%2C%20Bristan&pmd[description]=Product%20Filters&plt=3649&iss=1&imft=1&tz=-300&it=1782922385805&coo=false&expv2[0]=pl1&expv2[1]=el3&expv2[2]=bc1&expv2[3]=ra2&expv2[4]=rp2&expv2[5]=ct3&expv2[6]=hf1&rqm=GET",
+      "contentType": "text/plain"
+    },
+    {
+      "status": 200,
+      "url": "https://www.google.com/recaptcha/api2/anchor?ar=1&k=6LeJ8iojAAAAANydmOYxZWlQQJYTAd0NIpG_JvgX&co=aHR0cHM6Ly93d3cuYnJpc3Rhbi5jb206NDQz&hl=en&v=TnA7HacJFoBWt9hnlunBlYfK&size=normal&anchor-ms=20000&execute-ms=30000&cb=7xsi9nbxc1rf",
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.facebook.com/tr/?id=334845620779747&ev=PageView&dl=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&rl=&if=false&ts=1782922386159&iw=false&sw=1280&sh=720&v=2.9.347&r=stable&ec=0&o=12318&aems=0%3B0&fbp=fb.1.1782922386004.716715872766105427&ler=empty&cdl=API_unavailable&pmd[title]=Product%20Filters&pmd[locale]=en&pmd[keywords]=Product%20Filters%2C%20Bristan&pmd[description]=Product%20Filters&plt=3649&iss=1&imft=1&tz=-300&it=1782922385805&coo=false&expv2[0]=pl1&expv2[1]=el3&expv2[2]=bc1&expv2[3]=ra2&expv2[4]=rp2&expv2[5]=ct3&expv2[6]=hf1&rqm=GET",
+      "resourceType": "image"
+    },
+    {
+      "status": 200,
+      "url": "https://www.facebook.com/tr/?id=334845620779747&ev=PageView&dl=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&rl=&if=false&ts=1782922386159&iw=false&sw=1280&sh=720&v=2.9.347&r=stable&ec=0&o=12318&aems=0%3B0&fbp=fb.1.1782922386004.716715872766105427&ler=empty&cdl=API_unavailable&pmd[title]=Product%20Filters&pmd[locale]=en&pmd[keywords]=Product%20Filters%2C%20Bristan&pmd[description]=Product%20Filters&plt=3649&iss=1&imft=1&tz=-300&it=1782922385805&coo=false&expv2[0]=pl1&expv2[1]=el3&expv2[2]=bc1&expv2[3]=ra2&expv2[4]=rp2&expv2[5]=ct3&expv2[6]=hf1&rqm=GET",
+      "contentType": "text/plain"
+    },
+    {
+      "method": "POST",
+      "url": "https://analytics.google.com/g/collect?v=2&tid=G-23S5LDKP0S&gtm=45je66t1v9132874886za20g&_p=1782922385464&_gaz=1&gcd=13l3l3l3l2l1&npa=0&dma=0&_eu=ABAIAGAC&are=1&cid=1563054947.1782922386&frm=0&pscdl=noapi&rcb=14&sr=1280x720&uaa=x86&uab=64&uafvl=Chromium%3B149.0.7827.55%7CNot)A%253BBrand%3B24.0.0.0&uam=&uamb=0&uap=Windows&uapv=19.0.0&uaw=0&ul=en-us&gaf=2&_s=1&tag_exp=115938465~115938468~119027224~119576881~119576885~119576891~119576895&dl=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&dt=Product%20Filters&sid=1782922386&sct=1&seg=0&_tu=wAQ&en=page_view&_fv=1&_ss=1&_ee=1&gap.uat=0~115938465~115938469~118395335~119027224&tfd=4398",
+      "resourceType": "fetch"
+    },
+    {
+      "method": "GET",
+      "url": "https://l.sharethis.com/pview?event=pview&version=buttons.js&lang=en&sessionID=1782922386359.60838&hostname=www.bristan.com&location=%2Fproducts%2Fbathroom-taps&product=widget&fcmp=false&fcmpv2=false&publisher=ur.00000000-0000-0000-0000-000000000000&url=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&title=Product%20Filters&sop=false&description=Product%20Filters&ua=%22Chromium%22%3Bv%3D%22149%22%2C%20%22Not)A%3BBrand%22%3Bv%3D%2224%22&ua_mobile=false&ua_platform=Windows&ua_full_version_list=%22Chromium%22%3Bv%3D%22149.0.7827.55%22%2C%20%22Not)A%3BBrand%22%3Bv%3D%2224.0.0.0%22&ua_platform_version=19.0.0&uuid=b4c17ec9-650d-4562-919a-5552c078ad4a",
+      "resourceType": "xhr"
+    },
+    {
+      "status": 204,
+      "url": "https://analytics.google.com/g/collect?v=2&tid=G-23S5LDKP0S&gtm=45je66t1v9132874886za20g&_p=1782922385464&_gaz=1&gcd=13l3l3l3l2l1&npa=0&dma=0&_eu=ABAIAGAC&are=1&cid=1563054947.1782922386&frm=0&pscdl=noapi&rcb=14&sr=1280x720&uaa=x86&uab=64&uafvl=Chromium%3B149.0.7827.55%7CNot)A%253BBrand%3B24.0.0.0&uam=&uamb=0&uap=Windows&uapv=19.0.0&uaw=0&ul=en-us&gaf=2&_s=1&tag_exp=115938465~115938468~119027224~119576881~119576885~119576891~119576895&dl=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&dt=Product%20Filters&sid=1782922386&sct=1&seg=0&_tu=wAQ&en=page_view&_fv=1&_ss=1&_ee=1&gap.uat=0~115938465~115938469~118395335~119027224&tfd=4398",
+      "contentType": "text/plain"
+    },
+    {
+      "status": 301,
+      "url": "https://l.sharethis.com/pview?event=pview&version=buttons.js&lang=en&sessionID=1782922386359.60838&hostname=www.bristan.com&location=%2Fproducts%2Fbathroom-taps&product=widget&fcmp=false&fcmpv2=false&publisher=ur.00000000-0000-0000-0000-000000000000&url=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&title=Product%20Filters&sop=false&description=Product%20Filters&ua=%22Chromium%22%3Bv%3D%22149%22%2C%20%22Not)A%3BBrand%22%3Bv%3D%2224%22&ua_mobile=false&ua_platform=Windows&ua_full_version_list=%22Chromium%22%3Bv%3D%22149.0.7827.55%22%2C%20%22Not)A%3BBrand%22%3Bv%3D%2224.0.0.0%22&ua_platform_version=19.0.0&uuid=b4c17ec9-650d-4562-919a-5552c078ad4a",
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "method": "GET",
+      "url": "https://l.sharethis.com/sc?event=pview&version=buttons.js&lang=en&sessionID=1782922386359.60838&hostname=www.bristan.com&location=%2Fproducts%2Fbathroom-taps&product=widget&fcmp=false&fcmpv2=false&publisher=ur.00000000-0000-0000-0000-000000000000&url=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&title=Product%20Filters&sop=false&description=Product%20Filters&ua=%22Chromium%22%3Bv%3D%22149%22%2C%20%22Not)A%3BBrand%22%3Bv%3D%2224%22&ua_mobile=false&ua_platform=Windows&ua_full_version_list=%22Chromium%22%3Bv%3D%22149.0.7827.55%22%2C%20%22Not)A%3BBrand%22%3Bv%3D%2224.0.0.0%22&ua_platform_version=19.0.0&uuid=b4c17ec9-650d-4562-919a-5552c078ad4a&samesite=None",
+      "resourceType": "xhr"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.google.com/recaptcha/api2/webworker.js?hl=en&v=TnA7HacJFoBWt9hnlunBlYfK",
+      "resourceType": "script"
+    },
+    {
+      "status": 200,
+      "url": "https://l.sharethis.com/sc?event=pview&version=buttons.js&lang=en&sessionID=1782922386359.60838&hostname=www.bristan.com&location=%2Fproducts%2Fbathroom-taps&product=widget&fcmp=false&fcmpv2=false&publisher=ur.00000000-0000-0000-0000-000000000000&url=https%3A%2F%2Fwww.bristan.com%2Fproducts%2Fbathroom-taps&title=Product%20Filters&sop=false&description=Product%20Filters&ua=%22Chromium%22%3Bv%3D%22149%22%2C%20%22Not)A%3BBrand%22%3Bv%3D%2224%22&ua_mobile=false&ua_platform=Windows&ua_full_version_list=%22Chromium%22%3Bv%3D%22149.0.7827.55%22%2C%20%22Not)A%3BBrand%22%3Bv%3D%2224.0.0.0%22&ua_platform_version=19.0.0&uuid=b4c17ec9-650d-4562-919a-5552c078ad4a&samesite=None",
+      "contentType": "text/plain; charset=utf-8"
+    },
+    {
+      "method": "GET",
+      "url": "https://platform-api.sharethis.com/panorama.js",
+      "resourceType": "script"
+    },
+    {
+      "status": 200,
+      "url": "https://www.google.com/recaptcha/api2/webworker.js?hl=en&v=TnA7HacJFoBWt9hnlunBlYfK",
+      "contentType": "text/javascript; charset=utf-8"
+    },
+    {
+      "status": 200,
+      "url": "https://www.bristan.com/ajax/searchdata/FilterProducts",
+      "contentType": "text/plain; charset=utf-8"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/548889/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/548887/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/546843/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/548857/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/547295/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/548891/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/547258/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943061/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943059/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943057/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943031/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943033/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943035/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943055/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943053/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943037/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943517/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943515/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943513/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.bristan.com/product-files/943025/product-web-image.jpg",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.google.com/recaptcha/api2/bframe?hl=en&v=TnA7HacJFoBWt9hnlunBlYfK&k=6LeJ8iojAAAAANydmOYxZWlQQJYTAd0NIpG_JvgX&bft=0dAFcWeA43GWv2ot8Vujy1PIErcrQT_LetviXRq2ZC50ckrvQmex6K_GUk4CvJeHp6jKfWrWO5hX0ods27ghuhASJ4YTA0xJNUiA",
+      "resourceType": "document"
+    },
+    {
+      "status": 200,
+      "url": "https://www.google.com/recaptcha/api2/bframe?hl=en&v=TnA7HacJFoBWt9hnlunBlYfK&k=6LeJ8iojAAAAANydmOYxZWlQQJYTAd0NIpG_JvgX&bft=0dAFcWeA43GWv2ot8Vujy1PIErcrQT_LetviXRq2ZC50ckrvQmex6K_GUk4CvJeHp6jKfWrWO5hX0ods27ghuhASJ4YTA0xJNUiA",
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "method": "GET",
+      "url": "https://pixel.tapad.com/idsync/ex/receive?partner_id=2326&gdpr=0&gdpr_consent=&partner_device_id=CgtPs2pFPJIAAAAJA7iQAw%3D%3D",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://pippio.com/api/sync?pid=5324&it=1&iv=b824a53c61eb0343aa8f8c70306d110f4f38d90bea50b52cc9b5a0cfa2a17628791426b5417dce21&_=2",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://pixel.tapad.com/idsync/ex/receive/check?partner_id=2326&gdpr=0&gdpr_consent=&partner_device_id=CgtPs2pFPJIAAAAJA7iQAw%3D%3D",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://pixel-ipv46.tapad.com/idsync/ex/receive/check?gdpr=0&gdpr_consent=&partner_device_id=CgtPs2pFPJIAAAAJA7iQAw%3D%3D&ipv4_red_cont=404cf2ea-997a-43fb-862b-0e4836505b82&redirect_count=1&partner_id=2326",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://match.adsrvr.org/track/cmf/generic?ttd_pid=tapad&ttd_tpi=1&ttd_puid=b26a4c14-8614-4f8b-846e-61c7a11344a2%252C%252C&gdpr=0&gdpr_consent=",
+      "resourceType": "image"
+    },
+    {
+      "method": "GET",
+      "url": "https://pixel.tapad.com/idsync/ex/receive?partner_id=1830&partner_device_id=bab07c4a-7ece-4adf-b1e6-610ebf886569&ttd_puid=b26a4c14-8614-4f8b-846e-61c7a11344a2%2C%2C",
+      "resourceType": "image"
+    }
+  ]
+}
