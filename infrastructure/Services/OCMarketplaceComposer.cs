@@ -175,7 +175,7 @@ namespace OC_Accelerator.Services
                 {
                     ID = orderCheckoutIntegrationEventId,
                     EventType = IntegrationEventType.OrderCheckout,
-                    CustomImplementationUrl = $"{hostedAppUrl}/api/integrationevent",
+                    CustomImplementationUrl = $"{hostedAppUrl}/api",
                     Name = "Order Checkout Integration Event",
                     HashKey = _appSettings.ocHashKey
                 });
