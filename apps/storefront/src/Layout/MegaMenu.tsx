@@ -65,7 +65,7 @@ const MegaMenu: FC<MegaMenuProps> = ({
 
   const { data: categoryResult } = useOcResourceList<Category>(
     "Me.Categories",
-    { catalogID: selectedCatalog },
+    { catalogId: selectedCatalog },
     undefined,
     {
       staleTime: 300000,
