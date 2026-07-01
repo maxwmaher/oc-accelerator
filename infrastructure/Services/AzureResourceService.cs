@@ -177,14 +177,13 @@ public class AzureResourceService
                 new()
                 {
                     name = "FUNCTIONS_WORKER_RUNTIME",
-                    value = "node"
+                    value = "dotnet-isolated"
                 },
                 new()
                 {
                     name = "AzureWebJobsStorage",
-                    value = $"DefaultEndpointsProtocol=https;AccountName=${storageAccount.Data.Name};AccountKey=${storageAccountKey};EndpointSuffix=http://core.windows.net/" // TODO: is this endpoint suffix something we can hardcode?
-                },
-                nodeDefaultVersion
+                    value = $"DefaultEndpointsProtocol=https;AccountName={storageAccount.Data.Name};AccountKey={storageAccountKey};EndpointSuffix=core.windows.net"
+                }
             };
 
         // Parameters for functionApp.bicep
