@@ -52,7 +52,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     "Me.Catalogs",
     undefined,
     undefined,
-    { staleTime: 300000 }
+    { staleTime: 300000 },
   );
 
   const catalogs = useMemo(() => catalogData?.Items ?? [], [catalogData]);
@@ -70,7 +70,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     "Me.Categories",
     activeCatalogId ? { catalogId: activeCatalogId } : undefined,
     undefined,
-    { staleTime: 300000 }
+    { staleTime: 300000 },
   );
 
   const categories = useMemo(() => categoryData?.Items ?? [], [categoryData]);
@@ -100,7 +100,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     return (
       orderWorksheet?.LineItems?.reduce(
         (sum, item) => sum + item.Quantity,
-        0
+        0,
       ) || 0
     );
   }, [orderWorksheet?.LineItems]);
@@ -186,8 +186,13 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               </Button>
             )}
             {renderCatalogMenu()}
-            <Button as={RouterLink} to="/bristan-demo" variant="ghost" size="sm">
-              Bristan Demo
+            <Button
+              as={RouterLink}
+              to="/bristan-demo"
+              variant="ghost"
+              size="sm"
+            >
+              Demo Accounts
             </Button>
           </HStack>
           <HStack>
