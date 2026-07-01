@@ -24,9 +24,9 @@ namespace Accelerator.MockServices
             return Task.FromResult(new CCTransactionResult
             {
                 Succeeded = true,
-                TransactionID = $"BRISTAN-DEMO-{fingerprint}",
-                AuthorizationCode = $"DEMO{fingerprint[..6]}",
-                Message = "Demo credit card authorization approved."
+                TransactionID = $"BRISTAN-DEMO-AUTH-{fingerprint}",
+                AuthorizationCode = "BRISTAN-DEMO",
+                Message = "Demo authorization approved"
             });
         }
 
