@@ -29,6 +29,7 @@ const CATEGORIES = [
 const args = new Set(process.argv.slice(2));
 const mode = args.has('seed') ? 'seed' : args.has('audit') ? 'audit' : 'scrape';
 const dryRun = args.has('--dry-run') || !process.env.OC_CLIENT_SECRET;
+const forceBrowser = args.has('--browser') || /^true$/i.test(process.env.BRISTAN_FORCE_BROWSER || '');
 const inputPath = process.env.BRISTAN_SCRAPE_OUTPUT || OUTPUT;
 
 function absoluteUrl(value) {
@@ -44,39 +45,121 @@ function extractJsonLd(html) {
     try { const v = JSON.parse(m[1].trim()); return Array.isArray(v) ? v : [v]; } catch { return []; }
   });
 }
-async function get(url) {
+async function fetchPage(url, options = {}) {
   const res = await fetch(url, { headers: { 'user-agent': 'oc-accelerator-bristan-seeder/1.0' } });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`);
-  return res.text();
+  const html = await res.text();
+  if (!res.ok && !options.allowHttpErrors) throw new Error(`${res.status} ${res.statusText} for ${url}`);
+  return { status: res.status, ok: res.ok, html, url: res.url || url };
 }
-function findProductLinks(html) {
-  const links = [...html.matchAll(/href=["']([^"']*\/products\/(?!bathroom-taps|kitchen-taps|showers|accessories)[^"'#?]+)[^"']*["']/gi)].map((m) => absoluteUrl(m[1]));
-  return uniq(links).filter((u) => u?.startsWith(`${BRISTAN}/products/`)).slice(0, 10);
-}
-async function findProductLinksWithBrowser(url) {
-  let chromium;
+async function get(url) { return (await fetchPage(url)).html; }
+
+const KNOWN_NON_PRODUCT_PATHS = new Set([
+  '/products',
+  '/products/bathroom-taps',
+  '/products/kitchen-taps',
+  '/products/showers',
+  '/products/accessories',
+  '/products/browse-your-style',
+  '/products/product-filters',
+  '/products/kitchen-sinks',
+]);
+const BAD_PRODUCT_TEXT = /\b(?:404|page not found|product filters|browse your style)\b/i;
+const NAV_CATEGORY_SEGMENT = /(?:^|\/)(?:product-filters|browse-your-style|kitchen-sinks|bathroom-taps|kitchen-taps|showers|accessories|products)(?:\/?$|[?#])/i;
+
+function normalizedBristanUrl(value) {
+  const abs = absoluteUrl(value);
+  if (!abs) return null;
   try {
-    ({ chromium } = await import('playwright'));
-  } catch {
-    try {
-      ({ chromium } = await import('@playwright/test'));
-    } catch {
-      throw new Error(`No product links were found in static HTML for ${url}, and Playwright is not installed for browser fallback.`);
+    const u = new URL(abs);
+    u.hash = '';
+    u.search = '';
+    return u.origin === BRISTAN ? u.toString().replace(/\/$/, '') : null;
+  } catch { return null; }
+}
+function rejectProductUrlReason(value) {
+  const normalized = normalizedBristanUrl(value);
+  if (!normalized) return 'not a Bristan URL';
+  const { pathname } = new URL(normalized);
+  if (!pathname.startsWith('/products/')) return 'not under /products/';
+  if (KNOWN_NON_PRODUCT_PATHS.has(pathname.replace(/\/$/, ''))) return 'known category/navigation URL';
+  if (NAV_CATEGORY_SEGMENT.test(pathname)) return 'category/filter/navigation URL';
+  const slugPart = pathname.split('/').filter(Boolean).pop() || '';
+  if (!/[a-z0-9]/i.test(slugPart) || slugPart.length < 4) return 'not a product-looking URL';
+  return null;
+}
+function isLikelyProductUrl(value) { return !rejectProductUrlReason(value); }
+function findProductLinks(html) {
+  const links = [...html.matchAll(/href=["']([^"']*\/products\/[^"'#]*)["']/gi)].map((m) => normalizedBristanUrl(m[1]));
+  return uniq(links).filter(isLikelyProductUrl);
+}
+async function importPlaywright() {
+  try { return await import('playwright'); } catch {
+    try { return await import('@playwright/test'); } catch {
+      throw new Error('Playwright is required for Bristan browser scraping. Install it with:\n  npm install -D playwright --prefix apps/storefront\n  npx --prefix apps/storefront playwright install chromium');
     }
   }
+}
+async function findProductLinksWithBrowser(url, listingName = url) {
+  const { chromium } = await importPlaywright();
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle' });
-    const links = await page.$$eval('a[href*="/products/"]', (anchors) => anchors.map((a) => a.href));
-    return uniq(links).filter((u) => u.startsWith(`${BRISTAN}/products/`) && !/\/products\/(?:bathroom-taps|kitchen-taps|showers|accessories)(?:[/?#]|$)/.test(u)).slice(0, 10);
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+    for (const label of [/accept all/i, /^accept$/i, /allow all/i, /agree/i, /ok/i]) {
+      const button = page.getByRole('button', { name: label }).first();
+      if (await button.isVisible().catch(() => false)) { await button.click().catch(() => {}); break; }
+    }
+    await page.waitForLoadState('networkidle').catch(() => {});
+    const collect = async () => uniq(await page.$$eval('a[href*="/products/"]', (anchors) => anchors
+      .filter((a) => {
+        const text = (a.textContent || '').trim();
+        const card = a.closest('article, li, [class*="product" i], [data-testid*="product" i]');
+        return card || /view item|view product|details/i.test(text);
+      })
+      .map((a) => a.href))).map(normalizedBristanUrl).filter(isLikelyProductUrl);
+    await page.waitForFunction(() => [...document.querySelectorAll('a[href*="/products/"]')].some((a) => /view item|view product|details/i.test(a.textContent || '') || a.closest('article, li, [class*="product" i], [data-testid*="product" i]')), null, { timeout: 15000 }).catch(() => {});
+    let links = await collect();
+    let clicks = 0;
+    while (links.length < 10 && clicks < 12) {
+      const loadMore = page.getByRole('button', { name: /load more|show more|view more/i }).first();
+      const linkLoadMore = page.getByRole('link', { name: /load more|show more|view more/i }).first();
+      const control = (await loadMore.isVisible().catch(() => false)) ? loadMore : ((await linkLoadMore.isVisible().catch(() => false)) ? linkLoadMore : null);
+      if (!control) break;
+      const before = links.length;
+      await control.click().catch(() => {});
+      clicks++;
+      await page.waitForLoadState('networkidle').catch(() => {});
+      await page.waitForTimeout(750);
+      links = await collect();
+      if (links.length <= before) break;
+    }
+    console.log(`${listingName}: browser candidate count ${links.length}`);
+    return links.slice(0, 10);
   } finally {
     await browser.close();
   }
 }
+function validateProductDetail(page, url) {
+  const reasons = [];
+  if (!page.ok || page.status === 404) reasons.push(`HTTP ${page.status}`);
+  if (rejectProductUrlReason(url)) reasons.push(rejectProductUrlReason(url));
+  const html = page.html || '';
+  const title = clean(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]);
+  const h1 = clean(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]);
+  if (BAD_PRODUCT_TEXT.test(`${title || ''} ${h1 || ''}`)) reasons.push('bad title/heading');
+  const json = extractJsonLd(html);
+  const hasProductJson = json.some((x) => /Product/i.test(Array.isArray(x['@type']) ? x['@type'].join(' ') : x['@type'] || ''));
+  const hasSku = /(?:Product Code|SKU|Code)\s*(?:<[^>]+>\s*){0,4}[:#]?\s*[A-Z0-9][A-Z0-9-]{2,}/i.test(html) || json.some((x) => x.sku || x.mpn);
+  const images = [...html.matchAll(/(?:src|data-src|content)=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi)].map((m) => absoluteUrl(m[1])).filter((u) => u?.startsWith(BRISTAN));
+  const hasPrice = parsePrice(html) != null || json.some((x) => parsePrice(JSON.stringify(x.offers || {})) != null);
+  const hasTemplateMarker = /product-detail|product details|pdp|add to basket|download spec|technical specifications/i.test(html);
+  const hasSpecificHeading = h1 && !BAD_PRODUCT_TEXT.test(h1) && !/^(products?|taps|showers|accessories|product filters)$/i.test(h1);
+  if (!(hasProductJson || hasSku || hasTemplateMarker || (images.length && hasPrice) || (hasSpecificHeading && images.length))) reasons.push('no credible product signal');
+  return { valid: reasons.length === 0, reasons };
+}
 function productFromDetail(html, url, listing, rank) {
   const json = extractJsonLd(html).find((x) => /Product/i.test(Array.isArray(x['@type']) ? x['@type'].join(' ') : x['@type'] || '')) || {};
-  const title = clean(json.name) || clean(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]) || clean(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]);
+  const title = clean(json.name) || clean(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]);
   const sku = clean(json.sku || json.mpn || html.match(/(?:Product Code|SKU|Code)<\/[^>]+>\s*<[^>]+>([^<]+)/i)?.[1] || html.match(/(?:Product Code|SKU|Code)[:\s]+([A-Z0-9-]+)/i)?.[1]);
   const images = uniq([json.image, ...(Array.isArray(json.image) ? json.image : []), ...[...html.matchAll(/(?:src|data-src|content)=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi)].map((m) => m[1])].flat().map(absoluteUrl)).filter((u) => u.startsWith(BRISTAN));
   const rrp = parsePrice(JSON.stringify(json.offers || {})) ?? parsePrice(html);
@@ -84,16 +167,42 @@ function productFromDetail(html, url, listing, rank) {
   const finish = clean(html.match(/Finish<\/[^>]+>\s*<[^>]+>([^<]+)/i)?.[1] || html.match(/Finish[:\s]+([^<\n]+)/i)?.[1]);
   const productType = clean(html.match(/Type<\/[^>]+>\s*<[^>]+>([^<]+)/i)?.[1]);
   const idBase = sku || url.split('/').filter(Boolean).pop() || title;
-  return { id: `${PREFIX}${slug(idBase)}`, name: title || slug(idBase), sku, url, listingUrl: listing.url, categoryPath: listing.path, categoryID: listing.categoryID, listingRank: rank, rrp, imageUrl: images[0] || null, images, shortDescription: desc, longDescription: desc, finish, productType, sourceCategory: listing.name };
+  return { id: `${PREFIX}${slug(idBase)}`, name: title || slug(idBase), sku, url, listingUrl: listing.url, categoryPath: listing.path, categoryID: listing.categoryID, listingRank: rank, rrp, imageUrl: images[0] || null, images, shortDescription: desc, longDescription: desc, finish, productType, sourceCategory: listing.name, validated: true };
+}
+async function validatedProductsForListing(listing) {
+  const listingHtml = forceBrowser ? '' : await get(listing.url);
+  const staticUrls = forceBrowser ? [] : findProductLinks(listingHtml);
+  console.log(`${listing.name}: static candidate count ${staticUrls.length}`);
+  let browserUrls = [];
+  if (forceBrowser || staticUrls.length < 10) browserUrls = await findProductLinksWithBrowser(listing.url, listing.name);
+  let candidates = browserUrls.length ? uniq([...browserUrls, ...staticUrls]) : staticUrls;
+  const products = [], rejected = [];
+  for (const url of candidates) {
+    if (products.length >= 10) break;
+    const page = await fetchPage(url, { allowHttpErrors: true });
+    const validation = validateProductDetail(page, url);
+    if (!validation.valid) { rejected.push({ url, reason: validation.reasons.join(', ') }); continue; }
+    products.push(productFromDetail(page.html, url, listing, products.length + 1));
+  }
+  if (products.length < 10 && !browserUrls.length) {
+    browserUrls = await findProductLinksWithBrowser(listing.url, listing.name);
+    candidates = uniq([...browserUrls, ...staticUrls]).filter((u) => !products.some((p) => p.url === u) && !rejected.some((r) => r.url === u));
+    for (const url of candidates) {
+      if (products.length >= 10) break;
+      const page = await fetchPage(url, { allowHttpErrors: true });
+      const validation = validateProductDetail(page, url);
+      if (!validation.valid) { rejected.push({ url, reason: validation.reasons.join(', ') }); continue; }
+      products.push(productFromDetail(page.html, url, listing, products.length + 1));
+    }
+  }
+  console.log(`${listing.name}: validated product count ${products.length}`);
+  console.log(`${listing.name}: rejected candidate count ${rejected.length}${rejected.length ? ` (${rejected.map((r) => `${r.url} => ${r.reason}`).join('; ')})` : ''}`);
+  return products;
 }
 async function scrape() {
   const groups = [];
   for (const listing of LISTINGS) {
-    const html = await get(listing.url);
-    let urls = findProductLinks(html);
-    if (!urls.length) urls = await findProductLinksWithBrowser(listing.url);
-    const products = [];
-    for (const [i, url] of urls.entries()) products.push(productFromDetail(await get(url), url, listing, i + 1));
+    const products = await validatedProductsForListing(listing);
     groups.push({ ...listing, count: products.length, products });
     console.log(`${listing.name}: ${products.length}`);
   }
@@ -109,17 +218,34 @@ function priceScheduleFor(p) { return p.rrp ? { ID: `${p.id}-ps`, Name: p.name, 
 function productFor(p) { return { ID: p.id, Name: p.name, Description: p.shortDescription || p.longDescription || undefined, Active: true, DefaultPriceScheduleID: p.rrp ? `${p.id}-ps` : undefined, xp: xpFor(p) }; }
 function assertShapes(artifact) {
   const errors = [];
-  for (const g of artifact.groups || []) for (const p of g.products || []) {
-    const product = productFor(p), ps = priceScheduleFor(p);
-    if (typeof product.xp === 'string') errors.push(`${p.id}: Product.xp is string`);
-    if (typeof product.xp.Images === 'string') errors.push(`${p.id}: Images is string`);
-    if (typeof product.xp.SourceCategoryPath === 'string' || typeof product.xp.SourceCategoryPaths === 'string') errors.push(`${p.id}: category path is string`);
-    if (ps && Object.hasOwn(ps, 'Currency')) errors.push(`${p.id}: PriceSchedule includes Currency`);
-    if (!p.url?.startsWith(BRISTAN)) errors.push(`${p.id}: non-Bristan product URL`);
-    for (const img of p.images || []) if (!img.startsWith(BRISTAN)) errors.push(`${p.id}: non-Bristan image URL ${img}`);
+  const expectedNames = new Set(LISTINGS.map((l) => l.name));
+  for (const listing of LISTINGS) {
+    const group = (artifact.groups || []).find((g) => g.name === listing.name);
+    if (!group) { errors.push(`missing listing group: ${listing.name}`); continue; }
+    if ((group.products || []).length < 10 && !group.siteHasFewerThan10) errors.push(`${listing.name}: fewer than 10 validated products (${(group.products || []).length})`);
+  }
+  for (const g of artifact.groups || []) {
+    if (!expectedNames.has(g.name)) errors.push(`unexpected listing group: ${g.name}`);
+    for (const p of g.products || []) {
+      const product = productFor(p), ps = priceScheduleFor(p);
+      const haystack = `${p.name || ''} ${p.url || ''} ${p.shortDescription || ''} ${p.longDescription || ''}`;
+      if (typeof product.xp === 'string') errors.push(`${p.id}: Product.xp is string`);
+      if (typeof product.xp.Images === 'string') errors.push(`${p.id}: Images is string`);
+      if (typeof product.xp.SourceCategoryPath === 'string' || typeof product.xp.SourceCategoryPaths === 'string') errors.push(`${p.id}: category path is string`);
+      if (!Array.isArray(product.xp.SourceCategoryPath)) errors.push(`${p.id}: SourceCategoryPath is not an array`);
+      if (!Array.isArray(product.xp.SourceCategoryPaths) || product.xp.SourceCategoryPaths.some((x) => !Array.isArray(x))) errors.push(`${p.id}: SourceCategoryPaths is not an array of arrays`);
+      if (ps && Object.hasOwn(ps, 'Currency')) errors.push(`${p.id}: PriceSchedule includes Currency`);
+      if (!p.url?.startsWith(BRISTAN)) errors.push(`${p.id}: non-Bristan product URL`);
+      const urlReason = rejectProductUrlReason(p.url);
+      if (urlReason) errors.push(`${p.id}: invalid product URL (${urlReason})`);
+      if (BAD_PRODUCT_TEXT.test(haystack)) errors.push(`${p.id}: artifact contains 404/filter/navigation text`);
+      if (/\/products\/(?:product-filters|browse-your-style|kitchen-sinks)(?:$|[/?#])/i.test(p.url || '')) errors.push(`${p.id}: forbidden non-product URL`);
+      if (!p.validated) errors.push(`${p.id}: missing validated product marker`);
+      for (const img of p.images || []) if (!img.startsWith(BRISTAN)) errors.push(`${p.id}: non-Bristan image URL ${img}`);
+    }
   }
   if (errors.length) throw new Error(`Bristan audit failed:\n${errors.join('\n')}`);
-  console.log(`Audit passed: ${artifact.total} products; Product.xp, Images, category paths are object/array-shaped; no PriceSchedule Currency.`);
+  console.log(`Audit passed: ${artifact.total} validated real products; Product.xp, Images, category paths are object/array-shaped; no PriceSchedule Currency.`);
 }
 async function readArtifact() { return JSON.parse(await fs.readFile(inputPath, 'utf8')); }
 async function ocInit() {

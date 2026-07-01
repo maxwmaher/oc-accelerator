@@ -35,11 +35,22 @@ The Bristan marketplace flow lives in `scripts/bristan-marketplace.mjs` and is i
 
 ### Commands
 
+Run these from the repository root with `--prefix apps/storefront` (or from `apps/storefront` without the prefix):
+
 ```bash
-npm run bristan:scrape
-npm run bristan:audit
-npm run bristan:seed:dry-run
-npm run bristan:seed
+npm run bristan:scrape --prefix apps/storefront
+BRISTAN_FORCE_BROWSER=true npm run bristan:scrape --prefix apps/storefront
+npm run bristan:scrape --prefix apps/storefront -- --browser
+npm run bristan:audit --prefix apps/storefront
+npm run bristan:seed:dry-run --prefix apps/storefront
+```
+
+`bristan:scrape` writes `scrape-output/bristan-products.json` after validating product detail pages. Use `BRISTAN_FORCE_BROWSER=true` or `-- --browser` to skip static link discovery and collect product links from the Playwright-rendered listing pages. Scrape and audit must produce validated real Bristan products before any OrderCloud seed is run; do not seed from artifacts that contain 404, filter, navigation, or category pages.
+
+Only run the real seed after reviewing a passing scrape artifact and dry-run result:
+
+```bash
+npm run bristan:seed --prefix apps/storefront
 ```
 
 ### OrderCloud environment for seeding
