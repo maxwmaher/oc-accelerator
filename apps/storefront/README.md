@@ -28,3 +28,27 @@ export default {
 - Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
 - Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
 - Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+
+## Bristan marketplace demo scraper and seeder
+
+The Bristan marketplace flow lives in `scripts/bristan-marketplace.mjs` and is intentionally safe to rerun. It writes a reviewable scrape artifact to `scrape-output/bristan-products.json`, keeps Product `xp` as real objects/arrays, omits `Currency` from PriceSchedule payloads, and uses Bristan-hosted image URLs directly without downloading or committing images.
+
+### Commands
+
+```bash
+npm run bristan:scrape
+npm run bristan:audit
+npm run bristan:seed:dry-run
+npm run bristan:seed
+```
+
+### OrderCloud environment for seeding
+
+Set these variables before `npm run bristan:seed`:
+
+- `OC_CLIENT_ID` and `OC_CLIENT_SECRET` for an API client with product, price schedule, catalog, and category administration roles.
+- `OC_API_URL` if the marketplace does not use `https://api.ordercloud.io/v1`.
+- `OC_CATALOG_ID` or `BRISTAN_CATALOG_ID` if the catalog is not `Default`.
+- `BRISTAN_SCRAPE_OUTPUT` to read/write a different scrape JSON path.
+
+If credentials are not present, `npm run bristan:seed:dry-run` validates the generated seed payloads without calling OrderCloud.

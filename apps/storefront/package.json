@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "bristan:scrape": "node scripts/bristan-marketplace.mjs scrape",
+    "bristan:audit": "node scripts/bristan-marketplace.mjs audit",
+    "bristan:seed": "node scripts/bristan-marketplace.mjs seed",
+    "bristan:seed:dry-run": "node scripts/bristan-marketplace.mjs seed --dry-run"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.2.6",
