@@ -12,6 +12,10 @@ import {
 import { useOrderCloudContext } from "@ordercloud/react-sdk";
 import { FC, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  BRISTAN_DEMO_CATALOG_IDS,
+  BRISTAN_DEMO_JOURNEY_ROUTES,
+} from "./bristanDemoRoutes";
 
 const DEMO_PASSWORD =
   import.meta.env.VITE_APP_BRISTAN_DEMO_PASSWORD || "BristanDemo123!";
@@ -32,8 +36,8 @@ const journeys: BristanJourney[] = [
       "Accessories-only spare parts self-service for installers and builders who need to quickly identify Bristan replacement parts.",
     username: "bristan-demo-spares-user",
     buyerID: "bristan-demo-spares-buyer",
-    catalogID: "bristan-demo-spares-catalog",
-    targetRoute: "/shop/bristan-demo-spares-catalog/categories",
+    catalogID: BRISTAN_DEMO_CATALOG_IDS.spares,
+    targetRoute: BRISTAN_DEMO_JOURNEY_ROUTES.spares,
   },
   {
     persona: "Supplier Buying from Bristan - North Supplies",
@@ -41,8 +45,8 @@ const journeys: BristanJourney[] = [
       "Bulk buying from Bristan with supplier-specific quantity breaks for the North Supplies account.",
     username: "bristan-demo-supplier-north-buyer-user",
     buyerID: "bristan-demo-supplier-north-buyer",
-    catalogID: "bristan-demo-supplier-north-catalog",
-    targetRoute: "/shop/bristan-demo-supplier-north-catalog/products",
+    catalogID: BRISTAN_DEMO_CATALOG_IDS.supplierNorth,
+    targetRoute: BRISTAN_DEMO_JOURNEY_ROUTES.supplierNorth,
   },
   {
     persona: "Supplier Buying from Bristan - South Supplies",
@@ -50,8 +54,8 @@ const journeys: BristanJourney[] = [
       "A second supplier buyer account that shows how account-specific pricing and future order history can differ by trading partner.",
     username: "bristan-demo-supplier-south-buyer-user",
     buyerID: "bristan-demo-supplier-south-buyer",
-    catalogID: "bristan-demo-supplier-south-catalog",
-    targetRoute: "/shop/bristan-demo-supplier-south-catalog/products",
+    catalogID: BRISTAN_DEMO_CATALOG_IDS.supplierSouth,
+    targetRoute: BRISTAN_DEMO_JOURNEY_ROUTES.supplierSouth,
   },
   {
     persona: "Marketplace Buyer",
@@ -59,8 +63,8 @@ const journeys: BristanJourney[] = [
       "A normal buyer browsing Bristan-governed product data with supplier offers seeded for the next PDP comparison phase.",
     username: "bristan-demo-marketplace-user",
     buyerID: "bristan-demo-marketplace-buyer",
-    catalogID: "bristan-demo-marketplace-catalog",
-    targetRoute: "/shop/bristan-demo-marketplace-catalog/products",
+    catalogID: BRISTAN_DEMO_CATALOG_IDS.marketplace,
+    targetRoute: BRISTAN_DEMO_JOURNEY_ROUTES.marketplace,
   },
 ];
 
@@ -82,7 +86,7 @@ const BristanDemoJourneys: FC = () => {
         duration: 3500,
         isClosable: true,
       });
-      navigate(journey.targetRoute);
+      navigate(journey.targetRoute, { replace: true });
     } catch (error) {
       toast({
         title: "Could not enter demo journey",

@@ -23,11 +23,16 @@ import {
 import { Catalog, Category } from "ordercloud-javascript-sdk";
 import { FC, useEffect, useMemo, useState } from "react";
 import { TbShoppingCartFilled } from "react-icons/tb";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { DEFAULT_BRAND } from "../assets/DEFAULT_BRAND";
 import { BRAND_LOGO_DARK, BRAND_LOGO_LIGHT } from "../constants";
 import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "../Layout/MegaMenu";
+import {
+  getBristanDemoCatalogId,
+  getBristanDemoTargetRoute,
+  shouldRedirectBristanDemoRoute,
+} from "../components/bristan/bristanDemoRoutes";
 
 interface MainMenuProps {
   loginDisclosure: UseDisclosureProps;
@@ -37,6 +42,8 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   const { data: user } = useCurrentUser();
   const { isLoggedIn, logout } = useOrderCloudContext();
   const megaMenuDisclosure = useDisclosure();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [selectedCatalog, setSelectedCatalog] = useState<string>("");
 
   const { orderWorksheet } = useShopper();
@@ -50,7 +57,14 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
 
   const catalogs = useMemo(() => catalogData?.Items ?? [], [catalogData]);
 
-  const activeCatalogId = catalogs.length > 0 ? catalogs[0]?.ID : undefined;
+  const bristanDemoCatalogId = getBristanDemoCatalogId(user?.Username);
+  const activeCatalogId =
+    bristanDemoCatalogId &&
+    catalogs.some((catalog) => catalog.ID === bristanDemoCatalogId)
+      ? bristanDemoCatalogId
+      : catalogs.length > 0
+        ? catalogs[0]?.ID
+        : undefined;
 
   const { data: categoryData } = useOcResourceList<Category>(
     "Me.Categories",
@@ -62,9 +76,25 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   const categories = useMemo(() => categoryData?.Items ?? [], [categoryData]);
 
   useEffect(() => {
+    if (bristanDemoCatalogId && selectedCatalog !== bristanDemoCatalogId) {
+      setSelectedCatalog(bristanDemoCatalogId);
+      return;
+    }
+
     if (!selectedCatalog && catalogs?.length)
       setSelectedCatalog(catalogs[0].ID);
-  }, [catalogs, selectedCatalog]);
+  }, [bristanDemoCatalogId, catalogs, selectedCatalog]);
+
+  useEffect(() => {
+    const bristanDemoTargetRoute = getBristanDemoTargetRoute(user?.Username);
+
+    if (
+      bristanDemoTargetRoute &&
+      shouldRedirectBristanDemoRoute(location.pathname, user?.Username)
+    ) {
+      navigate(bristanDemoTargetRoute, { replace: true });
+    }
+  }, [location.pathname, navigate, user?.Username]);
 
   const totalQuantity = useMemo(() => {
     return (
