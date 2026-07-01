@@ -72,17 +72,25 @@ function normalizedBristanUrl(value) {
   try {
     const u = new URL(abs);
     u.hash = '';
-    u.search = '';
     return u.origin === BRISTAN ? u.toString().replace(/\/$/, '') : null;
   } catch { return null; }
+}
+function productCodeFromUrl(value) {
+  const normalized = normalizedBristanUrl(value);
+  if (!normalized) return null;
+  try { return clean(new URL(normalized).searchParams.get('code')); } catch { return null; }
 }
 function rejectProductUrlReason(value) {
   const normalized = normalizedBristanUrl(value);
   if (!normalized) return 'not a Bristan URL';
-  const { pathname } = new URL(normalized);
+  const { pathname, searchParams } = new URL(normalized);
+  const pathKey = pathname.replace(/\/$/, '');
+  const hasCode = !!clean(searchParams.get('code'));
   if (!pathname.startsWith('/products/')) return 'not under /products/';
-  if (KNOWN_NON_PRODUCT_PATHS.has(pathname.replace(/\/$/, ''))) return 'known category/navigation URL';
-  if (NAV_CATEGORY_SEGMENT.test(pathname)) return 'category/filter/navigation URL';
+  if (/^\/products\/(?:product-filters|browse-your-style|kitchen-sinks)(?:\/)?$/i.test(pathKey)) return 'known navigation URL';
+  if (hasCode) return null;
+  if (KNOWN_NON_PRODUCT_PATHS.has(pathKey)) return 'known category/navigation URL without code';
+  if (NAV_CATEGORY_SEGMENT.test(pathname)) return 'category/filter/navigation URL without code';
   const slugPart = pathname.split('/').filter(Boolean).pop() || '';
   if (!/[a-z0-9]/i.test(slugPart) || slugPart.length < 4) return 'not a product-looking URL';
   return null;
@@ -92,6 +100,22 @@ function findProductLinks(html) {
   const links = [...html.matchAll(/href=["']([^"']*\/products\/[^"'#]*)["']/gi)].map((m) => normalizedBristanUrl(m[1]));
   return uniq(links).filter(isLikelyProductUrl);
 }
+function parseBrowserCardText(text, url) {
+  const sourceText = clean(text);
+  const queryCode = productCodeFromUrl(url);
+  const rrp = parsePrice(sourceText);
+  const beforePrice = clean(sourceText?.replace(/£\s*[0-9][0-9,.]*(?:\.[0-9]{1,2})?\s*RRP\s*View Item.*$/i, '')?.replace(/\s*View Item\s*$/i, ''));
+  let name = beforePrice;
+  let sku = queryCode;
+  if (beforePrice && queryCode) {
+    const codePattern = queryCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+    const m = beforePrice.match(new RegExp(`^(.*?)\\s+(${codePattern})$`, 'i'));
+    if (m) { name = clean(m[1]); sku = clean(m[2]); }
+  }
+  if (BAD_PRODUCT_TEXT.test(name || '') || /^(products?|taps|showers|accessories|product filters)$/i.test(name || '')) name = null;
+  return { text: sourceText, name, sku, rrp, code: queryCode };
+}
+
 async function importPlaywright() {
   try { return await import('playwright'); } catch {
     try { return await import('@playwright/test'); } catch {
@@ -115,101 +139,122 @@ async function findProductLinksWithBrowser(url, listingName = url, staticCandida
         break;
       }
     }
-    const collect = async () => uniq(await page.$$eval('a[href*="/products/"]', (anchors) => anchors
-      .filter((a) => {
-        const text = (a.textContent || '').trim();
-        const card = a.closest('article, li, [class*="product" i], [data-testid*="product" i]');
-        return card || /view item|view product|details/i.test(text);
+    const collect = async () => (await page.$$eval('a[href*="/products/"]', (anchors) => anchors
+      .map((a, index) => {
+        const text = (a.textContent || '').replace(/\s+/g, ' ').trim();
+        let card = a.closest('article, li, [class*="product" i], [class*="card" i], [data-testid*="product" i]');
+        if (!card) card = a.parentElement;
+        const image = card?.querySelector('img');
+        const src = image?.currentSrc || image?.src || image?.getAttribute('data-src') || image?.getAttribute('data-lazy-src') || null;
+        return { url: a.href, text, rank: index + 1, imageUrl: src, imageAlt: image?.alt || null };
       })
-      .map((a) => a.href))).map(normalizedBristanUrl).filter(isLikelyProductUrl);
-    await page.waitForFunction(() => [...document.querySelectorAll('a[href*="/products/"]')].some((a) => /view item|view product|details/i.test(a.textContent || '') || a.closest('article, li, [class*="product" i], [data-testid*="product" i]')), null, { timeout: 15000 }).catch(() => {});
-    let links = await collect();
+      .filter((item) => {
+        try {
+          const u = new URL(item.url, window.location.href);
+          const text = item.text || '';
+          return u.pathname.startsWith('/products/') && u.searchParams.has('code') && (/view item/i.test(text) || /£\s*\d/.test(text) || /\b[A-Z]+\s+[A-Z0-9][A-Z0-9\s-]{2,}\b/.test(text));
+        } catch { return false; }
+      })))
+      .map((item) => ({ ...item, url: normalizedBristanUrl(item.url), imageUrl: absoluteUrl(item.imageUrl) }))
+      .filter((item) => item.url && isLikelyProductUrl(item.url));
+    await page.waitForFunction(() => [...document.querySelectorAll('a[href*="/products/"]')].some((a) => {
+      try { return new URL(a.href, location.href).searchParams.has('code') && /view item|£\s*\d/i.test(a.textContent || ''); } catch { return false; }
+    }), null, { timeout: 15000 }).catch(() => {});
+    let cards = await collect();
     let clicks = 0;
-    while (links.length < 10 && clicks < 12) {
+    while (cards.length < 10 && clicks < 12) {
       const loadMore = page.getByRole('button', { name: /load more|show more|view more/i }).first();
       const linkLoadMore = page.getByRole('link', { name: /load more|show more|view more/i }).first();
       const control = (await loadMore.isVisible().catch(() => false)) ? loadMore : ((await linkLoadMore.isVisible().catch(() => false)) ? linkLoadMore : null);
       if (!control) break;
-      const before = links.length;
+      const before = cards.length;
       await control.click().catch(() => {});
       clicks++;
-      await page.waitForFunction((previousCount) => [...document.querySelectorAll('a[href*="/products/"]')]
-        .filter((a) => {
-          const text = (a.textContent || '').trim();
-          const card = a.closest('article, li, [class*="product" i], [data-testid*="product" i]');
-          return card || /view item|view product|details/i.test(text);
-        }).length > previousCount, before, { timeout: 5000 }).catch(() => {});
-      await page.waitForTimeout(500);
-      links = await collect();
-      if (links.length <= before) break;
+      await page.waitForTimeout(700);
+      cards = await collect();
+      if (cards.length <= before) break;
     }
-    console.log(`${listingName}: browser candidate count ${links.length}`);
-    if (!links.length) {
+    const byUrl = new Map();
+    for (const card of cards) if (!byUrl.has(card.url)) byUrl.set(card.url, { ...card, ...parseBrowserCardText(card.text, card.url) });
+    const results = [...byUrl.values()];
+    console.log(`${listingName}: browser candidate count ${results.length}`);
+    if (!results.length) {
       throw new Error(`${listingName}: no browser product links found for ${url} (static candidates: ${staticCandidateCount}). Retry with BRISTAN_FORCE_BROWSER=true. If links are still missing, inspect the page manually because Bristan may have changed selectors.`);
     }
-    return links.slice(0, 10);
+    return results.slice(0, 10);
   } finally {
     await browser.close();
   }
 }
-function validateProductDetail(page, url) {
+function validateProductDetail(page, url, card = null) {
   const reasons = [];
   if (!page.ok || page.status === 404) reasons.push(`HTTP ${page.status}`);
   if (rejectProductUrlReason(url)) reasons.push(rejectProductUrlReason(url));
   const html = page.html || '';
   const title = clean(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]);
   const h1 = clean(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]);
-  if (BAD_PRODUCT_TEXT.test(`${title || ''} ${h1 || ''}`)) reasons.push('bad title/heading');
+  const cardParsed = card ? { ...parseBrowserCardText(card.text, url), ...card } : null;
+  const hasCode = !!(cardParsed?.sku || productCodeFromUrl(url));
+  const hasCardProductSignal = !!(cardParsed?.name && hasCode && /view item/i.test(cardParsed.text || '') && (cardParsed.rrp || cardParsed.imageUrl));
+  if (BAD_PRODUCT_TEXT.test(`${title || ''} ${h1 || ''}`) && !hasCardProductSignal) reasons.push('bad title/heading');
   const json = extractJsonLd(html);
   const hasProductJson = json.some((x) => /Product/i.test(Array.isArray(x['@type']) ? x['@type'].join(' ') : x['@type'] || ''));
-  const hasSku = /(?:Product Code|SKU|Code)\s*(?:<[^>]+>\s*){0,4}[:#]?\s*[A-Z0-9][A-Z0-9-]{2,}/i.test(html) || json.some((x) => x.sku || x.mpn);
+  const hasSku = hasCode || /(?:Product Code|SKU|Code)\s*(?:<[^>]+>\s*){0,4}[:#]?\s*[A-Z0-9][A-Z0-9-]{2,}/i.test(html) || json.some((x) => x.sku || x.mpn);
   const images = [...html.matchAll(/(?:src|data-src|content)=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi)].map((m) => absoluteUrl(m[1])).filter((u) => u?.startsWith(BRISTAN));
-  const hasPrice = parsePrice(html) != null || json.some((x) => parsePrice(JSON.stringify(x.offers || {})) != null);
+  const hasPrice = cardParsed?.rrp != null || parsePrice(html) != null || json.some((x) => parsePrice(JSON.stringify(x.offers || {})) != null);
   const hasTemplateMarker = /product-detail|product details|pdp|add to basket|download spec|technical specifications/i.test(html);
   const hasSpecificHeading = h1 && !BAD_PRODUCT_TEXT.test(h1) && !/^(products?|taps|showers|accessories|product filters)$/i.test(h1);
-  if (!(hasProductJson || hasSku || hasTemplateMarker || (images.length && hasPrice) || (hasSpecificHeading && images.length))) reasons.push('no credible product signal');
+  if (!(hasCardProductSignal || hasProductJson || hasSku || hasTemplateMarker || (images.length && hasPrice) || (hasSpecificHeading && images.length))) reasons.push('no credible product signal');
   return { valid: reasons.length === 0, reasons };
 }
-function productFromDetail(html, url, listing, rank) {
+function productFromDetail(html, url, listing, rank, card = null) {
   const json = extractJsonLd(html).find((x) => /Product/i.test(Array.isArray(x['@type']) ? x['@type'].join(' ') : x['@type'] || '')) || {};
-  const title = clean(json.name) || clean(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]);
-  const sku = clean(json.sku || json.mpn || html.match(/(?:Product Code|SKU|Code)<\/[^>]+>\s*<[^>]+>([^<]+)/i)?.[1] || html.match(/(?:Product Code|SKU|Code)[:\s]+([A-Z0-9-]+)/i)?.[1]);
-  const images = uniq([json.image, ...(Array.isArray(json.image) ? json.image : []), ...[...html.matchAll(/(?:src|data-src|content)=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi)].map((m) => m[1])].flat().map(absoluteUrl)).filter((u) => u.startsWith(BRISTAN));
-  const rrp = parsePrice(JSON.stringify(json.offers || {})) ?? parsePrice(html);
+  const cardParsed = card ? { ...parseBrowserCardText(card.text, url), ...card } : null;
+  const detailTitle = clean(json.name) || clean(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]);
+  const title = cardParsed?.name || (BAD_PRODUCT_TEXT.test(detailTitle || '') ? null : detailTitle);
+  const sku = clean(cardParsed?.sku || json.sku || json.mpn || html.match(/(?:Product Code|SKU|Code)<\/[^>]+>\s*<[^>]+>([^<]+)/i)?.[1] || html.match(/(?:Product Code|SKU|Code)[:\s]+([A-Z0-9-]+)/i)?.[1] || productCodeFromUrl(url));
+  const images = uniq([cardParsed?.imageUrl, json.image, ...(Array.isArray(json.image) ? json.image : []), ...[...html.matchAll(/(?:src|data-src|content)=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi)].map((m) => m[1])].flat().map(absoluteUrl)).filter((u) => u?.startsWith(BRISTAN));
+  const rrp = cardParsed?.rrp ?? parsePrice(JSON.stringify(json.offers || {})) ?? parsePrice(html);
   const desc = clean(json.description || html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)/i)?.[1]);
   const finish = clean(html.match(/Finish<\/[^>]+>\s*<[^>]+>([^<]+)/i)?.[1] || html.match(/Finish[:\s]+([^<\n]+)/i)?.[1]);
   const productType = clean(html.match(/Type<\/[^>]+>\s*<[^>]+>([^<]+)/i)?.[1]);
   const idBase = sku || url.split('/').filter(Boolean).pop() || title;
-  return { id: `${PREFIX}${slug(idBase)}`, name: title || slug(idBase), sku, url, listingUrl: listing.url, categoryPath: listing.path, categoryID: listing.categoryID, listingRank: rank, rrp, imageUrl: images[0] || null, images, shortDescription: desc, longDescription: desc, finish, productType, sourceCategory: listing.name, validated: true };
+  return { id: `${PREFIX}${slug(idBase)}`, name: title || slug(idBase), sku, url, listingUrl: listing.url, categoryPath: listing.path, categoryID: listing.categoryID, listingRank: cardParsed?.rank || rank, rrp, imageUrl: images[0] || null, images, imageAlt: cardParsed?.imageAlt || null, shortDescription: desc, longDescription: desc, finish, productType, sourceCategory: listing.name, validated: true };
 }
 async function validatedProductsForListing(listing) {
   const listingHtml = forceBrowser ? '' : await get(listing.url);
   const staticUrls = forceBrowser ? [] : findProductLinks(listingHtml);
   console.log(`${listing.name}: static candidate count ${staticUrls.length}`);
-  let browserUrls = [];
-  if (forceBrowser || staticUrls.length < 10) browserUrls = await findProductLinksWithBrowser(listing.url, listing.name, staticUrls.length);
-  let candidates = browserUrls.length ? uniq([...browserUrls, ...staticUrls]) : staticUrls;
+  let browserCards = [];
+  if (forceBrowser || staticUrls.length < 10) browserCards = await findProductLinksWithBrowser(listing.url, listing.name, staticUrls.length);
+  const browserMeta = new Map(browserCards.map((card) => [card.url, card]));
+  let candidates = (browserCards.length ? uniq([...browserCards.map((card) => card.url), ...staticUrls]) : staticUrls).map((url) => ({ url, card: browserMeta.get(url) || null }));
   const products = [], rejected = [];
-  for (const url of candidates) {
+  for (const candidate of candidates) {
     if (products.length >= 10) break;
-    const page = await fetchPage(url, { allowHttpErrors: true });
-    const validation = validateProductDetail(page, url);
-    if (!validation.valid) { rejected.push({ url, reason: validation.reasons.join(', ') }); continue; }
-    products.push(productFromDetail(page.html, url, listing, products.length + 1));
+    const page = await fetchPage(candidate.url, { allowHttpErrors: true });
+    const validation = validateProductDetail(page, candidate.url, candidate.card);
+    if (!validation.valid) { rejected.push({ url: candidate.url, reason: validation.reasons.join(', ') }); continue; }
+    products.push(productFromDetail(page.html, candidate.url, listing, products.length + 1, candidate.card));
   }
-  if (products.length < 10 && !browserUrls.length) {
-    browserUrls = await findProductLinksWithBrowser(listing.url, listing.name, staticUrls.length);
-    candidates = uniq([...browserUrls, ...staticUrls]).filter((u) => !products.some((p) => p.url === u) && !rejected.some((r) => r.url === u));
-    for (const url of candidates) {
+  if (products.length < 10 && !browserCards.length) {
+    browserCards = await findProductLinksWithBrowser(listing.url, listing.name, staticUrls.length);
+    for (const card of browserCards) browserMeta.set(card.url, card);
+    candidates = uniq([...browserCards.map((card) => card.url), ...staticUrls])
+      .filter((u) => !products.some((p) => p.url === u) && !rejected.some((r) => r.url === u))
+      .map((url) => ({ url, card: browserMeta.get(url) || null }));
+    for (const candidate of candidates) {
       if (products.length >= 10) break;
-      const page = await fetchPage(url, { allowHttpErrors: true });
-      const validation = validateProductDetail(page, url);
-      if (!validation.valid) { rejected.push({ url, reason: validation.reasons.join(', ') }); continue; }
-      products.push(productFromDetail(page.html, url, listing, products.length + 1));
+      const page = await fetchPage(candidate.url, { allowHttpErrors: true });
+      const validation = validateProductDetail(page, candidate.url, candidate.card);
+      if (!validation.valid) { rejected.push({ url: candidate.url, reason: validation.reasons.join(', ') }); continue; }
+      products.push(productFromDetail(page.html, candidate.url, listing, products.length + 1, candidate.card));
     }
   }
+  console.log(`${listing.name}: browser candidate count ${browserCards.length}`);
   console.log(`${listing.name}: validated product count ${products.length}`);
   console.log(`${listing.name}: rejected candidate count ${rejected.length}${rejected.length ? ` (${rejected.map((r) => `${r.url} => ${r.reason}`).join('; ')})` : ''}`);
+  console.log(`${listing.name}: first accepted product URLs ${products.slice(0, 3).map((p) => p.url).join(', ') || '(none)'}`);
   return products;
 }
 async function scrape() {
