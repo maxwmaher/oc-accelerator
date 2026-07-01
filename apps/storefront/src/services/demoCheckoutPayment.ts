@@ -1,9 +1,4 @@
-import {
-  Cart,
-  OrderWorksheet,
-  Payment,
-  PaymentTransaction,
-} from "ordercloud-javascript-sdk";
+import { Cart, OrderWorksheet, Payment } from "ordercloud-javascript-sdk";
 
 export type DemoPaymentMethod = "credit-card" | "account-on-file";
 
@@ -35,7 +30,57 @@ type DemoPaymentXp = {
 
 const CREDIT_CARD_PAYMENT_ID = "BRISTAN-DEMO-CREDIT-CARD";
 const ACCOUNT_PAYMENT_ID = "BRISTAN-ACCOUNT-ON-FILE";
-const ACCOUNT_TRANSACTION_ID = "BRISTAN-ACCOUNT-ON-FILE-AUTHORIZATION";
+
+const FUNCTIONS_BASE_URL = (
+  import.meta.env.VITE_APP_FUNCTIONS_BASE_URL || ""
+).replace(/\/$/, "");
+
+type DemoPaymentAcceptResponse = {
+  Payment: Payment<DemoPaymentXp>;
+  AlreadyAccepted: boolean;
+};
+
+const getFunctionsBaseUrl = () => {
+  if (FUNCTIONS_BASE_URL) return FUNCTIONS_BASE_URL;
+  if (import.meta.env.DEV) return "http://localhost:7071/api";
+  throw new Error(
+    "Payment authorization is not configured. Please set VITE_APP_FUNCTIONS_BASE_URL."
+  );
+};
+
+const acceptDemoPayment = async (
+  orderID: string,
+  payment: Payment<DemoPaymentXp>,
+  paymentMethod: "CreditCard" | "PurchaseOrder",
+  metadata: { cardholderName?: string; last4?: string; brand?: string } = {}
+) => {
+  if (!payment.ID) throw new Error("Payment could not be created for this order.");
+
+  const response = await fetch(
+    `${getFunctionsBaseUrl()}/demo/payments/${encodeURIComponent(
+      orderID
+    )}/${encodeURIComponent(payment.ID)}/accept`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentMethod,
+        cardholderName: metadata.cardholderName,
+        last4: metadata.last4,
+        brand: metadata.brand,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "We could not authorize your selected payment method. Please review your payment details and try again."
+    );
+  }
+
+  const result = (await response.json()) as DemoPaymentAcceptResponse;
+  return result.Payment;
+};
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
@@ -114,7 +159,7 @@ export const prepareDemoCreditCardPayment = async (
   const last4 = cardNumber.slice(-4);
   const cardType = cardNumber.startsWith("4") ? "Visa" : "Demo Card";
 
-  return upsertDemoPayment({
+  const payment = await upsertDemoPayment({
     ID: CREDIT_CARD_PAYMENT_ID,
     Type: "CreditCard",
     Amount: getOrderTotal(orderWorksheet),
@@ -136,6 +181,12 @@ export const prepareDemoCreditCardPayment = async (
       ExpirationYear: expirationYear,
     },
   });
+
+  return acceptDemoPayment(orderWorksheet.Order!.ID!, payment, "CreditCard", {
+    cardholderName: card.cardholderName.trim(),
+    last4,
+    brand: cardType,
+  });
 };
 
 export const prepareDemoAccountOnFilePayment = async (
@@ -146,7 +197,7 @@ export const prepareDemoAccountOnFilePayment = async (
     ID: ACCOUNT_PAYMENT_ID,
     Type: "PurchaseOrder",
     Amount: amount,
-    Accepted: true,
+    Accepted: false,
     Description: "Pay by account on file",
     xp: {
       DemoPayment: true,
@@ -156,27 +207,5 @@ export const prepareDemoAccountOnFilePayment = async (
     },
   });
 
-  const hasAccountTransaction = payment.Transactions?.some(
-    (transaction) => transaction.ID === ACCOUNT_TRANSACTION_ID
-  );
-
-  if (!hasAccountTransaction && payment.ID) {
-    // Verified in the installed SDK typings: Cart.CreatePaymentTransaction is exposed
-    // to shoppers and accepts PaymentTransaction for cart payments, including PurchaseOrder.
-    return Cart.CreatePaymentTransaction<Payment<DemoPaymentXp>>(payment.ID, {
-      ID: ACCOUNT_TRANSACTION_ID,
-      Type: "Authorization",
-      DateExecuted: new Date().toISOString(),
-      Amount: amount,
-      Succeeded: true,
-      ResultCode: "BRISTAN_ACCOUNT_APPROVED",
-      ResultMessage: "Account on file approved for invoice payment.",
-      xp: {
-        DemoPayment: true,
-        PaymentMethodLabel: "Pay by account on file",
-      },
-    } satisfies PaymentTransaction);
-  }
-
-  return payment;
+  return acceptDemoPayment(orderWorksheet.Order!.ID!, payment, "PurchaseOrder");
 };

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using OrderCloud.Catalyst;
 using OrderCloud.SDK;
@@ -10,6 +7,8 @@ namespace Accelerator.Commands
 {
     public class PaymentCommand(ICreditCardProcessor creditCardProcessor, ICreditCardSaver creditCardSaver, IOrderCloudClient oc)
     {
+        private const string DemoAccountReference = "BRISTAN-ACCOUNT-ON-FILE";
+
         public async Task<Payment> AuthorizeCardPaymentAsync(string orderID, string paymentID)
         {
             var worksheet = await oc.IntegrationEvents.GetWorksheetAsync(OrderDirection.All, orderID);
@@ -42,7 +41,7 @@ namespace Accelerator.Commands
             var updatedPayment = await oc.Payments.CreateTransactionAsync<Payment>(OrderDirection.All, worksheet.Order.ID, payment.ID, new PaymentTransaction()
             {
                 ID = authorizationResult.TransactionID,
-                Amount = payment.Amount,
+                Amount = authorizeRequest.Amount,
                 DateExecuted = DateTime.Now,
                 ResultCode = authorizationResult.AuthorizationCode,
                 ResultMessage = authorizationResult.Message,
@@ -54,6 +53,26 @@ namespace Accelerator.Commands
                 }
             });
             return updatedPayment;
+        }
+
+        public async Task<Payment> AcceptPurchaseOrderPaymentAsync(string orderID, string paymentID)
+        {
+            var worksheet = await oc.IntegrationEvents.GetWorksheetAsync(OrderDirection.All, orderID);
+            var payment = await oc.Payments.GetAsync(OrderDirection.All, orderID, paymentID);
+
+            return await oc.Payments.PatchAsync<Payment>(OrderDirection.All, worksheet.Order.ID, payment.ID, new PartialPayment
+            {
+                Accepted = true,
+                Amount = worksheet.Order.Total,
+                Type = "PurchaseOrder",
+                xp = new
+                {
+                    DemoPayment = true,
+                    PaymentMethodLabel = "Pay by account on file",
+                    AccountReference = DemoAccountReference,
+                    PurchaseOrderNumber = DemoAccountReference,
+                }
+            });
         }
 
         public async Task<string> GetIFrameCredentialsAsync()
