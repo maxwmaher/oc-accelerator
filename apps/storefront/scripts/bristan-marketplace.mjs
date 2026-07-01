@@ -65,8 +65,8 @@ const KNOWN_NON_PRODUCT_PATHS = new Set([
 const BAD_PRODUCT_TEXT = /\b(?:404|page not found|product filters|browse your style)\b/i;
 const NAV_CATEGORY_SEGMENT = /(?:^|\/)(?:product-filters|browse-your-style|kitchen-sinks|bathroom-taps|kitchen-taps|showers|accessories|products)(?:\/?$|[?#])/i;
 
-const REJECTED_IMAGE_PATTERN = /(?:designer-tag|filter-illustrations|product-icons|supernav|\/icons\/|cookie|share|navigation|badge|label)/i;
-const PRODUCT_IMAGE_PATTERN = /(?:\/product-files\/|product-web-image)/i;
+const REJECTED_IMAGE_PATTERN = /(?:bristan-logo|footer-logo|fitting-instruct|designer-tag|filter-illustrations|product-icons|supernav|\/icons\/|cookie|share|navigation|badge|label)/i;
+const PRODUCT_IMAGE_PATTERN = /\/product-files\/[^/]+\/product-web-image(?:-zoom)?\.(?:jpg|jpeg|webp)(?:\?|$)/i;
 function imageUrlFromSrcset(value) {
   return clean(value)?.split(',').map((part) => clean(part).split(/\s+/)[0]).filter(Boolean).pop() || null;
 }
@@ -85,6 +85,37 @@ function isProductImageUrl(value) {
 function normalizeImageUrl(value) {
   const abs = absoluteUrl(value);
   return abs && !isRejectedImageUrl(abs) ? abs : null;
+}
+
+function productFileIDFromImageUrl(value) {
+  const abs = absoluteUrl(value);
+  if (!abs) return null;
+  try {
+    const u = new URL(abs);
+    if (u.origin !== BRISTAN) return null;
+    return clean(u.pathname.match(/\/product-files\/([^/]+)\/product-web-image(?:-zoom)?\.(?:jpg|jpeg|webp)$/i)?.[1]);
+  } catch { return null; }
+}
+function isRealBristanProductImage(value) {
+  const abs = absoluteUrl(value);
+  if (!abs || isRejectedImageUrl(abs)) return false;
+  try {
+    const u = new URL(abs);
+    return u.origin === BRISTAN && /\/product-files\/[^/]+\/product-web-image(?:-zoom)?\.(?:jpg|jpeg|webp)$/i.test(u.pathname);
+  } catch { return false; }
+}
+function productWebImageUrl(fileID, zoom = false) {
+  return fileID ? `${BRISTAN}/product-files/${fileID}/product-web-image${zoom ? '-zoom' : ''}.jpg` : null;
+}
+function compactProductImages(product) {
+  const primary = isRealBristanProductImage(product?.imageUrl) ? absoluteUrl(product.imageUrl) : null;
+  const fileID = productFileIDFromImageUrl(primary);
+  if (!primary || !fileID) return [];
+  const allowed = new Set([primary, productWebImageUrl(fileID, false), productWebImageUrl(fileID, true)].filter(Boolean));
+  return uniq([primary, productWebImageUrl(fileID, true), ...(product?.images || [])]
+    .map(absoluteUrl)
+    .filter((url) => url && allowed.has(url) && productFileIDFromImageUrl(url) === fileID && isRealBristanProductImage(url)))
+    .slice(0, 2);
 }
 function rankImageUrl(value) {
   const abs = normalizeImageUrl(value);
@@ -276,13 +307,15 @@ function productFromDetail(html, url, listing, rank, card = null) {
   const detailTitle = clean(json.name) || clean(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]);
   const title = cardParsed?.name || (BAD_PRODUCT_TEXT.test(detailTitle || '') ? null : detailTitle);
   const sku = clean(cardParsed?.sku || json.sku || json.mpn || html.match(/(?:Product Code|SKU|Code)<\/[^>]+>\s*<[^>]+>([^<]+)/i)?.[1] || html.match(/(?:Product Code|SKU|Code)[:\s]+([A-Z0-9-]+)/i)?.[1] || productCodeFromUrl(url));
-  const images = uniq([cardParsed?.imageUrl, json.image, ...(Array.isArray(json.image) ? json.image : []), ...[...html.matchAll(/(?:src|data-src|data-lazy-src|data-original|data-image|content)=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi)].map((m) => m[1]), ...[...html.matchAll(/(?:srcset|data-srcset)=["']([^"']+)["']/gi)].map((m) => imageUrlFromSrcset(m[1]))].flat().map(normalizeImageUrl)).filter(Boolean).sort((a, b) => rankImageUrl(b) - rankImageUrl(a));
+  const rawImages = uniq([cardParsed?.imageUrl, json.image, ...(Array.isArray(json.image) ? json.image : []), ...[...html.matchAll(/(?:src|data-src|data-lazy-src|data-original|data-image|content)=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/gi)].map((m) => m[1]), ...[...html.matchAll(/(?:srcset|data-srcset)=["']([^"']+)["']/gi)].map((m) => imageUrlFromSrcset(m[1]))].flat().map(normalizeImageUrl)).filter(Boolean).sort((a, b) => rankImageUrl(b) - rankImageUrl(a));
+  const imageUrl = bestImageUrl([cardParsed?.imageUrl, rawImages.filter(isRealBristanProductImage)]) || null;
+  const images = compactProductImages({ imageUrl, images: rawImages });
   const rrp = cardParsed?.rrp ?? parsePrice(JSON.stringify(json.offers || {})) ?? parsePrice(html);
   const desc = clean(json.description || html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)/i)?.[1]);
   const finish = clean(html.match(/Finish<\/[^>]+>\s*<[^>]+>([^<]+)/i)?.[1] || html.match(/Finish[:\s]+([^<\n]+)/i)?.[1]);
   const productType = clean(html.match(/Type<\/[^>]+>\s*<[^>]+>([^<]+)/i)?.[1]);
   const idBase = sku || url.split('/').filter(Boolean).pop() || title;
-  return { id: `${PREFIX}${slug(idBase)}`, name: title || slug(idBase), sku, url, listingUrl: listing.url, categoryPath: listing.path, categoryID: listing.categoryID, listingRank: rank, rrp, imageUrl: images[0] || null, images, imageAlt: cardParsed?.imageAlt || null, shortDescription: desc, longDescription: desc, finish, productType, sourceCategory: listing.name, validated: true };
+  return { id: `${PREFIX}${slug(idBase)}`, name: title || slug(idBase), sku, url, listingUrl: listing.url, categoryPath: listing.path, categoryID: listing.categoryID, listingRank: rank, rrp, imageUrl, images, imageAlt: cardParsed?.imageAlt || null, shortDescription: desc, longDescription: desc, finish, productType, sourceCategory: listing.name, validated: true };
 }
 async function validatedProductsForListing(listing) {
   const listingHtml = forceBrowser ? '' : await get(listing.url);
@@ -332,13 +365,29 @@ async function scrape() {
   await fs.writeFile(inputPath, JSON.stringify(artifact, null, 2));
   return artifact;
 }
+function compactObject(value) {
+  return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== null && v !== undefined));
+}
 function xpFor(p) {
-  return { Demo: 'Bristan', Brand: 'Bristan', Source: 'Bristan', SourceUrl: p.url, SourceListingUrl: p.listingUrl, SourceCategoryPath: p.categoryPath, SourceCategoryPaths: [p.categoryPath], ImageUrl: p.imageUrl, Images: p.images.map((Url) => ({ Url, ThumbnailUrl: Url, AltText: p.name, Source: 'Bristan' })), Scraped: { Sku: p.sku, Rrp: p.rrp, Finish: p.finish, ProductType: p.productType, Category: p.sourceCategory, ListingRank: p.listingRank } };
+  const compactImages = compactProductImages(p);
+  return {
+    Demo: 'Bristan',
+    Brand: 'Bristan',
+    Source: 'Bristan',
+    SourceUrl: p.url,
+    SourceListingUrl: p.listingUrl,
+    SourceCategoryPath: p.categoryPath,
+    SourceCategoryPaths: [p.categoryPath],
+    ImageUrl: p.imageUrl,
+    Images: compactImages.map((Url) => ({ Url, ThumbnailUrl: Url, AltText: p.name, Source: 'Bristan' })),
+    Scraped: compactObject({ Sku: p.sku, Rrp: p.rrp, Category: p.sourceCategory, ListingRank: p.listingRank }),
+  };
 }
 function priceScheduleFor(p) { return p.rrp ? { ID: `${p.id}-ps`, Name: p.name, ApplyTax: true, MinQuantity: 1, PriceBreaks: [{ Quantity: 1, Price: p.rrp }], xp: { Demo: 'Bristan', Source: 'Bristan' } } : null; }
 function productFor(p) { return { ID: p.id, Name: p.name, Description: p.shortDescription || p.longDescription || undefined, Active: true, DefaultPriceScheduleID: p.rrp ? `${p.id}-ps` : undefined, xp: xpFor(p) }; }
 function assertShapes(artifact) {
   const errors = [];
+  let largestProductXpSize = 0;
   const expectedNames = new Set(LISTINGS.map((l) => l.name));
   for (const listing of LISTINGS) {
     const group = (artifact.groups || []).find((g) => g.name === listing.name);
@@ -349,8 +398,11 @@ function assertShapes(artifact) {
     if (!expectedNames.has(g.name)) errors.push(`unexpected listing group: ${g.name}`);
     for (const p of g.products || []) {
       const product = productFor(p), ps = priceScheduleFor(p);
+      const xpSize = JSON.stringify(product.xp).length;
+      largestProductXpSize = Math.max(largestProductXpSize, xpSize);
       const haystack = `${p.name || ''} ${p.url || ''} ${p.shortDescription || ''} ${p.longDescription || ''}`;
       if (typeof product.xp === 'string') errors.push(`${p.id}: Product.xp is string`);
+      if (xpSize > 7500) errors.push(`${p.id}: Product.xp serialized length ${xpSize} exceeds 7500 characters`);
       if (typeof product.xp.Images === 'string') errors.push(`${p.id}: Images is string`);
       if (typeof product.xp.SourceCategoryPath === 'string' || typeof product.xp.SourceCategoryPaths === 'string') errors.push(`${p.id}: category path is string`);
       if (!Array.isArray(product.xp.SourceCategoryPath)) errors.push(`${p.id}: SourceCategoryPath is not an array`);
@@ -363,10 +415,21 @@ function assertShapes(artifact) {
       if (/\/products\/(?:product-filters|browse-your-style|kitchen-sinks)(?:$|[/?#])/i.test(p.url || '')) errors.push(`${p.id}: forbidden non-product URL`);
       if (!p.validated) errors.push(`${p.id}: missing validated product marker`);
       if (p.imageUrl && isRejectedImageUrl(p.imageUrl)) errors.push(`${p.id}: rejected UI/badge primary image URL ${p.imageUrl}`);
-      if (p.imageUrl && !isProductImageUrl(p.imageUrl)) errors.push(`${p.id}: primary image is not a Bristan product image ${p.imageUrl}`);
-      for (const img of p.images || []) {
-        if (!img.startsWith(BRISTAN)) errors.push(`${p.id}: non-Bristan image URL ${img}`);
+      if (p.imageUrl && !isRealBristanProductImage(p.imageUrl)) errors.push(`${p.id}: primary image is not a real Bristan product image ${p.imageUrl}`);
+      const primaryFileID = productFileIDFromImageUrl(p.imageUrl);
+      if (!Array.isArray(product.xp.Images)) errors.push(`${p.id}: Images is not an array`);
+      if ((product.xp.Images || []).length > 2) errors.push(`${p.id}: Images has more than 2 entries`);
+      for (const image of product.xp.Images || []) {
+        const img = image?.Url;
+        if (!img?.startsWith(BRISTAN)) errors.push(`${p.id}: non-Bristan image URL ${img}`);
         if (isRejectedImageUrl(img)) errors.push(`${p.id}: rejected UI/badge image URL ${img}`);
+        if (!isRealBristanProductImage(img)) errors.push(`${p.id}: image is not a real Bristan product image ${img}`);
+        if (primaryFileID && productFileIDFromImageUrl(img) !== primaryFileID) errors.push(`${p.id}: image URL does not match primary product-files ID ${img}`);
+      }
+      for (const img of p.images || []) {
+        if (!img.startsWith(BRISTAN)) errors.push(`${p.id}: non-Bristan artifact image URL ${img}`);
+        if (isRejectedImageUrl(img)) errors.push(`${p.id}: rejected UI/badge artifact image URL ${img}`);
+        if (primaryFileID && productFileIDFromImageUrl(img) !== primaryFileID) errors.push(`${p.id}: artifact image URL does not match primary product-files ID ${img}`);
       }
     }
     for (let i = 0; i < (g.products || []).length; i++) {
@@ -381,7 +444,7 @@ function assertShapes(artifact) {
     if ((g.products || []).length >= 10 && missingImages > 2) errors.push(`${g.name}: too many products are missing image URLs (${missingImages})`);
   }
   if (errors.length) throw new Error(`Bristan audit failed:\n${errors.join('\n')}`);
-  console.log(`Audit passed: ${artifact.total} validated real products; Product.xp, Images, category paths are object/array-shaped; no PriceSchedule Currency.`);
+  console.log(`Audit passed: ${artifact.total} validated real products; largest Product.xp serialized size ${largestProductXpSize}; Product.xp, Images, category paths are object/array-shaped; no PriceSchedule Currency.`);
 }
 async function readArtifact() { return JSON.parse(await fs.readFile(inputPath, 'utf8')); }
 function orderCloudBaseApiUrl() {
