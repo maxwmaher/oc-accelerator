@@ -2,7 +2,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Auth, Categories, Configuration, PriceSchedules, Products } from 'ordercloud-javascript-sdk';
+import { Categories, Configuration, PriceSchedules, Products } from 'ordercloud-javascript-sdk';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = path.join(ROOT, 'scrape-output', 'bristan-products.json');
@@ -385,10 +385,40 @@ function assertShapes(artifact) {
   console.log(`Audit passed: ${artifact.total} validated real products; Product.xp, Images, category paths are object/array-shaped; no PriceSchedule Currency.`);
 }
 async function readArtifact() { return JSON.parse(await fs.readFile(inputPath, 'utf8')); }
+function orderCloudBaseApiUrl() {
+  return process.env.OC_API_URL || process.env.VITE_APP_ORDERCLOUD_BASE_API_URL || 'https://api.ordercloud.io/v1';
+}
+function orderCloudAuthRoot(baseApiUrl) {
+  return baseApiUrl.replace(/\/v1\/?$/i, '');
+}
+async function fetchOrderCloudToken(baseApiUrl) {
+  const authUrl = `${orderCloudAuthRoot(baseApiUrl)}/oauth/token`;
+  const scope = process.env.OC_SCOPE || 'FullAccess';
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: process.env.OC_CLIENT_ID || '',
+    client_secret: process.env.OC_CLIENT_SECRET || '',
+    scope,
+  });
+  const res = await fetch(authUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  const responseBody = await res.text();
+  if (!res.ok) throw new Error(`OrderCloud auth failed for ${authUrl}: HTTP ${res.status} ${res.statusText}${responseBody ? ` - ${responseBody}` : ''}`);
+  try {
+    return JSON.parse(responseBody);
+  } catch (err) {
+    throw new Error(`OrderCloud auth failed for ${authUrl}: HTTP ${res.status} ${res.statusText} returned invalid JSON${responseBody ? ` - ${responseBody}` : ''}`);
+  }
+}
 async function ocInit() {
-  Configuration.Set({ baseApiUrl: process.env.OC_API_URL || process.env.VITE_APP_ORDERCLOUD_BASE_API_URL || 'https://api.ordercloud.io/v1' });
-  const token = await Auth.ClientCredentials(process.env.OC_CLIENT_ID, process.env.OC_CLIENT_SECRET, ['FullAccess']);
-  Configuration.Set({ accessToken: token.access_token });
+  const baseApiUrl = orderCloudBaseApiUrl();
+  Configuration.Set({ baseApiUrl });
+  const token = await fetchOrderCloudToken(baseApiUrl);
+  if (!token.access_token) throw new Error(`OrderCloud auth failed for ${orderCloudAuthRoot(baseApiUrl)}/oauth/token: missing access_token in response`);
+  Configuration.Set({ baseApiUrl, accessToken: token.access_token });
 }
 async function safeSave(label, get, save, payload, report) { try { await get(payload.ID); report.updated++; } catch { report.created++; } await save(payload.ID, payload); console.log(`${label}: ${payload.ID}`); }
 async function seed() {
