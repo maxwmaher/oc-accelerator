@@ -1,4 +1,7 @@
 import {
+  Alert,
+  AlertIcon,
+  Badge,
   Button,
   Card,
   CardBody,
@@ -9,7 +12,14 @@ import {
   HStack,
   SimpleGrid,
   Spinner,
+  Table,
+  TableContainer,
+  Tbody,
+  Td,
   Text,
+  Th,
+  Thead,
+  Tr,
   useToast,
   VStack,
 } from "@chakra-ui/react";
@@ -20,7 +30,7 @@ import {
 } from "ordercloud-javascript-sdk";
 import pluralize from "pluralize";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
 import OcQuantityInput from "../cart/OcQuantityInput";
@@ -30,6 +40,8 @@ import {
   useOcResourceList,
   useShopper,
 } from "@ordercloud/react-sdk";
+import { useCurrentUser } from "../../hooks/currentUser";
+import { isBristanDemoSupplierBuyerBulkContext } from "../bristan/bristanDemoRoutes";
 
 export interface ProductDetailProps {
   productId: string;
@@ -41,32 +53,52 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   renderProductDetail,
 }) => {
   const navigate = useNavigate();
+  const { catalogId } = useParams<{ catalogId: string }>();
   const toast = useToast();
+  const { data: user } = useCurrentUser();
   const [activeRecordId, setActiveRecordId] = useState<string>();
   const { data: product, isLoading: loading } = useOcResourceGet<BuyerProduct>(
     "Me.Products",
-    { productID: productId }
+    { productID: productId },
   );
   const { data: inventoryRecords } = useOcResourceList<InventoryRecord>(
     "Me.ProductInventoryRecords",
     undefined,
     { productID: productId },
-    { disabled: !IS_MULTI_LOCATION_INVENTORY }
+    { disabled: !IS_MULTI_LOCATION_INVENTORY },
   );
 
   const [addingToCart, setAddingToCart] = useState(false);
   const [quantity, setQuantity] = useState(
-    product?.PriceSchedule?.MinQuantity ?? 1
+    product?.PriceSchedule?.MinQuantity ?? 1,
   );
   const outOfStock = useMemo(
     () => product?.Inventory?.QuantityAvailable === 0,
-    [product?.Inventory?.QuantityAvailable]
+    [product?.Inventory?.QuantityAvailable],
   );
+  const minQuantity = product?.PriceSchedule?.MinQuantity ?? 1;
+  const firstPriceBreak = product?.PriceSchedule?.PriceBreaks?.[0];
+  const isSupplierBuyerBulkContext = isBristanDemoSupplierBuyerBulkContext({
+    username: user?.Username,
+    catalogId,
+  });
+  const isBelowMinimumQuantity = quantity < minQuantity;
+  const priceBreaks = product?.PriceSchedule?.PriceBreaks ?? [];
   const { addCartLineItem } = useShopper();
 
   useEffect(() => {
+    if (product?.PriceSchedule?.MinQuantity) {
+      setQuantity((currentQuantity) =>
+        currentQuantity < product.PriceSchedule!.MinQuantity!
+          ? product.PriceSchedule!.MinQuantity!
+          : currentQuantity,
+      );
+    }
+  }, [product?.ID, product?.PriceSchedule?.MinQuantity]);
+
+  useEffect(() => {
     const availableRecord = inventoryRecords?.Items.find(
-      (item) => item.QuantityAvailable > 0
+      (item) => item.QuantityAvailable > 0,
     );
     if (availableRecord) {
       setActiveRecordId(availableRecord.ID);
@@ -77,6 +109,17 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     if (!product) {
       console.warn("[ProductDetail.tsx] Product not found for ID:", productId);
       return <div>Product not found for ID: {productId}</div>;
+    }
+
+    if (quantity < minQuantity) {
+      toast({
+        title: `Minimum order quantity is ${minQuantity}`,
+        description: "Increase the quantity to add this product to your cart.",
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
     }
 
     if (IS_MULTI_LOCATION_INVENTORY && !activeRecordId) {
@@ -127,7 +170,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         });
       }
     }
-  }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate]);
+  }, [
+    product,
+    quantity,
+    minQuantity,
+    activeRecordId,
+    productId,
+    toast,
+    addCartLineItem,
+    navigate,
+  ]);
 
   return loading ? (
     <Center h="50vh">
@@ -154,14 +206,56 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           </Text>
           <Text maxW="prose">{product.Description}</Text>
           <Text fontSize="3xl" fontWeight="medium">
-            {formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}
+            {formatPrice(firstPriceBreak?.Price)}
           </Text>
+          {isSupplierBuyerBulkContext && (
+            <Alert status="info" borderRadius="md" alignItems="flex-start">
+              <AlertIcon />
+              <VStack alignItems="flex-start" gap={1}>
+                <Badge colorScheme="blue">Bristan trade bulk account</Badge>
+                <Text fontSize="sm">
+                  Minimum order quantity: {minQuantity} units. Volume pricing is
+                  applied from your Bristan bulk price schedule.
+                </Text>
+              </VStack>
+            </Alert>
+          )}
+          {isSupplierBuyerBulkContext && priceBreaks.length > 0 && (
+            <TableContainer w="full" borderWidth="1px" borderRadius="md">
+              <Table size="sm">
+                <Thead>
+                  <Tr>
+                    <Th>Quantity</Th>
+                    <Th>Unit price</Th>
+                    <Th>Approx. savings vs first break</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {priceBreaks.map((priceBreak) => {
+                    const firstPrice =
+                      firstPriceBreak?.Price ?? priceBreak.Price ?? 0;
+                    const savings = Math.max(
+                      0,
+                      firstPrice - (priceBreak.Price ?? firstPrice),
+                    );
+                    return (
+                      <Tr key={priceBreak.Quantity}>
+                        <Td>{priceBreak.Quantity}+</Td>
+                        <Td>{formatPrice(priceBreak.Price)}</Td>
+                        <Td>{formatPrice(savings)} per unit</Td>
+                      </Tr>
+                    );
+                  })}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          )}
           <HStack alignItems="center" gap={4} my={3}>
             <Button
               colorScheme="primary"
               type="button"
               onClick={handleAddToCart}
-              isDisabled={addingToCart || outOfStock}
+              isDisabled={addingToCart || outOfStock || isBelowMinimumQuantity}
             >
               {outOfStock ? "Out of stock" : "Add To Cart"}
             </Button>
@@ -172,6 +266,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               onChange={setQuantity}
             />
           </HStack>
+          {isBelowMinimumQuantity && (
+            <Text color="red.500" fontSize="sm">
+              Enter at least {minQuantity} units to add this bulk item to your
+              cart.
+            </Text>
+          )}
           {!outOfStock && IS_MULTI_LOCATION_INVENTORY && (
             <>
               <Heading size="sm" color="chakra-subtle-text">

@@ -11,7 +11,7 @@ import {
 import { BuyerProduct } from "ordercloud-javascript-sdk";
 import { FunctionComponent } from "react";
 import { TbPhoto } from "react-icons/tb";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useParams } from "react-router-dom";
 import formatPrice from "../../utils/formatPrice";
 
 interface ProductCardProps {
@@ -19,13 +19,15 @@ interface ProductCardProps {
 }
 
 const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
+  const { catalogId } = useParams<{ catalogId: string }>();
+  const productPath = catalogId
+    ? `/shop/${catalogId}/products/${product.ID}`
+    : `/products/${product.ID}`;
+
   return (
     <>
       {product && (
-        <RouterLink
-          to={`/products/${product.ID}`}
-          style={{ textDecoration: "none" }}
-        >
+        <RouterLink to={productPath} style={{ textDecoration: "none" }}>
           <Card
             minH="333px"
             p={0}
@@ -93,7 +95,7 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                 {product.PriceSchedule?.PriceBreaks && (
                   <Text fontSize="md" fontWeight="normal">
                     {formatPrice(
-                      product?.PriceSchedule?.PriceBreaks[0].Price ?? 0
+                      product?.PriceSchedule?.PriceBreaks[0].Price ?? 0,
                     )}
                   </Text>
                 )}

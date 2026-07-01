@@ -1,6 +1,6 @@
 import { RouteObject } from "react-router-dom";
 import Layout from "./Layout/Layout";
-import Dashboard from './components/Dashboard';
+import Dashboard from "./components/Dashboard";
 import OrderConfirmation from "./components/cart/OrderConfirmation";
 import { ShoppingCart } from "./components/cart/ShoppingCart";
 import CategoryList from "./components/category/CategoryList";
@@ -45,6 +45,10 @@ const routes: RouteObject[] = [
       {
         path: "/shop/:catalogId/products",
         element: <ProductList />,
+      },
+      {
+        path: "/shop/:catalogId/products/:productId",
+        element: <ProductDetailWrapper />,
       },
       {
         path: "/products/:productId",
