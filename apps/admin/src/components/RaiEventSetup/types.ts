@@ -94,3 +94,20 @@ export interface RaiPrepareDemoEventWebsitesResult {
   warnings: string[]
   technicalSummary: string[]
 }
+
+export type RaiDemoDeleteOverallStatus = 'deleted' | 'partial' | 'already-clean' | 'failed'
+
+export interface RaiDemoDeleteSkippedItem {
+  label: string
+  id: string
+  reason: string
+}
+
+export interface RaiDeleteDemoDataResult {
+  deletedItems: string[]
+  skippedItems: RaiDemoDeleteSkippedItem[]
+  notFoundItems: string[]
+  warnings: string[]
+  technicalSummary: string[]
+  overallStatus: RaiDemoDeleteOverallStatus
+}

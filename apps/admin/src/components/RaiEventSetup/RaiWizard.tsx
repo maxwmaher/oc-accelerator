@@ -26,6 +26,7 @@ import {
   Text,
   UnorderedList,
   VStack,
+  useColorModeValue,
   useToast,
 } from '@chakra-ui/react'
 import { FC, ReactNode, useMemo, useState } from 'react'
@@ -109,6 +110,14 @@ const eventWebsiteLabelsByCatalogID: Record<string, string> = {
 
 const formatEventWebsiteLabels = (catalogIDs: string[]) => catalogIDs.map((catalogID) => eventWebsiteLabelsByCatalogID[catalogID] ?? catalogID).join(', ')
 
+const useResultCardColors = (scheme: 'green' | 'orange') => ({
+  bg: useColorModeValue(`${scheme}.50`, `${scheme}.900`),
+  borderColor: useColorModeValue(`${scheme}.200`, `${scheme}.600`),
+  headingColor: useColorModeValue(`${scheme}.800`, `${scheme}.100`),
+  textColor: useColorModeValue('gray.800', `${scheme}.50`),
+  subtleColor: useColorModeValue('gray.700', `${scheme}.100`),
+})
+
 const ProductReview: FC<{ form: RaiProductSetupForm; result?: RaiProductSetupResult }> = ({ form, result }) => (
   <Stack spacing={5}>
     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
@@ -140,24 +149,29 @@ const BuyerReview: FC<{ form: RaiBuyerSetupForm; result?: RaiBuyerSetupResult }>
   </Stack>
 )
 
-const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = ({ result, companyName }) => (
-  <Stack spacing={4}>
-    <Card bg="green.50" borderColor="green.200" variant="outline">
-      <CardBody>
-        <Stack spacing={3}>
-          <Heading as="h2" size="md" color="green.700">Blue Ocean Exhibits is ready for ISE 2026</Heading>
+const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = ({ result, companyName }) => {
+  const colors = useResultCardColors(result.warnings.length ? 'orange' : 'green')
+
+  return (
+    <Stack spacing={4}>
+      <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
+        <CardBody>
+          <Stack spacing={3} color={colors.textColor}>
+            <Heading as="h2" size="md" color={colors.headingColor}>
+              {result.warnings.length ? 'Blue Ocean Exhibits is partly ready for ISE 2026' : 'Blue Ocean Exhibits is ready for ISE 2026'}
+            </Heading>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
             <SummaryRow label="Event website access" value={result.catalogAccessAssigned ? result.eventWebsiteLabel : 'Prepare event websites, then run this step again'} />
             <SummaryRow label="Buyer contact" value={result.username} />
             <SummaryRow label="Exhibitor company ID" value={result.buyerID} />
             <SummaryRow label="Booth" value={result.boothNumber} />
             <SummaryRow label="Pricing tier" value={result.priceTier} />
-            <SummaryRow label="Shopper access" value={result.securityProfileAssigned ? 'Ready' : 'Optional shopper access was not found'} />
+            <SummaryRow label="Shopper access" value={result.securityProfileAssigned ? 'Ready' : 'Shopper access profile was not found in this demo environment'} />
           </SimpleGrid>
           {result.warnings.length > 0 && (
             <Box>
-              <Text fontWeight="semibold" color="orange.700">Setup completed with friendly notes</Text>
-              <UnorderedList color="orange.700">
+              <Text fontWeight="semibold" color={colors.headingColor}>Setup completed with friendly notes</Text>
+              <UnorderedList>
                 {result.warnings.map((warning) => <ListItem key={warning}>{warning}</ListItem>)}
               </UnorderedList>
             </Box>
@@ -181,13 +195,20 @@ const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = (
       </CardBody>
     </Card>
   </Stack>
-)
+  )
+}
 
-const ProductSuccess: FC<{ result: RaiProductSetupResult }> = ({ result }) => (
-  <Card bg="green.50" borderColor="green.200" variant="outline">
-    <CardBody>
-      <Stack spacing={3}>
-        <Heading as="h2" size="md" color="green.700">Pizza is ready</Heading>
+const ProductSuccess: FC<{ result: RaiProductSetupResult }> = ({ result }) => {
+  const colors = useResultCardColors(result.skippedCatalogs.length ? 'orange' : 'green')
+
+  return (
+    <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
+      <CardBody>
+        <Stack spacing={3} color={colors.textColor}>
+          <Heading as="h2" size="md" color={colors.headingColor}>Pizza product setup is ready</Heading>
+          {result.skippedCatalogs.length > 0 && (
+            <Text color={colors.subtleColor}>Some event websites need another pass before Pizza is published there.</Text>
+          )}
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
           <SummaryRow label="Event websites published to" value={result.assignedCatalogIDs.length ? formatEventWebsiteLabels(result.assignedCatalogIDs) : 'Prepare event websites, then run this step again'} />
           <SummaryRow label="Default price" value={`${result.currency} ${result.defaultPrice.toFixed(2)}`} />
@@ -197,8 +218,8 @@ const ProductSuccess: FC<{ result: RaiProductSetupResult }> = ({ result }) => (
         </SimpleGrid>
         {result.skippedCatalogs.length > 0 && (
           <Box>
-            <Text fontWeight="semibold" color="orange.700">Some event websites need another pass</Text>
-            <UnorderedList color="orange.700">
+            <Text fontWeight="semibold" color={colors.headingColor}>Event websites needing another pass</Text>
+            <UnorderedList>
               {result.skippedCatalogs.map((catalog) => <ListItem key={catalog.eventWebsiteLabel}>{catalog.eventWebsiteLabel}: {catalog.reason}</ListItem>)}
             </UnorderedList>
           </Box>
@@ -206,7 +227,8 @@ const ProductSuccess: FC<{ result: RaiProductSetupResult }> = ({ result }) => (
       </Stack>
     </CardBody>
   </Card>
-)
+  )
+}
 
 const TechnicalDetails: FC<{ items: string[]; label?: string }> = ({ items, label = 'What will happen in OrderCloud?' }) => (
   <Accordion allowToggle>
@@ -234,7 +256,11 @@ export const RaiProductWizard: FC = () => {
     mutationFn: submitRaiProductSetup,
     onSuccess: (data) => {
       setResult(data)
-      toast({ title: 'Pizza is ready', description: 'The demo product was created or updated in OrderCloud.', status: 'success' })
+      toast({
+        title: 'Pizza product setup is ready',
+        description: data.skippedCatalogs.length ? 'Some event websites need another pass before Pizza is published there.' : 'The demo product was created or updated.',
+        status: data.skippedCatalogs.length ? 'warning' : 'success',
+      })
     },
     onError: (error) => {
       const description = error instanceof Error ? error.message : 'OrderCloud could not create the product setup.'
@@ -266,7 +292,7 @@ export const RaiBuyerWizard: FC = () => {
     mutationFn: submitRaiBuyerSetup,
     onSuccess: (data) => {
       setResult(data)
-      toast({ title: `${form.companyName} is ready`, description: 'The exhibitor buyer was created or updated in OrderCloud.', status: data.warnings.length ? 'warning' : 'success' })
+      toast({ title: data.warnings.length ? `${form.companyName} is partly ready` : `${form.companyName} is ready`, description: 'The exhibitor buyer was created or updated.', status: data.warnings.length ? 'warning' : 'success' })
     },
     onError: (error) => {
       const description = error instanceof Error ? error.message : 'OrderCloud could not create the buyer setup.'

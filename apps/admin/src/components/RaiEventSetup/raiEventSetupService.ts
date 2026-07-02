@@ -25,6 +25,7 @@ import {
   RaiDemoReadinessResult,
   RaiPrepareDemoEventWebsitesResult,
   RaiReadinessItem,
+  RaiDeleteDemoDataResult,
 } from './types'
 
 const RAI_PRODUCT_ID = 'RAI_PIZZA'
@@ -195,7 +196,7 @@ const assignDemoSecurityProfile = async (buyerID: string, buyerUserID: string) =
     return { assigned: true, summary: `Security profile assignment created/updated: ${shopperProfile.ID} assigned to buyer user.` }
   }
 
-  return { assigned: false, warning: 'This optional shopper access setup was not found in the demo environment. You can continue recording the main flow.', summary: 'Security profile assignment skipped: no matching shopper security profile was found.' }
+  return { assigned: false, warning: 'Shopper access profile was not found in this demo environment. You can continue recording the main flow.', summary: 'Security profile assignment skipped: no matching shopper security profile was found.' }
 }
 
 const getErrorNumber = (value: unknown) => {
@@ -257,6 +258,55 @@ const getReadableErrorMessage = (error: unknown) => {
   if (error instanceof OrderCloudError) return `${error.message}${details}`
   if (error instanceof Error) return `${error.message}${details}`
   return `OrderCloud could not complete the request.${details}`
+}
+
+const hasRaiDemoMarker = (resource: { xp?: unknown }) => {
+  const xp = resource.xp
+  if (!xp || typeof xp !== 'object') return false
+  const record = xp as Record<string, unknown>
+  return record.demoManagedBy === RAI_DEMO_MANAGER || record.rai === true
+}
+
+const getResetStatus = (result: Omit<RaiDeleteDemoDataResult, 'overallStatus'>): RaiDeleteDemoDataResult['overallStatus'] => {
+  if (!result.deletedItems.length && !result.skippedItems.length && !result.warnings.length) return 'already-clean'
+  if (!result.deletedItems.length && (result.skippedItems.length || result.warnings.length)) return 'failed'
+  if (result.skippedItems.length || result.warnings.length) return 'partial'
+  return 'deleted'
+}
+
+const isRaiPriceSchedule = (priceSchedule: PriceSchedule) => priceSchedule.ID === RAI_PRICE_SCHEDULE_ID && priceSchedule.Name === 'Pizza Default Price'
+
+const deleteIfFound = async <TResource extends { ID?: string; Name?: string; xp?: unknown }>(
+  result: Omit<RaiDeleteDemoDataResult, 'overallStatus'>,
+  label: string,
+  id: string,
+  getResource: () => Promise<TResource>,
+  isSafeToDelete: (resource: TResource) => boolean,
+  deleteResource: () => Promise<void>,
+) => {
+  try {
+    const resource = await getResource()
+    if (!isSafeToDelete(resource)) {
+      const reason = 'Found the expected ID, but it does not have the RAI demo marker, so it was left untouched.'
+      result.skippedItems.push({ label, id, reason })
+      result.warnings.push(`${label} ${id}: ${reason}`)
+      result.technicalSummary.push(`Skipped ${label} ${id}: safety marker check failed.`)
+      return
+    }
+    await deleteResource()
+    result.deletedItems.push(`${label}: ${id}`)
+    result.technicalSummary.push(`Deleted ${label}: ${id}.`)
+  } catch (error) {
+    if (isOrderCloudNotFound(error)) {
+      result.notFoundItems.push(`${label}: ${id}`)
+      result.technicalSummary.push(`Already clean: ${label} ${id} was not found.`)
+      return
+    }
+    const warning = `${label} ${id}: ${getReadableErrorMessage(error)}`
+    result.skippedItems.push({ label, id, reason: warning })
+    result.warnings.push(warning)
+    result.technicalSummary.push(`Could not delete ${label} ${id}: ${getReadableErrorMessage(error)}`)
+  }
 }
 
 const upsertProduct = async (form: RaiProductSetupForm, price: number) => {
@@ -458,6 +508,96 @@ export const createOrUpdateRaiExhibitorBuyer = async (form: RaiBuyerSetupForm): 
 
 export const submitRaiBuyerSetup = createOrUpdateRaiExhibitorBuyer
 
+const deleteAssignmentIfPresent = async (
+  result: Omit<RaiDeleteDemoDataResult, 'overallStatus'>,
+  label: string,
+  id: string,
+  deleteAssignment: () => Promise<void>,
+) => {
+  try {
+    await deleteAssignment()
+    result.deletedItems.push(`${label}: ${id}`)
+    result.technicalSummary.push(`Removed ${label}: ${id}.`)
+  } catch (error) {
+    if (isOrderCloudNotFound(error)) {
+      result.notFoundItems.push(`${label}: ${id}`)
+      result.technicalSummary.push(`Already clean: ${label} ${id} was not assigned.`)
+      return
+    }
+    const warning = `${label} ${id}: ${getReadableErrorMessage(error)}`
+    result.skippedItems.push({ label, id, reason: warning })
+    result.warnings.push(warning)
+    result.technicalSummary.push(`Could not remove ${label} ${id}: ${getReadableErrorMessage(error)}`)
+  }
+}
+
+export const deleteRaiDemoData = async (): Promise<RaiDeleteDemoDataResult> => {
+  const result: Omit<RaiDeleteDemoDataResult, 'overallStatus'> = {
+    deletedItems: [],
+    skippedItems: [],
+    notFoundItems: [],
+    warnings: [],
+    technicalSummary: [
+      'Reset deletes only stable RAI demo IDs and verifies RAI demo markers before deleting catalogs, product, specs, buyer, and buyer user.',
+    ],
+  }
+
+  await deleteAssignmentIfPresent(result, 'Pizza pricing assignment', `${RAI_PRODUCT_ID} / ${DEFAULT_DEMO_BUYER_ID}`, () => Products.DeleteAssignment(RAI_PRODUCT_ID, DEFAULT_DEMO_BUYER_ID))
+
+  for (const config of RAI_EVENT_CATALOGS) {
+    await deleteAssignmentIfPresent(result, 'Buyer catalog access', `${config.catalogID} / ${DEFAULT_DEMO_BUYER_ID}`, () => Catalogs.DeleteAssignment(config.catalogID, { buyerID: DEFAULT_DEMO_BUYER_ID }))
+    await deleteAssignmentIfPresent(result, 'Catalog product publishing', `${config.catalogID} / ${RAI_PRODUCT_ID}`, () => Catalogs.DeleteProductAssignment(config.catalogID, RAI_PRODUCT_ID))
+  }
+
+  try {
+    const assignments = await SecurityProfiles.ListAssignments({ buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID, pageSize: 100 })
+    if (!assignments.Items.length) {
+      result.notFoundItems.push(`Shopper access assignment: ${DEFAULT_DEMO_BUYER_USER_ID}`)
+      result.technicalSummary.push(`Already clean: no security profile assignments found for ${DEFAULT_DEMO_BUYER_USER_ID}.`)
+    }
+    for (const assignment of assignments.Items) {
+      if (!assignment.SecurityProfileID) continue
+      await deleteAssignmentIfPresent(result, 'Shopper access assignment', `${assignment.SecurityProfileID} / ${DEFAULT_DEMO_BUYER_USER_ID}`, () => SecurityProfiles.DeleteAssignment(assignment.SecurityProfileID as string, { buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID }))
+    }
+  } catch (error) {
+    if (isOrderCloudNotFound(error)) {
+      result.notFoundItems.push(`Shopper access assignment: ${DEFAULT_DEMO_BUYER_USER_ID}`)
+      result.technicalSummary.push(`Already clean: shopper access assignments for ${DEFAULT_DEMO_BUYER_USER_ID} were not found.`)
+    } else {
+      const warning = `Shopper access assignments: ${getReadableErrorMessage(error)}`
+      result.skippedItems.push({ label: 'Shopper access assignments', id: DEFAULT_DEMO_BUYER_USER_ID, reason: warning })
+      result.warnings.push(warning)
+      result.technicalSummary.push(`Could not check shopper access assignments: ${getReadableErrorMessage(error)}`)
+    }
+  }
+
+  await deleteIfFound(result, 'Buyer contact', DEFAULT_DEMO_BUYER_USER_ID, () => Users.Get(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID), hasRaiDemoMarker, () => Users.Delete(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID))
+  await deleteIfFound(result, 'Blue Ocean Exhibits buyer', DEFAULT_DEMO_BUYER_ID, () => Buyers.Get(DEFAULT_DEMO_BUYER_ID), hasRaiDemoMarker, () => Buyers.Delete(DEFAULT_DEMO_BUYER_ID))
+
+  for (const specConfig of SPEC_CONFIG) {
+    await deleteAssignmentIfPresent(result, 'Pizza option assignment', `${specConfig.id} / ${RAI_PRODUCT_ID}`, () => Specs.DeleteProductAssignment(specConfig.id, RAI_PRODUCT_ID))
+  }
+
+  await deleteIfFound(result, 'Pizza product setup', RAI_PRODUCT_ID, () => Products.Get(RAI_PRODUCT_ID), hasRaiDemoMarker, () => Products.Delete(RAI_PRODUCT_ID))
+
+  for (const specConfig of SPEC_CONFIG) {
+    await deleteIfFound(result, 'Pizza option group', specConfig.id, () => Specs.Get(specConfig.id), hasRaiDemoMarker, () => Specs.Delete(specConfig.id))
+  }
+
+  await deleteIfFound(result, 'Pizza price schedule', RAI_PRICE_SCHEDULE_ID, () => PriceSchedules.Get(RAI_PRICE_SCHEDULE_ID), isRaiPriceSchedule, () => PriceSchedules.Delete(RAI_PRICE_SCHEDULE_ID))
+
+  for (const config of RAI_EVENT_CATALOGS) {
+    await deleteIfFound(result, 'Demo event website', config.catalogID, () => Catalogs.Get(config.catalogID), hasRaiDemoMarker, () => Catalogs.Delete(config.catalogID))
+  }
+
+  return {
+    ...result,
+    overallStatus: getResetStatus(result),
+  }
+}
+
+export const resetRaiDemoData = deleteRaiDemoData
+
 const getCatalogDescription = (eventWebsiteLabel: string) => {
   if (eventWebsiteLabel === 'Vegetarian-only Event') return 'Demo event website for vegetarian-only catering visibility.'
   if (eventWebsiteLabel === 'RAI Catering Portal') return 'Demo catering portal for reusable food and beverage products.'
@@ -561,8 +701,8 @@ export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => 
   const securityAssignments = await SecurityProfiles.ListAssignments({ buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID, pageSize: 20 })
   const shopperAccess: RaiReadinessItem = securityAssignments.Items.length
     ? { label: 'Shopper access/security profile', status: 'ready', message: 'Shopper-style access is assigned.', technicalID: securityAssignments.Items.map((item) => item.SecurityProfileID).filter(Boolean).join(', ') }
-    : { label: 'Shopper access/security profile', status: 'warning', message: 'This optional setup was not found in the demo environment. You can continue recording the main flow.', technicalID: 'SecurityProfiles.ListAssignments' }
-  if (shopperAccess.status === 'warning') warnings.push('Shopper access/security profile: This optional setup was not found in the demo environment. You can continue recording the main flow.')
+    : { label: 'Shopper access/security profile', status: 'warning', message: 'Shopper access profile was not found in this demo environment. You can continue recording the main flow.', technicalID: 'SecurityProfiles.ListAssignments' }
+  if (shopperAccess.status === 'warning') warnings.push('Shopper access/security profile: Shopper access profile was not found in this demo environment. You can continue recording the main flow.')
 
   const buyerSetup = [buyer, user, iseAccess, pizzaPricing, shopperAccess]
   const allItems = [...eventWebsites, ...productSetup, ...buyerSetup]

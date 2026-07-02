@@ -1,4 +1,4 @@
-import { ArrowForwardIcon } from '@chakra-ui/icons'
+import { ArrowForwardIcon, DeleteIcon } from '@chakra-ui/icons'
 import {
   Accordion,
   AccordionButton,
@@ -13,19 +13,29 @@ import {
   Container,
   HStack,
   Heading,
+  Input,
   ListItem,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   OrderedList,
   SimpleGrid,
   Stack,
   Text,
   UnorderedList,
+  useColorModeValue,
+  useDisclosure,
   useToast,
 } from '@chakra-ui/react'
 import { useAuthMutation } from '@ordercloud/react-sdk'
 import { FC, ReactNode, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { checkRaiDemoReadiness, prepareRaiDemoEventWebsites } from './raiEventSetupService'
-import { RaiDemoReadinessResult, RaiPrepareDemoEventWebsitesResult, RaiReadinessItem, RaiReadinessItemStatus } from './types'
+import { checkRaiDemoReadiness, deleteRaiDemoData, prepareRaiDemoEventWebsites } from './raiEventSetupService'
+import { RaiDeleteDemoDataResult, RaiDemoReadinessResult, RaiPrepareDemoEventWebsitesResult, RaiReadinessItem, RaiReadinessItemStatus } from './types'
 
 const statusCopy: Record<RaiReadinessItemStatus, { label: string; colorScheme: string }> = {
   ready: { label: 'Ready', colorScheme: 'green' },
@@ -36,8 +46,11 @@ const statusCopy: Record<RaiReadinessItemStatus, { label: string; colorScheme: s
 
 const RaiEventSetupLanding: FC = () => {
   const toast = useToast()
+  const resetModal = useDisclosure()
   const [readiness, setReadiness] = useState<RaiDemoReadinessResult>()
   const [prepareResult, setPrepareResult] = useState<RaiPrepareDemoEventWebsitesResult>()
+  const [deleteResult, setDeleteResult] = useState<RaiDeleteDemoDataResult>()
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
 
   const readinessMutation = useAuthMutation({
     mutationKey: ['rai-demo-readiness'],
@@ -57,11 +70,44 @@ const RaiEventSetupLanding: FC = () => {
     mutationFn: prepareRaiDemoEventWebsites,
     onSuccess: (data) => {
       setPrepareResult(data)
-      toast({ title: 'Demo event websites prepared', description: `${data.createdCatalogIDs.length} created, ${data.updatedCatalogIDs.length} updated.`, status: data.warnings.length ? 'warning' : 'success' })
+      const preparedCount = data.createdCatalogIDs.length + data.updatedCatalogIDs.length
+      toast({
+        title: preparedCount ? 'Demo event websites prepared' : 'Demo event websites could not be prepared',
+        description: `${data.createdCatalogIDs.length} created, ${data.updatedCatalogIDs.length} updated.`,
+        status: preparedCount ? data.warnings.length ? 'warning' : 'success' : 'error',
+      })
     },
     onError: (error) => {
       const description = error instanceof Error ? error.message : 'Demo event websites could not be prepared.'
       toast({ title: 'Prepare action failed', description, status: 'error' })
+    },
+  })
+
+  const deleteMutation = useAuthMutation({
+    mutationKey: ['rai-demo-data-delete'],
+    mutationFn: deleteRaiDemoData,
+    onSuccess: (data) => {
+      setDeleteResult(data)
+      setReadiness(undefined)
+      setPrepareResult(undefined)
+      setDeleteConfirmation('')
+      resetModal.onClose()
+      const title = data.overallStatus === 'already-clean'
+        ? 'Demo data is already clean'
+        : data.overallStatus === 'partial'
+          ? 'Some demo data was deleted'
+          : data.overallStatus === 'failed'
+            ? 'Demo data could not be deleted'
+            : 'RAI demo data deleted'
+      toast({
+        title,
+        description: data.overallStatus === 'already-clean' ? 'Next: prepare demo event websites.' : 'Review the reset summary, then prepare demo event websites.',
+        status: data.overallStatus === 'deleted' || data.overallStatus === 'already-clean' ? 'success' : data.overallStatus === 'partial' ? 'warning' : 'error',
+      })
+    },
+    onError: (error) => {
+      const description = error instanceof Error ? error.message : 'Demo data could not be deleted.'
+      toast({ title: 'Delete demo data failed', description, status: 'error' })
     },
   })
 
@@ -122,6 +168,19 @@ const RaiEventSetupLanding: FC = () => {
         isChecking={readinessMutation.isPending}
         isPreparing={prepareMutation.isPending}
       />
+      <ResetDemoDataCard
+        result={deleteResult}
+        onOpen={resetModal.onOpen}
+        isDeleting={deleteMutation.isPending}
+      />
+      <DeleteDemoDataModal
+        isOpen={resetModal.isOpen}
+        onClose={resetModal.onClose}
+        confirmation={deleteConfirmation}
+        onConfirmationChange={setDeleteConfirmation}
+        onDelete={() => deleteMutation.mutate(undefined)}
+        isDeleting={deleteMutation.isPending}
+      />
     </Container>
   )
 }
@@ -134,6 +193,115 @@ interface DemoReadinessCardProps {
   onPrepare: () => void
   isChecking: boolean
   isPreparing: boolean
+}
+
+const useResultCardColors = (scheme: 'green' | 'orange' | 'blue' | 'red') => ({
+  bg: useColorModeValue(`${scheme}.50`, `${scheme}.900`),
+  borderColor: useColorModeValue(`${scheme}.200`, `${scheme}.600`),
+  headingColor: useColorModeValue(`${scheme}.800`, `${scheme}.100`),
+  textColor: useColorModeValue('gray.800', `${scheme}.50`),
+  subtleColor: useColorModeValue('gray.700', `${scheme}.100`),
+})
+
+const ResetDemoDataCard: FC<{ result?: RaiDeleteDemoDataResult; onOpen: () => void; isDeleting: boolean }> = ({ result, onOpen, isDeleting }) => (
+  <Card variant="outline" mt={6} p={2}>
+    <CardBody>
+      <Stack spacing={4}>
+        <Box>
+          <Heading as="h2" size="md">Reset demo data</Heading>
+          <Text color="chakra-subtle-text" mt={2}>
+            This removes only the RAI demo resources created by this guided setup, so you can test or record the demo from a clean starting point.
+          </Text>
+        </Box>
+        <Button alignSelf="flex-start" colorScheme="red" variant="outline" leftIcon={<DeleteIcon />} onClick={onOpen} isLoading={isDeleting}>
+          Delete demo data
+        </Button>
+        {result && <DeleteSummary result={result} />}
+      </Stack>
+    </CardBody>
+  </Card>
+)
+
+const DeleteDemoDataModal: FC<{
+  isOpen: boolean
+  onClose: () => void
+  confirmation: string
+  onConfirmationChange: (value: string) => void
+  onDelete: () => void
+  isDeleting: boolean
+}> = ({ isOpen, onClose, confirmation, onConfirmationChange, onDelete, isDeleting }) => {
+  const canDelete = confirmation === 'DELETE RAI DEMO'
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} isCentered>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Delete RAI demo data?</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <Stack spacing={4}>
+            <Text color="chakra-subtle-text">
+              This removes only the demo data managed by the RAI Event Setup flow:
+            </Text>
+            <UnorderedList spacing={2} color="chakra-subtle-text">
+              <ListItem>Demo event websites</ListItem>
+              <ListItem>Pizza product setup</ListItem>
+              <ListItem>Blue Ocean Exhibits demo buyer</ListItem>
+              <ListItem>Demo buyer contact</ListItem>
+              <ListItem>Demo access and pricing assignments</ListItem>
+            </UnorderedList>
+            <Box>
+              <Text fontWeight="semibold" mb={2}>Type DELETE RAI DEMO to confirm.</Text>
+              <Input value={confirmation} onChange={(event) => onConfirmationChange(event.target.value)} placeholder="DELETE RAI DEMO" />
+            </Box>
+          </Stack>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" mr={3} onClick={onClose} isDisabled={isDeleting}>Cancel</Button>
+          <Button colorScheme="red" onClick={onDelete} isDisabled={!canDelete || isDeleting} isLoading={isDeleting}>
+            Delete demo data
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  )
+}
+
+const DeleteSummary: FC<{ result: RaiDeleteDemoDataResult }> = ({ result }) => {
+  const scheme = result.overallStatus === 'deleted' || result.overallStatus === 'already-clean' ? 'green' : result.overallStatus === 'partial' ? 'orange' : 'red'
+  const colors = useResultCardColors(scheme)
+  const heading = result.overallStatus === 'already-clean'
+    ? 'Demo data is already clean'
+    : result.overallStatus === 'partial'
+      ? 'Some demo data was deleted'
+      : result.overallStatus === 'failed'
+        ? 'Demo data could not be deleted'
+        : 'RAI demo data deleted'
+
+  return (
+    <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
+      <CardBody>
+        <Stack spacing={3} color={colors.textColor}>
+          <Heading as="h3" size="sm" color={colors.headingColor}>{heading}</Heading>
+          <Text color={colors.subtleColor}>Next: prepare demo event websites.</Text>
+          {result.warnings.length > 0 && (
+            <Box>
+              <Text fontWeight="semibold">Items that need review</Text>
+              <UnorderedList>
+                {result.warnings.map((warning) => <ListItem key={warning}>{warning}</ListItem>)}
+              </UnorderedList>
+            </Box>
+          )}
+          <TechnicalDetails items={[
+            `Deleted: ${result.deletedItems.length ? result.deletedItems.join(', ') : 'none'}`,
+            `Skipped: ${result.skippedItems.length ? result.skippedItems.map((item) => `${item.label} ${item.id}: ${item.reason}`).join(' · ') : 'none'}`,
+            `Missing: ${result.notFoundItems.length ? result.notFoundItems.join(', ') : 'none'}`,
+            ...result.technicalSummary,
+          ]} />
+        </Stack>
+      </CardBody>
+    </Card>
+  )
 }
 
 const DemoPathCard: FC = () => (
@@ -192,18 +360,26 @@ const DemoReadinessCard: FC<DemoReadinessCardProps> = ({ mt, readiness, prepareR
   </Card>
 )
 
-const PrepareSummary: FC<{ result: RaiPrepareDemoEventWebsitesResult }> = ({ result }) => (
-  <Card bg="blue.50" borderColor="blue.200" variant="outline">
-    <CardBody>
-      <Stack spacing={2}>
-        <Text fontWeight="semibold">Event websites are prepared</Text>
-        <Text color="chakra-subtle-text">Created {result.createdCatalogIDs.length} and updated {result.updatedCatalogIDs.length} event websites.</Text>
-        <Text fontWeight="semibold" color="blue.700">Next: create the Pizza product setup, then register Blue Ocean Exhibits.</Text>
-        {result.warnings.length > 0 && <UnorderedList color="orange.700">{result.warnings.map((warning) => <ListItem key={warning}>{warning}</ListItem>)}</UnorderedList>}
-      </Stack>
-    </CardBody>
-  </Card>
-)
+const PrepareSummary: FC<{ result: RaiPrepareDemoEventWebsitesResult }> = ({ result }) => {
+  const hasPreparedCatalogs = result.createdCatalogIDs.length + result.updatedCatalogIDs.length > 0
+  const hasWarnings = result.warnings.length > 0
+  const colors = useResultCardColors(!hasPreparedCatalogs && hasWarnings ? 'red' : hasWarnings ? 'orange' : 'blue')
+
+  return (
+    <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
+      <CardBody>
+        <Stack spacing={2} color={colors.textColor}>
+          <Text fontWeight="semibold" color={colors.headingColor}>
+            {hasPreparedCatalogs ? 'Event websites are prepared' : 'Event websites could not be prepared'}
+          </Text>
+          <Text color={colors.subtleColor}>Created {result.createdCatalogIDs.length} and updated {result.updatedCatalogIDs.length} event websites.</Text>
+          <Text fontWeight="semibold" color={colors.headingColor}>Next: create the Pizza product setup, then register Blue Ocean Exhibits.</Text>
+          {hasWarnings && <UnorderedList>{result.warnings.map((warning) => <ListItem key={warning}>{warning}</ListItem>)}</UnorderedList>}
+        </Stack>
+      </CardBody>
+    </Card>
+  )
+}
 
 const ReadinessSummary: FC<{ result: RaiDemoReadinessResult }> = ({ result }) => {
   const hasMissingEventWebsites = result.eventWebsites.some((item) => item.status === 'missing')
@@ -217,20 +393,10 @@ const ReadinessSummary: FC<{ result: RaiDemoReadinessResult }> = ({ result }) =>
         <Badge colorScheme={result.overallStatus === 'ready' ? 'green' : result.overallStatus === 'partial' ? 'orange' : 'red'}>{result.overallStatus === 'ready' ? 'Ready' : result.overallStatus === 'partial' ? 'Partially ready' : 'Not ready'}</Badge>
       </HStack>
       {result.overallStatus === 'ready' && (
-        <Card bg="green.50" borderColor="green.200" variant="outline">
-          <CardBody><Text fontWeight="semibold" color="green.700">Ready to record the admin walkthrough.</Text></CardBody>
-        </Card>
+        <ReadyToRecordCard />
       )}
       {(hasMissingEventWebsites || hasMissingPizza || hasMissingBuyer) && (
-        <Card bg="orange.50" borderColor="orange.200" variant="outline">
-          <CardBody>
-            <UnorderedList color="orange.800">
-              {hasMissingEventWebsites && <ListItem>Next: prepare event websites.</ListItem>}
-              {hasMissingPizza && <ListItem>Next: create the Pizza product setup.</ListItem>}
-              {hasMissingBuyer && <ListItem>Next: register Blue Ocean Exhibits.</ListItem>}
-            </UnorderedList>
-          </CardBody>
-        </Card>
+        <ReadinessNextSteps hasMissingEventWebsites={hasMissingEventWebsites} hasMissingPizza={hasMissingPizza} hasMissingBuyer={hasMissingBuyer} />
       )}
       <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={4}>
         <StatusGroup title="Event websites" items={result.eventWebsites} />
@@ -239,6 +405,30 @@ const ReadinessSummary: FC<{ result: RaiDemoReadinessResult }> = ({ result }) =>
       </SimpleGrid>
       <TechnicalDetails items={result.technicalSummary} />
     </Stack>
+  )
+}
+
+const ReadyToRecordCard: FC = () => {
+  const colors = useResultCardColors('green')
+  return (
+    <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
+      <CardBody><Text fontWeight="semibold" color={colors.headingColor}>Ready to record the admin walkthrough.</Text></CardBody>
+    </Card>
+  )
+}
+
+const ReadinessNextSteps: FC<{ hasMissingEventWebsites: boolean; hasMissingPizza: boolean; hasMissingBuyer: boolean }> = ({ hasMissingEventWebsites, hasMissingPizza, hasMissingBuyer }) => {
+  const colors = useResultCardColors('orange')
+  return (
+    <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
+      <CardBody color={colors.textColor}>
+        <UnorderedList>
+          {hasMissingEventWebsites && <ListItem>Next: prepare event websites.</ListItem>}
+          {hasMissingPizza && <ListItem>Next: create the Pizza product setup.</ListItem>}
+          {hasMissingBuyer && <ListItem>Next: register Blue Ocean Exhibits.</ListItem>}
+        </UnorderedList>
+      </CardBody>
+    </Card>
   )
 }
 
