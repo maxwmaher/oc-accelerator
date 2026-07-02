@@ -21,3 +21,33 @@ export interface RaiBuyerSetupForm {
   productAccess: string[]
   pricingTier: string
 }
+
+export interface RaiEventCatalogConfig {
+  eventWebsiteLabel: string
+  catalogID: string
+}
+
+export interface RaiSkippedCatalog {
+  eventWebsiteLabel: string
+  catalogID?: string
+  reason: string
+}
+
+export interface RaiProductSpecResult {
+  specID: string
+  name: string
+  optionIDs: string[]
+}
+
+export interface RaiProductSetupResult {
+  productID: string
+  priceScheduleID: string
+  defaultPrice: number
+  currency: string
+  specs: RaiProductSpecResult[]
+  createdOrUpdatedSpecIDs: string[]
+  assignedCatalogIDs: string[]
+  skippedCatalogs: RaiSkippedCatalog[]
+  warnings: string[]
+  technicalSummary: string[]
+}
