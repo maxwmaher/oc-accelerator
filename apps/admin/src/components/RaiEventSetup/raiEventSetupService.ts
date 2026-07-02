@@ -33,6 +33,7 @@ const RAI_PRICE_SCHEDULE_ID = 'RAI_PIZZA_DEFAULT_PRICE'
 const RAI_DEMO_MANAGER = 'RAI Event Setup'
 const DEFAULT_DEMO_BUYER_ID = 'RAI_EXHIBITOR_BLUE_OCEAN_EXHIBITS_ISE_2026'
 const DEFAULT_DEMO_BUYER_USER_ID = 'RAI_BUYER_ALEX_DEMO_ISE_2026'
+const DEFAULT_DEMO_BUYER_CATALOG_LABEL = 'Blue Ocean Exhibits default buyer catalog'
 
 const RAI_EVENT_CATALOGS: RaiEventCatalogConfig[] = [
   { eventWebsiteLabel: 'ISE 2026', catalogID: 'ISE_2026_CATALOG' },
@@ -115,6 +116,15 @@ const upsertBuyer = async (form: RaiBuyerSetupForm, buyerID: string, eventWebsit
     try {
       await Buyers.Create(buyer)
     } catch (createError) {
+      if (isOrderCloudErrorCode(createError, 'Buyer.DefaultCatalogAlreadyExists')) {
+        try {
+          await deleteDemoBuyerDefaultCatalog()
+          await Buyers.Create(buyer)
+          return 'Buyer organization created/updated: cleaned up leftover demo buyer setup and created exhibitor buyer. Removed orphaned Blue Ocean Exhibits default buyer catalog before recreating the demo buyer.'
+        } catch (retryError) {
+          throw new Error(`Buyer organization create retry failed after cleaning up ${DEFAULT_DEMO_BUYER_CATALOG_LABEL}: ${getReadableErrorMessage(retryError)}`)
+        }
+      }
       throw new Error(`Buyer organization create failed after not-found lookup for ${buyerID}: ${getReadableErrorMessage(createError)}`)
     }
     return 'Buyer organization created/updated: created exhibitor buyer.'
@@ -294,6 +304,21 @@ const hasRaiDemoMarker = (resource: { xp?: unknown }) => {
   if (!xp || typeof xp !== 'object') return false
   const record = xp as Record<string, unknown>
   return record.demoManagedBy === RAI_DEMO_MANAGER || record.rai === true
+}
+
+const isSafeDemoBuyerDefaultCatalog = (catalog: Catalog) => {
+  if (catalog.ID !== DEFAULT_DEMO_BUYER_ID) return false
+  if (hasRaiDemoMarker(catalog)) return true
+  const name = catalog.Name || ''
+  return name.includes('Blue Ocean Exhibits') || name.includes('RAI')
+}
+
+const deleteDemoBuyerDefaultCatalog = async () => {
+  const catalog = await Catalogs.Get(DEFAULT_DEMO_BUYER_ID)
+  if (!isSafeDemoBuyerDefaultCatalog(catalog)) {
+    throw new Error(`${DEFAULT_DEMO_BUYER_CATALOG_LABEL} was found, but it did not have a safe demo marker or expected name.`)
+  }
+  await Catalogs.Delete(DEFAULT_DEMO_BUYER_ID)
 }
 
 const getResetStatus = (result: Omit<RaiDeleteDemoDataResult, 'overallStatus'>): RaiDeleteDemoDataResult['overallStatus'] => {
@@ -602,6 +627,7 @@ export const deleteRaiDemoData = async (): Promise<RaiDeleteDemoDataResult> => {
 
   await deleteIfFound(result, 'Buyer contact', DEFAULT_DEMO_BUYER_USER_ID, () => Users.Get(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID), hasRaiDemoMarker, () => Users.Delete(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID))
   await deleteIfFound(result, 'Blue Ocean Exhibits buyer', DEFAULT_DEMO_BUYER_ID, () => Buyers.Get(DEFAULT_DEMO_BUYER_ID), hasRaiDemoMarker, () => Buyers.Delete(DEFAULT_DEMO_BUYER_ID))
+  await deleteIfFound(result, DEFAULT_DEMO_BUYER_CATALOG_LABEL, DEFAULT_DEMO_BUYER_ID, () => Catalogs.Get(DEFAULT_DEMO_BUYER_ID), isSafeDemoBuyerDefaultCatalog, () => Catalogs.Delete(DEFAULT_DEMO_BUYER_ID))
 
   for (const specConfig of SPEC_CONFIG) {
     await deleteAssignmentIfPresent(result, 'Pizza option assignment', `${specConfig.id} / ${RAI_PRODUCT_ID}`, () => Specs.DeleteProductAssignment(specConfig.id, RAI_PRODUCT_ID))
