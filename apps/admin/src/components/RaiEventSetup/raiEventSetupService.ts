@@ -1,6 +1,7 @@
 import {
   Buyers,
   Catalogs,
+  Locales,
   OrderCloudError,
   PriceSchedules,
   Products,
@@ -13,6 +14,8 @@ import {
   Buyer,
   User,
   Catalog,
+  Locale,
+  SecurityProfile,
 } from 'ordercloud-javascript-sdk'
 import {
   RaiBuyerSetupForm,
@@ -25,6 +28,7 @@ import {
   RaiDemoReadinessResult,
   RaiPrepareDemoEventWebsitesResult,
   RaiReadinessItem,
+  RaiDeleteDemoDataResult,
 } from './types'
 
 const RAI_PRODUCT_ID = 'RAI_PIZZA'
@@ -32,6 +36,9 @@ const RAI_PRICE_SCHEDULE_ID = 'RAI_PIZZA_DEFAULT_PRICE'
 const RAI_DEMO_MANAGER = 'RAI Event Setup'
 const DEFAULT_DEMO_BUYER_ID = 'RAI_EXHIBITOR_BLUE_OCEAN_EXHIBITS_ISE_2026'
 const DEFAULT_DEMO_BUYER_USER_ID = 'RAI_BUYER_ALEX_DEMO_ISE_2026'
+const DEFAULT_DEMO_BUYER_CATALOG_LABEL = 'Blue Ocean Exhibits default buyer catalog'
+const RAI_EUR_LOCALE_ID = 'RAI_EUR_LOCALE'
+const RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID = 'RAI_DEMO_SHOPPER_SECURITY_PROFILE'
 
 const RAI_EVENT_CATALOGS: RaiEventCatalogConfig[] = [
   { eventWebsiteLabel: 'ISE 2026', catalogID: 'ISE_2026_CATALOG' },
@@ -39,6 +46,7 @@ const RAI_EVENT_CATALOGS: RaiEventCatalogConfig[] = [
   { eventWebsiteLabel: 'RAI Catering Portal', catalogID: 'RAI_CATERING_CATALOG' },
   { eventWebsiteLabel: 'Vegetarian-only Event', catalogID: 'VEGETARIAN_EVENT_CATALOG' },
 ]
+const REQUIRED_DEMO_CATALOG_IDS = ['ISE_2026_CATALOG', 'RAI_CATERING_CATALOG', 'VEGETARIAN_EVENT_CATALOG']
 
 const SPEC_CONFIG = [
   { id: 'RAI_PIZZA_SIZE', name: 'Size', formKey: 'sizes' },
@@ -109,8 +117,21 @@ const upsertBuyer = async (form: RaiBuyerSetupForm, buyerID: string, eventWebsit
     await Buyers.Patch(buyerID, buyer)
     return 'Buyer organization created/updated: patched existing exhibitor buyer.'
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Buyer organization setup failed: ${getReadableErrorMessage(error)}`)
-    await Buyers.Create(buyer)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Buyer organization setup failed: ${getReadableErrorMessage(error)}`)
+    try {
+      await Buyers.Create(buyer)
+    } catch (createError) {
+      if (isOrderCloudErrorCode(createError, 'Buyer.DefaultCatalogAlreadyExists')) {
+        try {
+          await deleteDemoBuyerDefaultCatalog()
+          await Buyers.Create(buyer)
+          return 'Buyer organization created/updated: cleaned up leftover demo buyer setup and created exhibitor buyer. Removed orphaned Blue Ocean Exhibits default buyer catalog before recreating the demo buyer.'
+        } catch (retryError) {
+          throw new Error(`Buyer organization create retry failed after cleaning up ${DEFAULT_DEMO_BUYER_CATALOG_LABEL}: ${getReadableErrorMessage(retryError)}`)
+        }
+      }
+      throw new Error(`Buyer organization create failed after not-found lookup for ${buyerID}: ${getReadableErrorMessage(createError)}`)
+    }
     return 'Buyer organization created/updated: created exhibitor buyer.'
   }
 }
@@ -136,39 +157,73 @@ const upsertBuyerUser = async (form: RaiBuyerSetupForm, buyerID: string, buyerUs
     await Users.Patch(buyerID, buyerUserID, user)
     return 'Buyer user created/updated: patched existing exhibitor contact.'
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Buyer user setup failed: ${getReadableErrorMessage(error)}`)
-    await Users.Create(buyerID, user)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Buyer user setup failed: ${getReadableErrorMessage(error)}`)
+    try {
+      await Users.Create(buyerID, user)
+    } catch (createError) {
+      throw new Error(`Buyer user create failed after not-found lookup for ${buyerID}/${buyerUserID}: ${getReadableErrorMessage(createError)}`)
+    }
     return 'Buyer user created/updated: created exhibitor contact without sending an invite email.'
   }
 }
 
 const assignBuyerCatalogAccess = async (buyerID: string, eventWebsiteLabel: string, catalogID?: string) => {
-  if (!catalogID) return { assigned: false, warning: `${eventWebsiteLabel}: This optional event website setup was not found in the demo environment. You can continue recording the main flow.`, summary: 'Catalog access skipped: no mapping is configured for the selected event website.' }
+  if (!catalogID) return { assigned: false, warning: `${eventWebsiteLabel}: This optional event website setup was not found in the demo environment. You can continue the main setup flow.`, summary: 'Catalog access skipped: no mapping is configured for the selected event website.' }
 
   try {
     await Catalogs.Get(catalogID)
     await Catalogs.SaveAssignment({ CatalogID: catalogID, BuyerID: buyerID, ViewAllCategories: true, ViewAllProducts: true })
     return { assigned: true, summary: `Catalog assignment created/updated: ${catalogID} assigned to ${buyerID}.` }
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Event website access setup failed: ${getReadableErrorMessage(error)}`)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Event website access setup failed: ${getReadableErrorMessage(error)}`)
     return { assigned: false, warning: `${eventWebsiteLabel}: This optional event website setup was not found in the demo environment. Prepare event websites, then run this step again.`, summary: `Catalog access skipped: ${catalogID} was not found.` }
   }
 }
 
-const assignPizzaPricing = async (buyerID: string) => {
+const PIZZA_PRICING_LOCALE_WARNING = 'Pizza pricing override was not applied because the buyer’s locale does not match the Pizza price currency. Event website access was still assigned.'
+
+const ensureDemoBuyerEurLocale = async (buyerID: string) => {
+  const locale: Locale = {
+    ID: RAI_EUR_LOCALE_ID,
+    Currency: 'EUR',
+    Language: 'en-US',
+  }
+
+  try {
+    await Locales.Save(RAI_EUR_LOCALE_ID, locale)
+    await Locales.SaveAssignment({ LocaleID: RAI_EUR_LOCALE_ID, BuyerID: buyerID })
+    return `Locale assignment created/updated: ${RAI_EUR_LOCALE_ID} assigned to ${buyerID} for EUR Pizza pricing.`
+  } catch (error) {
+    throw new Error(`EUR locale setup failed: ${getReadableErrorMessage(error)}`)
+  }
+}
+
+const assignPizzaPricing = async (buyerID: string, canWarnForOptionalAssignmentFailure: boolean) => {
   try {
     await Products.Get(RAI_PRODUCT_ID)
     await PriceSchedules.Get(RAI_PRICE_SCHEDULE_ID)
-    await Products.SaveAssignment({ ProductID: RAI_PRODUCT_ID, BuyerID: buyerID, PriceScheduleID: RAI_PRICE_SCHEDULE_ID })
-    return { assigned: true, exampleProductAvailable: true, summary: `Product/pricing assignment created/updated: ${RAI_PRODUCT_ID} uses ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}.` }
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Pizza pricing setup failed: ${getReadableErrorMessage(error)}`)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Pizza pricing setup failed: ${getReadableErrorMessage(error)}`)
     return { assigned: false, exampleProductAvailable: false, warning: 'Pizza pricing was not found in the demo environment. Create the Pizza product setup, then run this step again.', summary: 'Product/pricing assignment skipped: Pizza product or default price schedule was not found.' }
+  }
+
+  try {
+    const localeSummary = await ensureDemoBuyerEurLocale(buyerID)
+    await Products.SaveAssignment({ ProductID: RAI_PRODUCT_ID, BuyerID: buyerID, PriceScheduleID: RAI_PRICE_SCHEDULE_ID })
+    return { assigned: true, exampleProductAvailable: true, summary: `${localeSummary} Product/pricing assignment created/updated: ${RAI_PRODUCT_ID} uses ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}.` }
+  } catch (error) {
+    if (isOrderCloudErrorCode(error, 'PriceSchedule.CurrencyMismatch')) {
+      return { assigned: false, exampleProductAvailable: true, warning: PIZZA_PRICING_LOCALE_WARNING, summary: `Product/pricing assignment skipped: ${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}. ${getReadableErrorMessage(error)}` }
+    }
+    if (canWarnForOptionalAssignmentFailure) {
+      return { assigned: false, exampleProductAvailable: true, warning: 'Pizza pricing override was not applied. Event website access was still assigned.', summary: `Product/pricing assignment skipped: ${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}. ${getReadableErrorMessage(error)}` }
+    }
+    throw new Error(`Pizza pricing setup failed: ${getReadableErrorMessage(error)}`)
   }
 }
 
 const assignDemoSecurityProfile = async (buyerID: string, buyerUserID: string) => {
-  const candidateIDs = ['RAI_BUYER_SHOPPER', 'Storefront', 'storefront', 'Storefront Security Profile']
+  const candidateIDs = [RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID, 'RAI_BUYER_SHOPPER', 'Storefront', 'storefront', 'Storefront Security Profile']
 
   for (const securityProfileID of candidateIDs) {
     try {
@@ -176,7 +231,7 @@ const assignDemoSecurityProfile = async (buyerID: string, buyerUserID: string) =
       await SecurityProfiles.SaveAssignment({ SecurityProfileID: securityProfileID, BuyerID: buyerID, UserID: buyerUserID })
       return { assigned: true, summary: `Security profile assignment created/updated: ${securityProfileID} assigned to buyer user.` }
     } catch (error) {
-      if (!isNotFound(error)) throw new Error(`Buyer security setup failed: ${getReadableErrorMessage(error)}`)
+      if (!isOrderCloudNotFound(error)) throw new Error(`Buyer security setup failed: ${getReadableErrorMessage(error)}`)
     }
   }
 
@@ -187,17 +242,162 @@ const assignDemoSecurityProfile = async (buyerID: string, buyerUserID: string) =
     return { assigned: true, summary: `Security profile assignment created/updated: ${shopperProfile.ID} assigned to buyer user.` }
   }
 
-  return { assigned: false, warning: 'This optional shopper access setup was not found in the demo environment. You can continue recording the main flow.', summary: 'Security profile assignment skipped: no matching shopper security profile was found.' }
+  try {
+    const securityProfile: SecurityProfile = {
+      ID: RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID,
+      Name: 'RAI Demo Shopper',
+      Roles: ['Shopper'],
+    }
+    await SecurityProfiles.Save(RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID, securityProfile)
+    await SecurityProfiles.SaveAssignment({ SecurityProfileID: RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID, BuyerID: buyerID, UserID: buyerUserID })
+    return { assigned: true, summary: `Security profile created/updated and assigned: ${RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID} assigned to buyer user.` }
+  } catch (error) {
+    return { assigned: false, warning: 'Shopper access profile was not found in this demo environment. You can continue the main setup flow.', summary: `Security profile assignment skipped: ${getReadableErrorMessage(error)}` }
+  }
 }
 
-const getErrorStatus = (error: unknown) => error instanceof OrderCloudError ? error.status : undefined
+const getErrorNumber = (value: unknown) => {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10)
+    return Number.isNaN(parsed) ? undefined : parsed
+  }
+  return undefined
+}
 
-const isNotFound = (error: unknown) => getErrorStatus(error) === 404
+const getObjectValue = (value: unknown, key: string): unknown => {
+  if (!value || typeof value !== 'object') return undefined
+  return (value as Record<string, unknown>)[key]
+}
+
+const getOrderCloudErrorStatus = (error: unknown): number | undefined => {
+  const directStatus = getErrorNumber(getObjectValue(error, 'status'))
+  if (directStatus) return directStatus
+
+  const directStatusCode = getErrorNumber(getObjectValue(error, 'statusCode'))
+  if (directStatusCode) return directStatusCode
+
+  const response = getObjectValue(error, 'response')
+  const responseStatus = getErrorNumber(getObjectValue(response, 'status'))
+  if (responseStatus) return responseStatus
+
+  const responseStatusCode = getErrorNumber(getObjectValue(response, 'statusCode'))
+  if (responseStatusCode) return responseStatusCode
+
+  const data = getObjectValue(error, 'data') ?? getObjectValue(response, 'data')
+  const dataStatus = getErrorNumber(getObjectValue(data, 'status'))
+  if (dataStatus) return dataStatus
+
+  const dataStatusCode = getErrorNumber(getObjectValue(data, 'statusCode'))
+  if (dataStatusCode) return dataStatusCode
+
+  return undefined
+}
+
+export const isOrderCloudNotFound = (error: unknown) => getOrderCloudErrorStatus(error) === 404
+
+const getOrderCloudErrorDetails = (error: unknown) => {
+  const status = getOrderCloudErrorStatus(error)
+  const statusText = getObjectValue(error, 'statusText') ?? getObjectValue(getObjectValue(error, 'response'), 'statusText')
+  const errorCode = getObjectValue(error, 'errorCode')
+  const errors = getObjectValue(error, 'errors') ?? getObjectValue(getObjectValue(getObjectValue(error, 'response'), 'data'), 'Errors')
+  const details = [
+    status ? `status ${status}` : undefined,
+    typeof statusText === 'string' && statusText ? statusText : undefined,
+    typeof errorCode === 'string' && errorCode ? `code ${errorCode}` : undefined,
+    Array.isArray(errors) && errors.length ? `errors ${JSON.stringify(errors)}` : undefined,
+  ].filter(Boolean)
+  return details.length ? ` (${details.join('; ')})` : ''
+}
 
 const getReadableErrorMessage = (error: unknown) => {
-  if (error instanceof OrderCloudError) return error.message
-  if (error instanceof Error) return error.message
-  return 'OrderCloud could not complete the request.'
+  const details = getOrderCloudErrorDetails(error)
+  if (error instanceof OrderCloudError) return `${error.message}${details}`
+  if (error instanceof Error) return `${error.message}${details}`
+  return `OrderCloud could not complete the request.${details}`
+}
+
+const getOrderCloudErrorCode = (error: unknown) => {
+  const directCode = getObjectValue(error, 'errorCode')
+  if (typeof directCode === 'string') return directCode
+
+  const errors = getObjectValue(error, 'errors') ?? getObjectValue(getObjectValue(getObjectValue(error, 'response'), 'data'), 'Errors')
+  if (Array.isArray(errors)) {
+    const firstErrorWithCode = errors.find((item) => item && typeof item === 'object' && typeof getObjectValue(item, 'ErrorCode') === 'string')
+    if (firstErrorWithCode) return getObjectValue(firstErrorWithCode, 'ErrorCode') as string
+  }
+
+  return undefined
+}
+
+const isOrderCloudErrorCode = (error: unknown, errorCode: string) => getOrderCloudErrorCode(error) === errorCode
+
+const hasRaiDemoMarker = (resource: { xp?: unknown }) => {
+  const xp = resource.xp
+  if (!xp || typeof xp !== 'object') return false
+  const record = xp as Record<string, unknown>
+  return record.demoManagedBy === RAI_DEMO_MANAGER || record.rai === true
+}
+
+const isSafeDemoBuyerDefaultCatalog = (catalog: Catalog) => {
+  if (catalog.ID !== DEFAULT_DEMO_BUYER_ID) return false
+  if (hasRaiDemoMarker(catalog)) return true
+  const name = catalog.Name || ''
+  return name.includes('Blue Ocean Exhibits') || name.includes('RAI')
+}
+
+const deleteDemoBuyerDefaultCatalog = async () => {
+  const catalog = await Catalogs.Get(DEFAULT_DEMO_BUYER_ID)
+  if (!isSafeDemoBuyerDefaultCatalog(catalog)) {
+    throw new Error(`${DEFAULT_DEMO_BUYER_CATALOG_LABEL} was found, but it did not have a safe demo marker or expected name.`)
+  }
+  await Catalogs.Delete(DEFAULT_DEMO_BUYER_ID)
+}
+
+const getResetStatus = (result: Omit<RaiDeleteDemoDataResult, 'overallStatus'>): RaiDeleteDemoDataResult['overallStatus'] => {
+  if (!result.deletedItems.length && !result.skippedItems.length && !result.warnings.length) return 'already-clean'
+  if (!result.deletedItems.length && (result.skippedItems.length || result.warnings.length)) return 'failed'
+  if (result.skippedItems.length || result.warnings.length) return 'partial'
+  return 'deleted'
+}
+
+const isRaiPriceSchedule = (priceSchedule: PriceSchedule) => priceSchedule.ID === RAI_PRICE_SCHEDULE_ID && priceSchedule.Name === 'Pizza Default Price'
+
+const isRaiDemoLocale = (locale: Locale) => locale.ID === RAI_EUR_LOCALE_ID && locale.Currency === 'EUR'
+
+const isRaiDemoShopperSecurityProfile = (securityProfile: SecurityProfile) => securityProfile.ID === RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID && securityProfile.Name === 'RAI Demo Shopper' && Boolean(securityProfile.Roles?.includes('Shopper'))
+
+const deleteIfFound = async <TResource extends { ID?: string; Name?: string; xp?: unknown }>(
+  result: Omit<RaiDeleteDemoDataResult, 'overallStatus'>,
+  label: string,
+  id: string,
+  getResource: () => Promise<TResource>,
+  isSafeToDelete: (resource: TResource) => boolean,
+  deleteResource: () => Promise<void>,
+) => {
+  try {
+    const resource = await getResource()
+    if (!isSafeToDelete(resource)) {
+      const reason = 'Found the expected ID, but it does not have the RAI demo marker, so it was left untouched.'
+      result.skippedItems.push({ label, id, reason })
+      result.warnings.push(`${label} ${id}: ${reason}`)
+      result.technicalSummary.push(`Skipped ${label} ${id}: safety marker check failed.`)
+      return
+    }
+    await deleteResource()
+    result.deletedItems.push(`${label}: ${id}`)
+    result.technicalSummary.push(`Deleted ${label}: ${id}.`)
+  } catch (error) {
+    if (isOrderCloudNotFound(error)) {
+      result.notFoundItems.push(`${label}: ${id}`)
+      result.technicalSummary.push(`Already clean: ${label} ${id} was not found.`)
+      return
+    }
+    const warning = `${label} ${id}: ${getReadableErrorMessage(error)}`
+    result.skippedItems.push({ label, id, reason: warning })
+    result.warnings.push(warning)
+    result.technicalSummary.push(`Could not delete ${label} ${id}: ${getReadableErrorMessage(error)}`)
+  }
 }
 
 const upsertProduct = async (form: RaiProductSetupForm, price: number) => {
@@ -236,8 +436,12 @@ const upsertProduct = async (form: RaiProductSetupForm, price: number) => {
     await Products.Patch(RAI_PRODUCT_ID, product)
     return 'Product created/updated: patched existing Pizza product.'
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Product setup failed: ${getReadableErrorMessage(error)}`)
-    await Products.Create(product)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Product setup failed: ${getReadableErrorMessage(error)}`)
+    try {
+      await Products.Create(product)
+    } catch (createError) {
+      throw new Error(`Product create failed after not-found lookup for ${RAI_PRODUCT_ID}: ${getReadableErrorMessage(createError)}`)
+    }
     return 'Product created/updated: created Pizza product.'
   }
 }
@@ -256,8 +460,12 @@ const upsertPriceSchedule = async (price: number, currency: string) => {
     await PriceSchedules.Patch(RAI_PRICE_SCHEDULE_ID, priceSchedule)
     return 'Price schedule created/updated: patched Pizza Default Price.'
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Price setup failed: ${getReadableErrorMessage(error)}`)
-    await PriceSchedules.Create(priceSchedule)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Price setup failed: ${getReadableErrorMessage(error)}`)
+    try {
+      await PriceSchedules.Create(priceSchedule)
+    } catch (createError) {
+      throw new Error(`Price schedule create failed after not-found lookup for ${RAI_PRICE_SCHEDULE_ID}: ${getReadableErrorMessage(createError)}`)
+    }
     return 'Price schedule created/updated: created Pizza Default Price.'
   }
 }
@@ -271,15 +479,27 @@ const upsertSpecWithOptions = async (specConfig: typeof SPEC_CONFIG[number], for
     AllowOpenText: false,
     xp: { demoManagedBy: RAI_DEMO_MANAGER },
   }
-  await Specs.Save(specConfig.id, spec)
+  try {
+    await Specs.Save(specConfig.id, spec)
+  } catch (error) {
+    throw new Error(`Spec save failed for ${specConfig.id}: ${getReadableErrorMessage(error)}`)
+  }
 
   const optionIDs = await Promise.all(form[specConfig.formKey].map(async (value, index) => {
     const optionID = sanitizeOptionID(value)
-    await Specs.SaveOption(specConfig.id, optionID, { ID: optionID, Value: value, ListOrder: index + 1 })
+    try {
+      await Specs.SaveOption(specConfig.id, optionID, { ID: optionID, Value: value, ListOrder: index + 1 })
+    } catch (error) {
+      throw new Error(`Spec option save failed for ${specConfig.id}/${optionID}: ${getReadableErrorMessage(error)}`)
+    }
     return optionID
   }))
 
-  await Specs.SaveProductAssignment({ SpecID: specConfig.id, ProductID: RAI_PRODUCT_ID })
+  try {
+    await Specs.SaveProductAssignment({ SpecID: specConfig.id, ProductID: RAI_PRODUCT_ID })
+  } catch (error) {
+    throw new Error(`Spec product assignment failed for ${specConfig.id}/${RAI_PRODUCT_ID}: ${getReadableErrorMessage(error)}`)
+  }
   return { specID: specConfig.id, name: specConfig.name, optionIDs }
 }
 
@@ -299,7 +519,7 @@ const assignProductToCatalogs = async (eventWebsites: string[]) => {
       await Catalogs.SaveProductAssignment({ CatalogID: config.catalogID, ProductID: RAI_PRODUCT_ID })
       assignedCatalogIDs.push(config.catalogID)
     } catch (error) {
-      if (!isNotFound(error)) throw new Error(`Publishing to ${eventWebsiteLabel} failed: ${getReadableErrorMessage(error)}`)
+      if (!isOrderCloudNotFound(error)) throw new Error(`Publishing to ${eventWebsiteLabel} failed: ${getReadableErrorMessage(error)}`)
       skippedCatalogs.push({ eventWebsiteLabel, catalogID: config.catalogID, reason: 'Prepare event websites, then run this step again.' })
     }
   }
@@ -351,7 +571,7 @@ export const createOrUpdateRaiExhibitorBuyer = async (form: RaiBuyerSetupForm): 
   technicalSummary.push(catalogResult.summary)
   if (catalogResult.warning) warnings.push(catalogResult.warning)
 
-  const pricingResult = await assignPizzaPricing(buyerID)
+  const pricingResult = await assignPizzaPricing(buyerID, catalogResult.assigned)
   technicalSummary.push(pricingResult.summary)
   if (pricingResult.warning) warnings.push(pricingResult.warning)
 
@@ -379,6 +599,101 @@ export const createOrUpdateRaiExhibitorBuyer = async (form: RaiBuyerSetupForm): 
 
 export const submitRaiBuyerSetup = createOrUpdateRaiExhibitorBuyer
 
+const deleteAssignmentIfPresent = async (
+  result: Omit<RaiDeleteDemoDataResult, 'overallStatus'>,
+  label: string,
+  id: string,
+  deleteAssignment: () => Promise<void>,
+) => {
+  try {
+    await deleteAssignment()
+    result.deletedItems.push(`${label}: ${id}`)
+    result.technicalSummary.push(`Removed ${label}: ${id}.`)
+  } catch (error) {
+    if (isOrderCloudNotFound(error)) {
+      result.notFoundItems.push(`${label}: ${id}`)
+      result.technicalSummary.push(`Already clean: ${label} ${id} was not assigned.`)
+      return
+    }
+    const warning = `${label} ${id}: ${getReadableErrorMessage(error)}`
+    result.skippedItems.push({ label, id, reason: warning })
+    result.warnings.push(warning)
+    result.technicalSummary.push(`Could not remove ${label} ${id}: ${getReadableErrorMessage(error)}`)
+  }
+}
+
+export const deleteRaiDemoData = async (): Promise<RaiDeleteDemoDataResult> => {
+  const result: Omit<RaiDeleteDemoDataResult, 'overallStatus'> = {
+    deletedItems: [],
+    skippedItems: [],
+    notFoundItems: [],
+    warnings: [],
+    technicalSummary: [
+      'Reset deletes only stable RAI demo IDs and verifies RAI demo markers before deleting catalogs, product, specs, buyer, and buyer user.',
+    ],
+  }
+
+  await deleteAssignmentIfPresent(result, 'Pizza pricing assignment', `${RAI_PRODUCT_ID} / ${DEFAULT_DEMO_BUYER_ID}`, () => Products.DeleteAssignment(RAI_PRODUCT_ID, DEFAULT_DEMO_BUYER_ID))
+  await deleteAssignmentIfPresent(result, 'RAI EUR locale assignment', `${RAI_EUR_LOCALE_ID} / ${DEFAULT_DEMO_BUYER_ID}`, () => Locales.DeleteAssignment(RAI_EUR_LOCALE_ID, { buyerID: DEFAULT_DEMO_BUYER_ID }))
+
+  for (const config of RAI_EVENT_CATALOGS) {
+    await deleteAssignmentIfPresent(result, 'Buyer catalog access', `${config.catalogID} / ${DEFAULT_DEMO_BUYER_ID}`, () => Catalogs.DeleteAssignment(config.catalogID, { buyerID: DEFAULT_DEMO_BUYER_ID }))
+    await deleteAssignmentIfPresent(result, 'Catalog product publishing', `${config.catalogID} / ${RAI_PRODUCT_ID}`, () => Catalogs.DeleteProductAssignment(config.catalogID, RAI_PRODUCT_ID))
+  }
+
+  try {
+    const assignments = await SecurityProfiles.ListAssignments({ buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID, pageSize: 100 })
+    if (!assignments.Items.length) {
+      result.notFoundItems.push(`Shopper access assignment: ${DEFAULT_DEMO_BUYER_USER_ID}`)
+      result.technicalSummary.push(`Already clean: no security profile assignments found for ${DEFAULT_DEMO_BUYER_USER_ID}.`)
+    }
+    for (const assignment of assignments.Items) {
+      if (!assignment.SecurityProfileID) continue
+      await deleteAssignmentIfPresent(result, 'Shopper access assignment', `${assignment.SecurityProfileID} / ${DEFAULT_DEMO_BUYER_USER_ID}`, () => SecurityProfiles.DeleteAssignment(assignment.SecurityProfileID as string, { buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID }))
+    }
+  } catch (error) {
+    if (isOrderCloudNotFound(error)) {
+      result.notFoundItems.push(`Shopper access assignment: ${DEFAULT_DEMO_BUYER_USER_ID}`)
+      result.technicalSummary.push(`Already clean: shopper access assignments for ${DEFAULT_DEMO_BUYER_USER_ID} were not found.`)
+    } else {
+      const warning = `Shopper access assignments: ${getReadableErrorMessage(error)}`
+      result.skippedItems.push({ label: 'Shopper access assignments', id: DEFAULT_DEMO_BUYER_USER_ID, reason: warning })
+      result.warnings.push(warning)
+      result.technicalSummary.push(`Could not check shopper access assignments: ${getReadableErrorMessage(error)}`)
+    }
+  }
+
+  await deleteIfFound(result, 'RAI demo shopper security profile', RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID, () => SecurityProfiles.Get(RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID), isRaiDemoShopperSecurityProfile, () => SecurityProfiles.Delete(RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID))
+
+  await deleteIfFound(result, 'Buyer contact', DEFAULT_DEMO_BUYER_USER_ID, () => Users.Get(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID), hasRaiDemoMarker, () => Users.Delete(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID))
+  await deleteIfFound(result, 'Blue Ocean Exhibits buyer', DEFAULT_DEMO_BUYER_ID, () => Buyers.Get(DEFAULT_DEMO_BUYER_ID), hasRaiDemoMarker, () => Buyers.Delete(DEFAULT_DEMO_BUYER_ID))
+  await deleteIfFound(result, DEFAULT_DEMO_BUYER_CATALOG_LABEL, DEFAULT_DEMO_BUYER_ID, () => Catalogs.Get(DEFAULT_DEMO_BUYER_ID), isSafeDemoBuyerDefaultCatalog, () => Catalogs.Delete(DEFAULT_DEMO_BUYER_ID))
+
+  for (const specConfig of SPEC_CONFIG) {
+    await deleteAssignmentIfPresent(result, 'Pizza option assignment', `${specConfig.id} / ${RAI_PRODUCT_ID}`, () => Specs.DeleteProductAssignment(specConfig.id, RAI_PRODUCT_ID))
+  }
+
+  await deleteIfFound(result, 'Pizza product setup', RAI_PRODUCT_ID, () => Products.Get(RAI_PRODUCT_ID), hasRaiDemoMarker, () => Products.Delete(RAI_PRODUCT_ID))
+
+  for (const specConfig of SPEC_CONFIG) {
+    await deleteIfFound(result, 'Pizza option group', specConfig.id, () => Specs.Get(specConfig.id), hasRaiDemoMarker, () => Specs.Delete(specConfig.id))
+  }
+
+  await deleteIfFound(result, 'Pizza price schedule', RAI_PRICE_SCHEDULE_ID, () => PriceSchedules.Get(RAI_PRICE_SCHEDULE_ID), isRaiPriceSchedule, () => PriceSchedules.Delete(RAI_PRICE_SCHEDULE_ID))
+  await deleteIfFound(result, 'RAI EUR demo locale', RAI_EUR_LOCALE_ID, () => Locales.Get(RAI_EUR_LOCALE_ID), isRaiDemoLocale, () => Locales.Delete(RAI_EUR_LOCALE_ID))
+
+  for (const config of RAI_EVENT_CATALOGS) {
+    await deleteIfFound(result, 'Demo event website', config.catalogID, () => Catalogs.Get(config.catalogID), hasRaiDemoMarker, () => Catalogs.Delete(config.catalogID))
+  }
+
+  return {
+    ...result,
+    overallStatus: getResetStatus(result),
+  }
+}
+
+export const resetRaiDemoData = deleteRaiDemoData
+
 const getCatalogDescription = (eventWebsiteLabel: string) => {
   if (eventWebsiteLabel === 'Vegetarian-only Event') return 'Demo event website for vegetarian-only catering visibility.'
   if (eventWebsiteLabel === 'RAI Catering Portal') return 'Demo catering portal for reusable food and beverage products.'
@@ -397,7 +712,7 @@ const getCatalogPatch = (config: RaiEventCatalogConfig): Catalog => ({
     demoEventWebsite: true,
     vegetarianOnly: config.catalogID === 'VEGETARIAN_EVENT_CATALOG' || undefined,
     description: getCatalogDescription(config.eventWebsiteLabel),
-    useCase: config.eventWebsiteLabel === 'Vegetarian-only Event' ? 'Show event-specific product option filtering.' : 'Support the RAI admin demo recording flow.',
+    useCase: config.eventWebsiteLabel === 'Vegetarian-only Event' ? 'Show event-specific product option filtering.' : 'Support the RAI admin demo setup flow.',
   },
 })
 
@@ -413,18 +728,25 @@ const checkGet = async (label: string, technicalID: string, getter: () => Promis
     if (requireActive && 'Active' in item && item.Active === false) return { label, status: 'warning', message: 'Found, but it is not active yet.', technicalID }
     return { label, status: 'ready', message: 'Ready', technicalID }
   } catch (error) {
-    if (isNotFound(error)) return { label, status: 'missing', message: 'Not found in the demo environment yet.', technicalID }
-    return { label, status: 'warning', message: 'This optional setup could not be checked. You can continue recording the main flow if the core steps are visible.', technicalID }
+    if (isOrderCloudNotFound(error)) return { label, status: 'missing', message: 'Not found in the demo environment yet.', technicalID }
+    return { label, status: 'warning', message: `This optional setup could not be checked. You can continue the main setup flow if the core steps are visible. ${getReadableErrorMessage(error)}`, technicalID }
   }
 }
 
-export const prepareRaiDemoEventWebsites = async (): Promise<RaiPrepareDemoEventWebsitesResult> => {
+export const prepareRaiDemoEventWebsites = async (selectedCatalogIDs?: string[]): Promise<RaiPrepareDemoEventWebsitesResult> => {
   const createdCatalogIDs: string[] = []
   const updatedCatalogIDs: string[] = []
+  const skippedCatalogIDs: string[] = []
   const warnings: string[] = []
   const technicalSummary: string[] = []
+  const selectedIDs = new Set(selectedCatalogIDs?.length ? selectedCatalogIDs : RAI_EVENT_CATALOGS.map((config) => config.catalogID))
 
   for (const config of RAI_EVENT_CATALOGS) {
+    if (!selectedIDs.has(config.catalogID)) {
+      skippedCatalogIDs.push(config.catalogID)
+      technicalSummary.push(`Event website skipped by selection: ${config.catalogID}.`)
+      continue
+    }
     const catalog = getCatalogPatch(config)
     try {
       await Catalogs.Get(config.catalogID)
@@ -432,24 +754,35 @@ export const prepareRaiDemoEventWebsites = async (): Promise<RaiPrepareDemoEvent
       updatedCatalogIDs.push(config.catalogID)
       technicalSummary.push(`Event website updated: ${config.catalogID}.`)
     } catch (error) {
-      if (!isNotFound(error)) {
-        const warning = `${config.eventWebsiteLabel}: This optional setup could not be prepared. You can continue recording the main flow or try again later.`
+      if (!isOrderCloudNotFound(error)) {
+        const warning = `${config.eventWebsiteLabel}: This optional setup could not be prepared. You can continue the main setup flow or try again later. ${getReadableErrorMessage(error)}`
         warnings.push(warning)
         technicalSummary.push(warning)
         continue
       }
-      await Catalogs.Create(catalog)
+      try {
+        await Catalogs.Create(catalog)
+      } catch (createError) {
+        const warning = `${config.eventWebsiteLabel}: Event website create failed after not-found lookup for ${config.catalogID}: ${getReadableErrorMessage(createError)}`
+        warnings.push(warning)
+        technicalSummary.push(warning)
+        continue
+      }
       createdCatalogIDs.push(config.catalogID)
       technicalSummary.push(`Event website created: ${config.catalogID}.`)
     }
   }
 
-  return { createdCatalogIDs, updatedCatalogIDs, warnings, technicalSummary }
+  return { createdCatalogIDs, updatedCatalogIDs, skippedCatalogIDs, warnings, technicalSummary }
 }
 
 export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => {
   const warnings: string[] = []
-  const eventWebsites = await Promise.all(RAI_EVENT_CATALOGS.map((config) => checkGet(config.eventWebsiteLabel, config.catalogID, () => Catalogs.Get(config.catalogID), true)))
+  const eventWebsites = await Promise.all(RAI_EVENT_CATALOGS.map(async (config) => {
+    const item = await checkGet(config.eventWebsiteLabel, config.catalogID, () => Catalogs.Get(config.catalogID), true)
+    if (item.status === 'missing' && !REQUIRED_DEMO_CATALOG_IDS.includes(config.catalogID)) return { ...item, status: 'warning' as const, message: 'Optional event website has not been prepared yet.' }
+    return item
+  }))
 
   const product = await checkGet('Product', RAI_PRODUCT_ID, () => Products.Get(RAI_PRODUCT_ID), true)
   const price = await checkGet('Price', RAI_PRICE_SCHEDULE_ID, () => PriceSchedules.Get(RAI_PRICE_SCHEDULE_ID))
@@ -459,34 +792,92 @@ export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => 
     : { label: 'Options', status: specItems.some((item) => item.status === 'missing') ? 'missing' : 'warning', message: specItems.filter((item) => item.status !== 'ready').map((item) => `${item.label}: ${item.message}`).join(' · '), technicalID: SPEC_CONFIG.map((spec) => spec.id).join(', ') }
   const productSetup = [product, price, optionsStatus]
 
+  const productAvailabilityAssignments = await Promise.all(RAI_EVENT_CATALOGS.map(async (config): Promise<RaiReadinessItem> => {
+    try {
+      const assignments = await Catalogs.ListProductAssignments({ catalogID: config.catalogID, productID: RAI_PRODUCT_ID, pageSize: 1 })
+      if (assignments.Items.length) {
+        return { label: `${RAI_PRODUCT_ID} → ${config.eventWebsiteLabel}`, status: 'ready', message: 'Pizza is published to this event website.', technicalID: `${RAI_PRODUCT_ID} / ${config.catalogID}` }
+      }
+      return {
+        label: `${RAI_PRODUCT_ID} → ${config.eventWebsiteLabel}`,
+        status: REQUIRED_DEMO_CATALOG_IDS.includes(config.catalogID) ? 'missing' : 'warning',
+        message: REQUIRED_DEMO_CATALOG_IDS.includes(config.catalogID) ? 'Pizza has not been published to this event website yet.' : 'Optional event website does not have Pizza published.',
+        technicalID: `${RAI_PRODUCT_ID} / ${config.catalogID}`,
+      }
+    } catch (error) {
+      if (isOrderCloudNotFound(error)) {
+        return {
+          label: `${RAI_PRODUCT_ID} → ${config.eventWebsiteLabel}`,
+          status: REQUIRED_DEMO_CATALOG_IDS.includes(config.catalogID) ? 'missing' : 'warning',
+          message: REQUIRED_DEMO_CATALOG_IDS.includes(config.catalogID) ? 'Pizza has not been published to this event website yet.' : 'Optional event website is not prepared or does not have Pizza published.',
+          technicalID: `${RAI_PRODUCT_ID} / ${config.catalogID}`,
+        }
+      }
+      return { label: `${RAI_PRODUCT_ID} → ${config.eventWebsiteLabel}`, status: 'warning', message: `Product availability could not be checked. ${getReadableErrorMessage(error)}`, technicalID: `${RAI_PRODUCT_ID} / ${config.catalogID}` }
+    }
+  }))
+
   const buyer = await checkGet('Buyer organization', DEFAULT_DEMO_BUYER_ID, () => Buyers.Get(DEFAULT_DEMO_BUYER_ID), true)
   const user = await checkGet('Buyer user', DEFAULT_DEMO_BUYER_USER_ID, () => Users.Get(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID), true)
 
-  const catalogAssignments = await Catalogs.ListAssignments({ catalogID: 'ISE_2026_CATALOG', buyerID: DEFAULT_DEMO_BUYER_ID, pageSize: 1 })
-  const iseAccess: RaiReadinessItem = catalogAssignments.Items.length
-    ? { label: 'ISE 2026 access', status: 'ready', message: 'Exhibitor access is assigned.', technicalID: 'ISE_2026_CATALOG' }
-    : { label: 'ISE 2026 access', status: 'missing', message: 'Prepare event websites, then run the buyer setup again.', technicalID: 'ISE_2026_CATALOG' }
+  let iseAccess: RaiReadinessItem
+  try {
+    const catalogAssignments = await Catalogs.ListAssignments({ catalogID: 'ISE_2026_CATALOG', buyerID: DEFAULT_DEMO_BUYER_ID, pageSize: 1 })
+    iseAccess = catalogAssignments.Items.length
+      ? { label: 'ISE 2026 access', status: 'ready', message: 'Exhibitor access is assigned.', technicalID: 'ISE_2026_CATALOG' }
+      : { label: 'ISE 2026 access', status: 'missing', message: 'Register Blue Ocean Exhibits to assign event website access.', technicalID: 'ISE_2026_CATALOG' }
+  } catch (error) {
+    iseAccess = isOrderCloudNotFound(error)
+      ? { label: 'ISE 2026 access', status: 'missing', message: 'Register Blue Ocean Exhibits to assign event website access.', technicalID: 'ISE_2026_CATALOG' }
+      : { label: 'ISE 2026 access', status: 'warning', message: `Event website access could not be checked. ${getReadableErrorMessage(error)}`, technicalID: 'ISE_2026_CATALOG' }
+  }
 
-  const productAssignments = await Products.ListAssignments({ productID: RAI_PRODUCT_ID, buyerID: DEFAULT_DEMO_BUYER_ID, priceScheduleID: RAI_PRICE_SCHEDULE_ID, pageSize: 1 })
-  const pizzaPricing: RaiReadinessItem = productAssignments.Items.length
-    ? { label: 'Pizza pricing', status: 'ready', message: 'Pizza pricing is assigned.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
-    : { label: 'Pizza pricing', status: 'missing', message: 'Create the Pizza product setup, then run the buyer setup again.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+  let pizzaPricing: RaiReadinessItem
+  try {
+    const productAssignments = await Products.ListAssignments({ productID: RAI_PRODUCT_ID, buyerID: DEFAULT_DEMO_BUYER_ID, priceScheduleID: RAI_PRICE_SCHEDULE_ID, pageSize: 1 })
+    pizzaPricing = productAssignments.Items.length
+      ? { label: 'Pizza pricing', status: 'ready', message: 'Pizza pricing is assigned.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+      : { label: 'Pizza pricing', status: 'missing', message: 'Register Blue Ocean Exhibits to assign optional Pizza pricing.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+  } catch (error) {
+    pizzaPricing = isOrderCloudNotFound(error)
+      ? { label: 'Pizza pricing', status: 'missing', message: 'Register Blue Ocean Exhibits to assign optional Pizza pricing.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+      : { label: 'Pizza pricing', status: 'warning', message: `Pizza pricing could not be checked. ${getReadableErrorMessage(error)}`, technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+  }
 
-  const securityAssignments = await SecurityProfiles.ListAssignments({ buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID, pageSize: 20 })
-  const shopperAccess: RaiReadinessItem = securityAssignments.Items.length
-    ? { label: 'Shopper access/security profile', status: 'ready', message: 'Shopper-style access is assigned.', technicalID: securityAssignments.Items.map((item) => item.SecurityProfileID).filter(Boolean).join(', ') }
-    : { label: 'Shopper access/security profile', status: 'warning', message: 'This optional setup was not found in the demo environment. You can continue recording the main flow.', technicalID: 'SecurityProfiles.ListAssignments' }
-  if (shopperAccess.status === 'warning') warnings.push('Shopper access/security profile: This optional setup was not found in the demo environment. You can continue recording the main flow.')
+  let shopperAccess: RaiReadinessItem
+  try {
+    const securityAssignments = await SecurityProfiles.ListAssignments({ buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID, pageSize: 20 })
+    shopperAccess = securityAssignments.Items.length
+      ? { label: 'Shopper access/security profile', status: 'ready', message: 'Shopper-style access is assigned.', technicalID: securityAssignments.Items.map((item) => item.SecurityProfileID).filter(Boolean).join(', ') }
+      : { label: 'Shopper access/security profile', status: 'warning', message: 'Shopper access profile was not found in this demo environment. You can continue the main setup flow.', technicalID: 'SecurityProfiles.ListAssignments' }
+  } catch (error) {
+    shopperAccess = isOrderCloudNotFound(error)
+      ? { label: 'Shopper access/security profile', status: 'warning', message: 'Shopper access profile was not found in this demo environment. You can continue the main setup flow.', technicalID: 'SecurityProfiles.ListAssignments' }
+      : { label: 'Shopper access/security profile', status: 'warning', message: `Shopper access could not be checked. ${getReadableErrorMessage(error)}`, technicalID: 'SecurityProfiles.ListAssignments' }
+  }
+  if (shopperAccess.status === 'warning') warnings.push('Shopper access/security profile: Shopper access profile was not found in this demo environment. You can continue the main setup flow.')
 
   const buyerSetup = [buyer, user, iseAccess, pizzaPricing, shopperAccess]
   const allItems = [...eventWebsites, ...productSetup, ...buyerSetup]
   warnings.push(...allItems.filter((item) => item.status === 'missing' || item.status === 'warning').map((item) => `${item.label}: ${item.message || item.status}`))
+  const eventWebsitesReady = eventWebsites.filter((item) => REQUIRED_DEMO_CATALOG_IDS.includes(item.technicalID || '')).every((item) => item.status === 'ready')
+  const pizzaSetupReady = productSetup.every((item) => item.status === 'ready')
+  const exhibitorSetupReady = [buyer, user, iseAccess].every((item) => item.status === 'ready')
+  const readyToRecord = eventWebsitesReady && pizzaSetupReady && exhibitorSetupReady
 
   return {
     overallStatus: getReadinessStatus(allItems),
+    eventWebsitesReady,
+    pizzaSetupReady,
+    exhibitorSetupReady,
+    readyToRecord,
+    canCreatePizza: eventWebsitesReady,
+    canRegisterBuyer: eventWebsitesReady && pizzaSetupReady,
+    canRunFinalReadinessCheck: readyToRecord,
     eventWebsites,
     productSetup,
     buyerSetup,
+    productAvailabilityAssignments,
     warnings,
     technicalSummary: [
       `Catalog IDs: ${RAI_EVENT_CATALOGS.map((catalog) => catalog.catalogID).join(', ')}`,
@@ -495,6 +886,11 @@ export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => 
       `Spec IDs: ${SPEC_CONFIG.map((spec) => spec.id).join(', ')}`,
       `Buyer ID: ${DEFAULT_DEMO_BUYER_ID}`,
       `Buyer user ID: ${DEFAULT_DEMO_BUYER_USER_ID}`,
+      `Product availability assignments: ${productAvailabilityAssignments.map((item) => `${item.technicalID}: ${item.status}`).join(', ')}`,
+      `Required event websites ready: ${eventWebsitesReady}`,
+      `Pizza setup ready: ${pizzaSetupReady}`,
+      `Exhibitor setup ready: ${exhibitorSetupReady}`,
+      `Optional Interclean status: ${eventWebsites.find((item) => item.technicalID === 'INTERCLEAN_2026_CATALOG')?.status || 'unchecked'}`,
       ...warnings,
     ],
   }

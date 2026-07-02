@@ -26,6 +26,7 @@ import {
   Text,
   UnorderedList,
   VStack,
+  useColorModeValue,
   useToast,
 } from '@chakra-ui/react'
 import { FC, ReactNode, useMemo, useState } from 'react'
@@ -44,10 +45,15 @@ interface WizardShellProps {
   onNext: () => void
   onSubmit: () => void
   isSubmitting?: boolean
+  isComplete?: boolean
+  successPrimaryLabel?: string
+  successTo?: string
+  rerunLabel?: string
 }
 
-const WizardShell: FC<WizardShellProps> = ({ title, description, steps, currentStep, children, onBack, onNext, onSubmit, isSubmitting = false }) => {
+const WizardShell: FC<WizardShellProps> = ({ title, description, steps, currentStep, children, onBack, onNext, onSubmit, isSubmitting = false, isComplete = false, successPrimaryLabel, successTo, rerunLabel = 'Run setup again' }) => {
   const isReviewStep = currentStep === steps.length - 1
+  const showSuccessActions = isReviewStep && isComplete && successPrimaryLabel && successTo
 
   return (
     <Container maxW="6xl" p={8}>
@@ -79,9 +85,20 @@ const WizardShell: FC<WizardShellProps> = ({ title, description, steps, currentS
               <Button onClick={onBack} isDisabled={currentStep === 0 || isSubmitting} variant="outline">
                 Previous
               </Button>
-              <Button colorScheme="blue" onClick={isReviewStep ? onSubmit : onNext} isLoading={isSubmitting} isDisabled={isSubmitting}>
-                {isReviewStep ? 'Create demo setup' : 'Next'}
-              </Button>
+              {showSuccessActions ? (
+                <HStack>
+                  <Button variant="outline" onClick={onSubmit} isLoading={isSubmitting} isDisabled={isSubmitting}>
+                    {rerunLabel}
+                  </Button>
+                  <Button as={Link} to={successTo} colorScheme="blue">
+                    {successPrimaryLabel}
+                  </Button>
+                </HStack>
+              ) : (
+                <Button colorScheme="blue" onClick={isReviewStep ? onSubmit : onNext} isLoading={isSubmitting} isDisabled={isSubmitting}>
+                  {isReviewStep ? 'Create demo setup' : 'Next'}
+                </Button>
+              )}
             </HStack>
           </Stack>
         </CardBody>
@@ -108,6 +125,14 @@ const eventWebsiteLabelsByCatalogID: Record<string, string> = {
 }
 
 const formatEventWebsiteLabels = (catalogIDs: string[]) => catalogIDs.map((catalogID) => eventWebsiteLabelsByCatalogID[catalogID] ?? catalogID).join(', ')
+
+const useResultCardColors = (scheme: 'green' | 'orange') => ({
+  bg: useColorModeValue(`${scheme}.50`, `${scheme}.900`),
+  borderColor: useColorModeValue(`${scheme}.200`, `${scheme}.600`),
+  headingColor: useColorModeValue(`${scheme}.800`, `${scheme}.100`),
+  textColor: useColorModeValue('gray.800', `${scheme}.50`),
+  subtleColor: useColorModeValue('gray.700', `${scheme}.100`),
+})
 
 const ProductReview: FC<{ form: RaiProductSetupForm; result?: RaiProductSetupResult }> = ({ form, result }) => (
   <Stack spacing={5}>
@@ -140,24 +165,35 @@ const BuyerReview: FC<{ form: RaiBuyerSetupForm; result?: RaiBuyerSetupResult }>
   </Stack>
 )
 
-const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = ({ result, companyName }) => (
-  <Stack spacing={4}>
-    <Card bg="green.50" borderColor="green.200" variant="outline">
-      <CardBody>
-        <Stack spacing={3}>
-          <Heading as="h2" size="md" color="green.700">Blue Ocean Exhibits is ready for ISE 2026</Heading>
+const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = ({ result, companyName }) => {
+  const colors = useResultCardColors(result.warnings.length ? 'orange' : 'green')
+  const heading = result.warnings.length && result.catalogAccessAssigned
+    ? 'Blue Ocean Exhibits has event access for ISE 2026'
+    : result.warnings.length
+      ? 'Blue Ocean Exhibits needs another pass for ISE 2026'
+      : 'Blue Ocean Exhibits is ready for ISE 2026'
+
+  return (
+    <Stack spacing={4}>
+      <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
+        <CardBody>
+          <Stack spacing={3} color={colors.textColor}>
+            <Heading as="h2" size="md" color={colors.headingColor}>
+              {heading}
+            </Heading>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
             <SummaryRow label="Event website access" value={result.catalogAccessAssigned ? result.eventWebsiteLabel : 'Prepare event websites, then run this step again'} />
             <SummaryRow label="Buyer contact" value={result.username} />
             <SummaryRow label="Exhibitor company ID" value={result.buyerID} />
             <SummaryRow label="Booth" value={result.boothNumber} />
             <SummaryRow label="Pricing tier" value={result.priceTier} />
-            <SummaryRow label="Shopper access" value={result.securityProfileAssigned ? 'Ready' : 'Optional shopper access was not found'} />
+            <SummaryRow label="Pizza pricing override" value={result.productPricingAssigned ? 'Applied' : 'Not applied'} />
+            <SummaryRow label="Shopper access" value={result.securityProfileAssigned ? 'Ready' : 'Shopper access profile was not found in this demo environment'} />
           </SimpleGrid>
           {result.warnings.length > 0 && (
             <Box>
-              <Text fontWeight="semibold" color="orange.700">Setup completed with friendly notes</Text>
-              <UnorderedList color="orange.700">
+              <Text fontWeight="semibold" color={colors.headingColor}>Setup completed with friendly notes</Text>
+              <UnorderedList>
                 {result.warnings.map((warning) => <ListItem key={warning}>{warning}</ListItem>)}
               </UnorderedList>
             </Box>
@@ -174,20 +210,27 @@ const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = (
             <SummaryRow label="Exhibitor" value={companyName} />
             <SummaryRow label="Booth" value={result.boothNumber} />
             <SummaryRow label="Can access event products" value={result.catalogAccessAssigned ? 'Yes' : 'No'} />
-            <SummaryRow label="Pricing tier" value={result.priceTier} />
+            <SummaryRow label="Pizza pricing override" value={result.productPricingAssigned ? result.priceTier : 'Not applied; storefront access remains assigned'} />
             <SummaryRow label="Example product" value={result.exampleProductAvailable ? 'Pizza' : 'Pizza not confirmed yet'} />
           </SimpleGrid>
         </Stack>
       </CardBody>
     </Card>
   </Stack>
-)
+  )
+}
 
-const ProductSuccess: FC<{ result: RaiProductSetupResult }> = ({ result }) => (
-  <Card bg="green.50" borderColor="green.200" variant="outline">
-    <CardBody>
-      <Stack spacing={3}>
-        <Heading as="h2" size="md" color="green.700">Pizza is ready</Heading>
+const ProductSuccess: FC<{ result: RaiProductSetupResult }> = ({ result }) => {
+  const colors = useResultCardColors(result.skippedCatalogs.length ? 'orange' : 'green')
+
+  return (
+    <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
+      <CardBody>
+        <Stack spacing={3} color={colors.textColor}>
+          <Heading as="h2" size="md" color={colors.headingColor}>Pizza product setup is ready</Heading>
+          {result.skippedCatalogs.length > 0 && (
+            <Text color={colors.subtleColor}>Some event websites need another pass before Pizza is published there.</Text>
+          )}
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
           <SummaryRow label="Event websites published to" value={result.assignedCatalogIDs.length ? formatEventWebsiteLabels(result.assignedCatalogIDs) : 'Prepare event websites, then run this step again'} />
           <SummaryRow label="Default price" value={`${result.currency} ${result.defaultPrice.toFixed(2)}`} />
@@ -197,8 +240,8 @@ const ProductSuccess: FC<{ result: RaiProductSetupResult }> = ({ result }) => (
         </SimpleGrid>
         {result.skippedCatalogs.length > 0 && (
           <Box>
-            <Text fontWeight="semibold" color="orange.700">Some event websites need another pass</Text>
-            <UnorderedList color="orange.700">
+            <Text fontWeight="semibold" color={colors.headingColor}>Event websites needing another pass</Text>
+            <UnorderedList>
               {result.skippedCatalogs.map((catalog) => <ListItem key={catalog.eventWebsiteLabel}>{catalog.eventWebsiteLabel}: {catalog.reason}</ListItem>)}
             </UnorderedList>
           </Box>
@@ -206,7 +249,8 @@ const ProductSuccess: FC<{ result: RaiProductSetupResult }> = ({ result }) => (
       </Stack>
     </CardBody>
   </Card>
-)
+  )
+}
 
 const TechnicalDetails: FC<{ items: string[]; label?: string }> = ({ items, label = 'What will happen in OrderCloud?' }) => (
   <Accordion allowToggle>
@@ -234,7 +278,11 @@ export const RaiProductWizard: FC = () => {
     mutationFn: submitRaiProductSetup,
     onSuccess: (data) => {
       setResult(data)
-      toast({ title: 'Pizza is ready', description: 'The demo product was created or updated in OrderCloud.', status: 'success' })
+      toast({
+        title: 'Pizza product setup is ready',
+        description: data.skippedCatalogs.length ? 'Some event websites need another pass before Pizza is published there.' : 'The demo product was created or updated.',
+        status: data.skippedCatalogs.length ? 'warning' : 'success',
+      })
     },
     onError: (error) => {
       const description = error instanceof Error ? error.message : 'OrderCloud could not create the product setup.'
@@ -253,7 +301,7 @@ export const RaiProductWizard: FC = () => {
     if (currentStep === 3) return <CheckboxGroup value={form.eventWebsites} onChange={(v) => update('eventWebsites', v as string[])}><FormLabel>Product availability across event websites</FormLabel><Stack><Checkbox value="ISE 2026">ISE 2026</Checkbox><Checkbox value="RAI Catering Portal">RAI Catering Portal</Checkbox><Checkbox value="Interclean 2026">Interclean 2026</Checkbox><Checkbox value="Vegetarian-only Event">Vegetarian-only Event</Checkbox></Stack></CheckboxGroup>
     return <ProductReview form={form} result={result} />
   }, [currentStep, form, result])
-  return <WizardShell title="Create Pizza Product Setup" description="Create Pizza once, configure product options, and publish it across the selected event websites." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => productMutation.mutate(form)} isSubmitting={productMutation.isPending}>{body}</WizardShell>
+  return <WizardShell title="Create Pizza Product Setup" description="Create Pizza once, configure product options, and publish it across the selected event websites." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => productMutation.mutate(form)} isSubmitting={productMutation.isPending} isComplete={Boolean(result)} successPrimaryLabel="Continue to Step 3" successTo="/rai-event-setup?completed=product&focus=buyer">{body}</WizardShell>
 }
 
 export const RaiBuyerWizard: FC = () => {
@@ -266,7 +314,7 @@ export const RaiBuyerWizard: FC = () => {
     mutationFn: submitRaiBuyerSetup,
     onSuccess: (data) => {
       setResult(data)
-      toast({ title: `${form.companyName} is ready`, description: 'The exhibitor buyer was created or updated in OrderCloud.', status: data.warnings.length ? 'warning' : 'success' })
+      toast({ title: data.warnings.length ? `${form.companyName} is partly ready` : `${form.companyName} is ready`, description: 'The exhibitor buyer was created or updated.', status: data.warnings.length ? 'warning' : 'success' })
     },
     onError: (error) => {
       const description = error instanceof Error ? error.message : 'OrderCloud could not create the buyer setup.'
@@ -282,5 +330,5 @@ export const RaiBuyerWizard: FC = () => {
     if (currentStep === 3) return <VStack align="stretch" spacing={5}><CheckboxGroup value={form.eventWebsites} onChange={(v) => update('eventWebsites', v as string[])}><FormLabel>Event website access</FormLabel><Stack><Checkbox value="ISE 2026">ISE 2026 event website</Checkbox><Checkbox value="RAI Catering Portal">RAI Catering Portal</Checkbox></Stack></CheckboxGroup><CheckboxGroup value={form.productAccess} onChange={(v) => update('productAccess', v as string[])}><FormLabel>Shopper access</FormLabel><HStack flexWrap="wrap"><Checkbox value="Food & Catering">Food & Catering</Checkbox><Checkbox value="Pizza">Pizza</Checkbox><Checkbox value="Furniture">Furniture</Checkbox></HStack></CheckboxGroup><FormControl><FormLabel>Pricing tier</FormLabel><Select value={form.pricingTier} onChange={(e) => update('pricingTier', e.target.value)}><option>ISE 2026 exhibitor pricing</option><option>Standard exhibitor pricing</option><option>Partner pricing</option></Select></FormControl></VStack>
     return <BuyerReview form={form} result={result} />
   }, [currentStep, form, result])
-  return <WizardShell title="Register Exhibitor Buyer" description="Register an exhibitor for an event, add the buyer contact, and grant event website access with the right pricing tier." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => buyerMutation.mutate(form)} isSubmitting={buyerMutation.isPending}>{body}</WizardShell>
+  return <WizardShell title="Register Exhibitor Buyer" description="Register an exhibitor for an event, add the buyer contact, and grant event website access with the right pricing tier." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => buyerMutation.mutate(form)} isSubmitting={buyerMutation.isPending} isComplete={Boolean(result)} successPrimaryLabel="Continue to OrderCloud summary" successTo="/rai-event-setup?completed=buyer&focus=readiness">{body}</WizardShell>
 }

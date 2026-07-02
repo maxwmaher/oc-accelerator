@@ -81,9 +81,17 @@ export interface RaiReadinessItem {
 
 export interface RaiDemoReadinessResult {
   overallStatus: RaiReadinessOverallStatus
+  eventWebsitesReady: boolean
+  pizzaSetupReady: boolean
+  exhibitorSetupReady: boolean
+  readyToRecord: boolean
+  canCreatePizza: boolean
+  canRegisterBuyer: boolean
+  canRunFinalReadinessCheck: boolean
   eventWebsites: RaiReadinessItem[]
   productSetup: RaiReadinessItem[]
   buyerSetup: RaiReadinessItem[]
+  productAvailabilityAssignments: RaiReadinessItem[]
   warnings: string[]
   technicalSummary: string[]
 }
@@ -91,6 +99,24 @@ export interface RaiDemoReadinessResult {
 export interface RaiPrepareDemoEventWebsitesResult {
   createdCatalogIDs: string[]
   updatedCatalogIDs: string[]
+  skippedCatalogIDs: string[]
   warnings: string[]
   technicalSummary: string[]
+}
+
+export type RaiDemoDeleteOverallStatus = 'deleted' | 'partial' | 'already-clean' | 'failed'
+
+export interface RaiDemoDeleteSkippedItem {
+  label: string
+  id: string
+  reason: string
+}
+
+export interface RaiDeleteDemoDataResult {
+  deletedItems: string[]
+  skippedItems: RaiDemoDeleteSkippedItem[]
+  notFoundItems: string[]
+  warnings: string[]
+  technicalSummary: string[]
+  overallStatus: RaiDemoDeleteOverallStatus
 }
