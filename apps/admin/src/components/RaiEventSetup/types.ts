@@ -91,6 +91,7 @@ export interface RaiDemoReadinessResult {
   eventWebsites: RaiReadinessItem[]
   productSetup: RaiReadinessItem[]
   buyerSetup: RaiReadinessItem[]
+  productAvailabilityAssignments: RaiReadinessItem[]
   warnings: string[]
   technicalSummary: string[]
 }

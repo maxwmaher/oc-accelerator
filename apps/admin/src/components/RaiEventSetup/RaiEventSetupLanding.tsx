@@ -74,7 +74,7 @@ const RaiEventSetupLanding: FC = () => {
       setReadiness(data)
       setReadinessError(undefined)
       if (readinessCheckReason.current === 'manual') {
-        toast({ title: data.readyToRecord ? 'Ready to record' : 'Demo status refreshed', description: data.readyToRecord ? 'The RAI demo setup is ready to record.' : 'Follow the next available setup step.', status: data.readyToRecord ? 'success' : 'info' })
+        toast({ title: data.readyToRecord ? 'OrderCloud setup is complete' : 'Demo status refreshed', description: data.readyToRecord ? 'Review the OrderCloud summary for the objects and assignments created.' : 'Follow the next available setup step.', status: data.readyToRecord ? 'success' : 'info' })
       }
     },
     onError: (error) => {
@@ -221,6 +221,9 @@ const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepar
   const readyToRecord = readiness?.readyToRecord ?? false
   const productWarnings = readiness?.productSetup.some((item) => item.status === 'warning') ?? false
   const buyerWarnings = readiness?.buyerSetup.some((item) => item.status === 'warning') ?? false
+  const setupSummaryHasNotes = Boolean(readiness?.warnings.length)
+  const stepFourStatusLabel = readyToRecord ? setupSummaryHasNotes ? 'Complete with notes' : 'Complete' : 'Needs attention'
+  const stepFourStatusColor = readyToRecord ? setupSummaryHasNotes ? 'orange' : 'green' : 'orange'
   const selectedEventWebsiteNames = EVENT_WEBSITE_OPTIONS.filter((item) => selectedCatalogIDs.includes(item.catalogID)).map((item) => item.label).join(', ')
 
   return (
@@ -231,7 +234,7 @@ const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepar
             <Box>
               <Heading as="h2" size="lg">RAI Admin Demo Setup</Heading>
               <Text color="chakra-subtle-text" mt={2}>
-                Follow these steps in order to prepare the OrderCloud demo environment and record the walkthrough.
+                Follow these steps in order to prepare the OrderCloud demo environment and review how the pieces connect.
               </Text>
             </Box>
             <Button variant="outline" onClick={onRefresh} isLoading={isChecking} isDisabled={isPreparing}>
@@ -287,13 +290,16 @@ const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepar
             />
             <GuidedStepCard
               stepNumber={4}
-              title="Final readiness check"
-              description="Confirm the event websites, Pizza product setup, and exhibitor access are ready before recording."
+              title="Review OrderCloud setup summary"
+              description="Review the OrderCloud products, catalogs, buyers, and assignments created by this guided setup."
               status={readyToRecord ? 'ready' : eventWebsitesReady && pizzaSetupReady && exhibitorSetupReady ? 'next' : 'blocked'}
-              readyText="Ready to record."
+              statusLabel={stepFourStatusLabel}
+              statusColorScheme={stepFourStatusColor}
+              readyText="OrderCloud setup is complete."
               blockedText={!eventWebsitesReady ? 'Prepare event websites first.' : !pizzaSetupReady ? 'Create Pizza setup first.' : 'Register Blue Ocean Exhibits first.'}
+              result={readiness && <OrderCloudSetupSummary readiness={readiness} />}
               isHighlighted={focusStep === 'readiness'}
-              action={<Button colorScheme="blue" variant={readyToRecord ? 'outline' : 'solid'} onClick={onRefresh} isLoading={isChecking} isDisabled={!eventWebsitesReady || !pizzaSetupReady || !exhibitorSetupReady || isPreparing}>{readyToRecord ? 'Check again' : 'Check final readiness'}</Button>}
+              action={<Button colorScheme="blue" variant={readyToRecord ? 'outline' : 'solid'} onClick={onRefresh} isLoading={isChecking} isDisabled={!eventWebsitesReady || !pizzaSetupReady || !exhibitorSetupReady || isPreparing}>Refresh OrderCloud summary</Button>}
             />
           </Stack>
           {readiness && <TechnicalDetails items={readiness.technicalSummary} />}
@@ -313,8 +319,11 @@ const GuidedStepCard: FC<{
   blockedText?: string
   result?: ReactNode
   isHighlighted?: boolean
-}> = ({ stepNumber, title, description, status, action, readyText, blockedText, result, isHighlighted = false }) => {
+  statusLabel?: string
+  statusColorScheme?: string
+}> = ({ stepNumber, title, description, status, action, readyText, blockedText, result, isHighlighted = false, statusLabel, statusColorScheme }) => {
   const statusDetails = guidedStatusCopy[status]
+  const displayStatus = { label: statusLabel || statusDetails.label, colorScheme: statusColorScheme || statusDetails.colorScheme }
   const borderColor = useColorModeValue(isHighlighted || status === 'next' ? 'blue.300' : 'gray.200', isHighlighted || status === 'next' ? 'blue.500' : 'gray.700')
   const boxShadow = isHighlighted ? '0 0 0 2px var(--chakra-colors-blue-300)' : undefined
 
@@ -324,19 +333,139 @@ const GuidedStepCard: FC<{
         <Stack spacing={4}>
           <HStack justify="space-between" align="flex-start" flexWrap="wrap">
             <HStack align="flex-start">
-              <Badge borderRadius="full" colorScheme={statusDetails.colorScheme}>{stepNumber}</Badge>
+              <Badge borderRadius="full" colorScheme={displayStatus.colorScheme}>{stepNumber}</Badge>
               <Box>
                 <Heading as="h3" size="md">{title}</Heading>
                 <Text color="chakra-subtle-text" mt={1}>{description}</Text>
               </Box>
             </HStack>
-            <Badge colorScheme={statusDetails.colorScheme}>{statusDetails.label}</Badge>
+            <Badge colorScheme={displayStatus.colorScheme}>{displayStatus.label}</Badge>
           </HStack>
           {status === 'ready' && readyText && <Text color="chakra-subtle-text">{readyText} Rerunning this step is safe.</Text>}
           {status === 'optional' && readyText && <Text color="chakra-subtle-text">{readyText} Review optional notes below when needed.</Text>}
           {status === 'blocked' && blockedText && <Text color="chakra-subtle-text">{blockedText}</Text>}
           <Box>{action}</Box>
           {result}
+        </Stack>
+      </CardBody>
+    </Card>
+  )
+}
+
+const getReadinessItem = (items: RaiDemoReadinessResult['eventWebsites'], label: string) => items.find((item) => item.label === label)
+
+const getReadinessBadgeColor = (status?: string) => {
+  if (status === 'ready') return 'green'
+  if (status === 'warning') return 'orange'
+  if (status === 'missing') return 'red'
+  return 'gray'
+}
+
+const SummaryStatusBadge: FC<{ status?: string; label?: string }> = ({ status, label }) => (
+  <Badge colorScheme={getReadinessBadgeColor(status)}>{label || (status === 'ready' ? 'Ready' : status === 'warning' ? 'Needs attention' : status === 'missing' ? 'Missing' : 'Not checked')}</Badge>
+)
+
+const SummaryRow: FC<{ label: string; value: string; status?: string; statusLabel?: string; note?: string }> = ({ label, value, status, statusLabel, note }) => (
+  <Box borderWidth="1px" borderRadius="md" p={3}>
+    <HStack justify="space-between" align="flex-start" gap={3}>
+      <Box>
+        <Text fontWeight="semibold">{label}</Text>
+        <Text fontSize="sm" color="chakra-subtle-text">{value}</Text>
+        {note && <Text fontSize="sm" color="chakra-subtle-text" mt={1}>{note}</Text>}
+      </Box>
+      <SummaryStatusBadge status={status} label={statusLabel} />
+    </HStack>
+  </Box>
+)
+
+const OrderCloudSummaryGroup: FC<{ title: string; children: ReactNode }> = ({ title, children }) => (
+  <Box>
+    <Heading as="h4" size="sm" mb={3}>{title}</Heading>
+    <Stack spacing={2}>{children}</Stack>
+  </Box>
+)
+
+const OrderCloudSetupSummary: FC<{ readiness: RaiDemoReadinessResult }> = ({ readiness }) => {
+  const colors = useResultCardColors(readiness.readyToRecord ? readiness.warnings.length ? 'orange' : 'green' : 'blue')
+  const product = getReadinessItem(readiness.productSetup, 'Product')
+  const price = getReadinessItem(readiness.productSetup, 'Price')
+  const options = getReadinessItem(readiness.productSetup, 'Options')
+  const buyer = getReadinessItem(readiness.buyerSetup, 'Buyer organization')
+  const buyerUser = getReadinessItem(readiness.buyerSetup, 'Buyer user')
+  const iseAccess = getReadinessItem(readiness.buyerSetup, 'ISE 2026 access')
+  const pizzaPricing = getReadinessItem(readiness.buyerSetup, 'Pizza pricing')
+  const shopperAccess = getReadinessItem(readiness.buyerSetup, 'Shopper access/security profile')
+  const interclean = readiness.eventWebsites.find((item) => item.technicalID === 'INTERCLEAN_2026_CATALOG')
+
+  return (
+    <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
+      <CardBody>
+        <Stack spacing={5} color={colors.textColor}>
+          <Box>
+            <Heading as="h3" size="sm" color={colors.headingColor}>
+              {readiness.readyToRecord ? 'OrderCloud setup is complete' : 'OrderCloud setup summary'}
+            </Heading>
+            <Text color={colors.subtleColor} mt={1}>
+              This summary shows the catalogs, product setup, buyer setup, and assignments created for the RAI demo.
+            </Text>
+          </Box>
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={5}>
+            <OrderCloudSummaryGroup title="Catalogs / event websites">
+              {EVENT_WEBSITE_OPTIONS.map((eventWebsite) => {
+                const item = readiness.eventWebsites.find((entry) => entry.technicalID === eventWebsite.catalogID)
+                const isOptionalMissing = !eventWebsite.required && item?.status !== 'ready'
+                return (
+                  <SummaryRow
+                    key={eventWebsite.catalogID}
+                    label={`${eventWebsite.catalogID} — ${eventWebsite.label}`}
+                    value={eventWebsite.purpose}
+                    status={isOptionalMissing ? 'warning' : item?.status}
+                    statusLabel={isOptionalMissing ? 'Optional/not created' : item?.status === 'ready' ? 'Active' : undefined}
+                    note={item?.message}
+                  />
+                )
+              })}
+            </OrderCloudSummaryGroup>
+            <OrderCloudSummaryGroup title="Product setup">
+              <SummaryRow label="Product: RAI_PIZZA" value="Reusable Pizza product" status={product?.status} note={product?.message} />
+              <SummaryRow label="PriceSchedule: RAI_PIZZA_DEFAULT_PRICE" value="Default Pizza price schedule" status={price?.status} note={price?.message} />
+              <SummaryRow label="Specs: RAI_PIZZA_SIZE, RAI_PIZZA_FLAVOUR, RAI_PIZZA_TOPPING" value="Size, flavour, and topping options" status={options?.status} note={options?.message} />
+              <SummaryRow label="Event option rule" value="Vegetarian-only Event excludes Pepperoni and Ham" status={options?.status === 'ready' ? 'ready' : options?.status} />
+            </OrderCloudSummaryGroup>
+            <OrderCloudSummaryGroup title="Product availability assignments">
+              {readiness.productAvailabilityAssignments.map((assignment) => (
+                <SummaryRow
+                  key={assignment.technicalID || assignment.label}
+                  label={assignment.label}
+                  value={assignment.technicalID || 'Catalog product assignment'}
+                  status={assignment.status}
+                  statusLabel={assignment.status === 'ready' ? 'Published' : undefined}
+                  note={assignment.message}
+                />
+              ))}
+              {interclean?.status !== 'ready' && (
+                <Text fontSize="sm" color={colors.subtleColor}>Interclean 2026 is optional and does not block the main demo path.</Text>
+              )}
+            </OrderCloudSummaryGroup>
+            <OrderCloudSummaryGroup title="Buyer setup">
+              <SummaryRow label="Buyer: RAI_EXHIBITOR_BLUE_OCEAN_EXHIBITS_ISE_2026" value="Blue Ocean Exhibits" status={buyer?.status} note={buyer?.message} />
+              <SummaryRow label="Buyer User: RAI_BUYER_ALEX_DEMO_ISE_2026" value="alex.demo@blue-ocean-exhibits.example" status={buyerUser?.status} note={buyerUser?.message} />
+              <SummaryRow label="Event and booth" value="ISE 2026 · Booth 12-A40" status={buyer?.status} />
+            </OrderCloudSummaryGroup>
+            <OrderCloudSummaryGroup title="Buyer access assignments">
+              <SummaryRow label="Blue Ocean Exhibits → ISE_2026_CATALOG" value="Event website access for ISE 2026" status={iseAccess?.status} note={iseAccess?.message} />
+              <SummaryRow label="Blue Ocean Exhibits → RAI_PIZZA / RAI_PIZZA_DEFAULT_PRICE" value="Product/pricing assignment" status={pizzaPricing?.status} statusLabel={pizzaPricing?.status === 'ready' ? 'Assigned' : undefined} note={pizzaPricing?.message} />
+            </OrderCloudSummaryGroup>
+            <OrderCloudSummaryGroup title="Shopper access">
+              <SummaryRow
+                label="Security profile assignment"
+                value={shopperAccess?.technicalID || 'No shopper security profile was assigned in this demo environment.'}
+                status={shopperAccess?.status}
+                statusLabel={shopperAccess?.status === 'ready' ? 'Assigned' : undefined}
+                note={shopperAccess?.message}
+              />
+            </OrderCloudSummaryGroup>
+          </SimpleGrid>
         </Stack>
       </CardBody>
     </Card>
