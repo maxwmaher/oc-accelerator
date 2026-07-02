@@ -109,8 +109,12 @@ const upsertBuyer = async (form: RaiBuyerSetupForm, buyerID: string, eventWebsit
     await Buyers.Patch(buyerID, buyer)
     return 'Buyer organization created/updated: patched existing exhibitor buyer.'
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Buyer organization setup failed: ${getReadableErrorMessage(error)}`)
-    await Buyers.Create(buyer)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Buyer organization setup failed: ${getReadableErrorMessage(error)}`)
+    try {
+      await Buyers.Create(buyer)
+    } catch (createError) {
+      throw new Error(`Buyer organization create failed after not-found lookup for ${buyerID}: ${getReadableErrorMessage(createError)}`)
+    }
     return 'Buyer organization created/updated: created exhibitor buyer.'
   }
 }
@@ -136,8 +140,12 @@ const upsertBuyerUser = async (form: RaiBuyerSetupForm, buyerID: string, buyerUs
     await Users.Patch(buyerID, buyerUserID, user)
     return 'Buyer user created/updated: patched existing exhibitor contact.'
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Buyer user setup failed: ${getReadableErrorMessage(error)}`)
-    await Users.Create(buyerID, user)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Buyer user setup failed: ${getReadableErrorMessage(error)}`)
+    try {
+      await Users.Create(buyerID, user)
+    } catch (createError) {
+      throw new Error(`Buyer user create failed after not-found lookup for ${buyerID}/${buyerUserID}: ${getReadableErrorMessage(createError)}`)
+    }
     return 'Buyer user created/updated: created exhibitor contact without sending an invite email.'
   }
 }
@@ -150,7 +158,7 @@ const assignBuyerCatalogAccess = async (buyerID: string, eventWebsiteLabel: stri
     await Catalogs.SaveAssignment({ CatalogID: catalogID, BuyerID: buyerID, ViewAllCategories: true, ViewAllProducts: true })
     return { assigned: true, summary: `Catalog assignment created/updated: ${catalogID} assigned to ${buyerID}.` }
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Event website access setup failed: ${getReadableErrorMessage(error)}`)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Event website access setup failed: ${getReadableErrorMessage(error)}`)
     return { assigned: false, warning: `${eventWebsiteLabel}: This optional event website setup was not found in the demo environment. Prepare event websites, then run this step again.`, summary: `Catalog access skipped: ${catalogID} was not found.` }
   }
 }
@@ -162,7 +170,7 @@ const assignPizzaPricing = async (buyerID: string) => {
     await Products.SaveAssignment({ ProductID: RAI_PRODUCT_ID, BuyerID: buyerID, PriceScheduleID: RAI_PRICE_SCHEDULE_ID })
     return { assigned: true, exampleProductAvailable: true, summary: `Product/pricing assignment created/updated: ${RAI_PRODUCT_ID} uses ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}.` }
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Pizza pricing setup failed: ${getReadableErrorMessage(error)}`)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Pizza pricing setup failed: ${getReadableErrorMessage(error)}`)
     return { assigned: false, exampleProductAvailable: false, warning: 'Pizza pricing was not found in the demo environment. Create the Pizza product setup, then run this step again.', summary: 'Product/pricing assignment skipped: Pizza product or default price schedule was not found.' }
   }
 }
@@ -176,7 +184,7 @@ const assignDemoSecurityProfile = async (buyerID: string, buyerUserID: string) =
       await SecurityProfiles.SaveAssignment({ SecurityProfileID: securityProfileID, BuyerID: buyerID, UserID: buyerUserID })
       return { assigned: true, summary: `Security profile assignment created/updated: ${securityProfileID} assigned to buyer user.` }
     } catch (error) {
-      if (!isNotFound(error)) throw new Error(`Buyer security setup failed: ${getReadableErrorMessage(error)}`)
+      if (!isOrderCloudNotFound(error)) throw new Error(`Buyer security setup failed: ${getReadableErrorMessage(error)}`)
     }
   }
 
@@ -190,14 +198,65 @@ const assignDemoSecurityProfile = async (buyerID: string, buyerUserID: string) =
   return { assigned: false, warning: 'This optional shopper access setup was not found in the demo environment. You can continue recording the main flow.', summary: 'Security profile assignment skipped: no matching shopper security profile was found.' }
 }
 
-const getErrorStatus = (error: unknown) => error instanceof OrderCloudError ? error.status : undefined
+const getErrorNumber = (value: unknown) => {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10)
+    return Number.isNaN(parsed) ? undefined : parsed
+  }
+  return undefined
+}
 
-const isNotFound = (error: unknown) => getErrorStatus(error) === 404
+const getObjectValue = (value: unknown, key: string): unknown => {
+  if (!value || typeof value !== 'object') return undefined
+  return (value as Record<string, unknown>)[key]
+}
+
+const getOrderCloudErrorStatus = (error: unknown): number | undefined => {
+  const directStatus = getErrorNumber(getObjectValue(error, 'status'))
+  if (directStatus) return directStatus
+
+  const directStatusCode = getErrorNumber(getObjectValue(error, 'statusCode'))
+  if (directStatusCode) return directStatusCode
+
+  const response = getObjectValue(error, 'response')
+  const responseStatus = getErrorNumber(getObjectValue(response, 'status'))
+  if (responseStatus) return responseStatus
+
+  const responseStatusCode = getErrorNumber(getObjectValue(response, 'statusCode'))
+  if (responseStatusCode) return responseStatusCode
+
+  const data = getObjectValue(error, 'data') ?? getObjectValue(response, 'data')
+  const dataStatus = getErrorNumber(getObjectValue(data, 'status'))
+  if (dataStatus) return dataStatus
+
+  const dataStatusCode = getErrorNumber(getObjectValue(data, 'statusCode'))
+  if (dataStatusCode) return dataStatusCode
+
+  return undefined
+}
+
+export const isOrderCloudNotFound = (error: unknown) => getOrderCloudErrorStatus(error) === 404
+
+const getOrderCloudErrorDetails = (error: unknown) => {
+  const status = getOrderCloudErrorStatus(error)
+  const statusText = getObjectValue(error, 'statusText') ?? getObjectValue(getObjectValue(error, 'response'), 'statusText')
+  const errorCode = getObjectValue(error, 'errorCode')
+  const errors = getObjectValue(error, 'errors') ?? getObjectValue(getObjectValue(getObjectValue(error, 'response'), 'data'), 'Errors')
+  const details = [
+    status ? `status ${status}` : undefined,
+    typeof statusText === 'string' && statusText ? statusText : undefined,
+    typeof errorCode === 'string' && errorCode ? `code ${errorCode}` : undefined,
+    Array.isArray(errors) && errors.length ? `errors ${JSON.stringify(errors)}` : undefined,
+  ].filter(Boolean)
+  return details.length ? ` (${details.join('; ')})` : ''
+}
 
 const getReadableErrorMessage = (error: unknown) => {
-  if (error instanceof OrderCloudError) return error.message
-  if (error instanceof Error) return error.message
-  return 'OrderCloud could not complete the request.'
+  const details = getOrderCloudErrorDetails(error)
+  if (error instanceof OrderCloudError) return `${error.message}${details}`
+  if (error instanceof Error) return `${error.message}${details}`
+  return `OrderCloud could not complete the request.${details}`
 }
 
 const upsertProduct = async (form: RaiProductSetupForm, price: number) => {
@@ -236,8 +295,12 @@ const upsertProduct = async (form: RaiProductSetupForm, price: number) => {
     await Products.Patch(RAI_PRODUCT_ID, product)
     return 'Product created/updated: patched existing Pizza product.'
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Product setup failed: ${getReadableErrorMessage(error)}`)
-    await Products.Create(product)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Product setup failed: ${getReadableErrorMessage(error)}`)
+    try {
+      await Products.Create(product)
+    } catch (createError) {
+      throw new Error(`Product create failed after not-found lookup for ${RAI_PRODUCT_ID}: ${getReadableErrorMessage(createError)}`)
+    }
     return 'Product created/updated: created Pizza product.'
   }
 }
@@ -256,8 +319,12 @@ const upsertPriceSchedule = async (price: number, currency: string) => {
     await PriceSchedules.Patch(RAI_PRICE_SCHEDULE_ID, priceSchedule)
     return 'Price schedule created/updated: patched Pizza Default Price.'
   } catch (error) {
-    if (!isNotFound(error)) throw new Error(`Price setup failed: ${getReadableErrorMessage(error)}`)
-    await PriceSchedules.Create(priceSchedule)
+    if (!isOrderCloudNotFound(error)) throw new Error(`Price setup failed: ${getReadableErrorMessage(error)}`)
+    try {
+      await PriceSchedules.Create(priceSchedule)
+    } catch (createError) {
+      throw new Error(`Price schedule create failed after not-found lookup for ${RAI_PRICE_SCHEDULE_ID}: ${getReadableErrorMessage(createError)}`)
+    }
     return 'Price schedule created/updated: created Pizza Default Price.'
   }
 }
@@ -271,15 +338,27 @@ const upsertSpecWithOptions = async (specConfig: typeof SPEC_CONFIG[number], for
     AllowOpenText: false,
     xp: { demoManagedBy: RAI_DEMO_MANAGER },
   }
-  await Specs.Save(specConfig.id, spec)
+  try {
+    await Specs.Save(specConfig.id, spec)
+  } catch (error) {
+    throw new Error(`Spec save failed for ${specConfig.id}: ${getReadableErrorMessage(error)}`)
+  }
 
   const optionIDs = await Promise.all(form[specConfig.formKey].map(async (value, index) => {
     const optionID = sanitizeOptionID(value)
-    await Specs.SaveOption(specConfig.id, optionID, { ID: optionID, Value: value, ListOrder: index + 1 })
+    try {
+      await Specs.SaveOption(specConfig.id, optionID, { ID: optionID, Value: value, ListOrder: index + 1 })
+    } catch (error) {
+      throw new Error(`Spec option save failed for ${specConfig.id}/${optionID}: ${getReadableErrorMessage(error)}`)
+    }
     return optionID
   }))
 
-  await Specs.SaveProductAssignment({ SpecID: specConfig.id, ProductID: RAI_PRODUCT_ID })
+  try {
+    await Specs.SaveProductAssignment({ SpecID: specConfig.id, ProductID: RAI_PRODUCT_ID })
+  } catch (error) {
+    throw new Error(`Spec product assignment failed for ${specConfig.id}/${RAI_PRODUCT_ID}: ${getReadableErrorMessage(error)}`)
+  }
   return { specID: specConfig.id, name: specConfig.name, optionIDs }
 }
 
@@ -299,7 +378,7 @@ const assignProductToCatalogs = async (eventWebsites: string[]) => {
       await Catalogs.SaveProductAssignment({ CatalogID: config.catalogID, ProductID: RAI_PRODUCT_ID })
       assignedCatalogIDs.push(config.catalogID)
     } catch (error) {
-      if (!isNotFound(error)) throw new Error(`Publishing to ${eventWebsiteLabel} failed: ${getReadableErrorMessage(error)}`)
+      if (!isOrderCloudNotFound(error)) throw new Error(`Publishing to ${eventWebsiteLabel} failed: ${getReadableErrorMessage(error)}`)
       skippedCatalogs.push({ eventWebsiteLabel, catalogID: config.catalogID, reason: 'Prepare event websites, then run this step again.' })
     }
   }
@@ -413,8 +492,8 @@ const checkGet = async (label: string, technicalID: string, getter: () => Promis
     if (requireActive && 'Active' in item && item.Active === false) return { label, status: 'warning', message: 'Found, but it is not active yet.', technicalID }
     return { label, status: 'ready', message: 'Ready', technicalID }
   } catch (error) {
-    if (isNotFound(error)) return { label, status: 'missing', message: 'Not found in the demo environment yet.', technicalID }
-    return { label, status: 'warning', message: 'This optional setup could not be checked. You can continue recording the main flow if the core steps are visible.', technicalID }
+    if (isOrderCloudNotFound(error)) return { label, status: 'missing', message: 'Not found in the demo environment yet.', technicalID }
+    return { label, status: 'warning', message: `This optional setup could not be checked. You can continue recording the main flow if the core steps are visible. ${getReadableErrorMessage(error)}`, technicalID }
   }
 }
 
@@ -432,13 +511,20 @@ export const prepareRaiDemoEventWebsites = async (): Promise<RaiPrepareDemoEvent
       updatedCatalogIDs.push(config.catalogID)
       technicalSummary.push(`Event website updated: ${config.catalogID}.`)
     } catch (error) {
-      if (!isNotFound(error)) {
-        const warning = `${config.eventWebsiteLabel}: This optional setup could not be prepared. You can continue recording the main flow or try again later.`
+      if (!isOrderCloudNotFound(error)) {
+        const warning = `${config.eventWebsiteLabel}: This optional setup could not be prepared. You can continue recording the main flow or try again later. ${getReadableErrorMessage(error)}`
         warnings.push(warning)
         technicalSummary.push(warning)
         continue
       }
-      await Catalogs.Create(catalog)
+      try {
+        await Catalogs.Create(catalog)
+      } catch (createError) {
+        const warning = `${config.eventWebsiteLabel}: Event website create failed after not-found lookup for ${config.catalogID}: ${getReadableErrorMessage(createError)}`
+        warnings.push(warning)
+        technicalSummary.push(warning)
+        continue
+      }
       createdCatalogIDs.push(config.catalogID)
       technicalSummary.push(`Event website created: ${config.catalogID}.`)
     }
