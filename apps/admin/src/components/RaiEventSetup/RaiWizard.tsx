@@ -32,7 +32,7 @@ import { FC, ReactNode, useMemo, useState } from 'react'
 import { useAuthMutation } from '@ordercloud/react-sdk'
 import { Link } from 'react-router-dom'
 import { submitRaiBuyerSetup, submitRaiProductSetup } from './raiEventSetupService'
-import { RaiBuyerSetupForm, RaiProductSetupForm, RaiProductSetupResult } from './types'
+import { RaiBuyerSetupForm, RaiBuyerSetupResult, RaiProductSetupForm, RaiProductSetupResult } from './types'
 
 interface WizardShellProps {
   title: string
@@ -115,7 +115,7 @@ const ProductReview: FC<{ form: RaiProductSetupForm; result?: RaiProductSetupRes
   </Stack>
 )
 
-const BuyerReview: FC<{ form: RaiBuyerSetupForm }> = ({ form }) => (
+const BuyerReview: FC<{ form: RaiBuyerSetupForm; result?: RaiBuyerSetupResult }> = ({ form, result }) => (
   <Stack spacing={5}>
     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
       <SummaryRow label="Event" value={form.eventName} />
@@ -125,7 +125,51 @@ const BuyerReview: FC<{ form: RaiBuyerSetupForm }> = ({ form }) => (
       <SummaryRow label="Products" value={optionList(form.productAccess)} />
       <SummaryRow label="Pricing for this event" value={form.pricingTier} />
     </SimpleGrid>
-    <TechnicalDetails items={['Buyer organization', 'Buyer user', 'Event website/catalog access', 'Product access', 'Pricing access']} />
+    {result && <BuyerSuccess result={result} companyName={form.companyName} />}
+    <TechnicalDetails items={result?.technicalSummary ?? ['Buyer organization', 'Buyer user', 'Event website/catalog access', 'Product access', 'Pricing access']} label={result ? 'What happened in OrderCloud?' : undefined} />
+  </Stack>
+)
+
+const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = ({ result, companyName }) => (
+  <Stack spacing={4}>
+    <Card bg="green.50" borderColor="green.200" variant="outline">
+      <CardBody>
+        <Stack spacing={3}>
+          <Heading as="h2" size="md" color="green.700">{companyName} is ready for {result.eventWebsiteLabel}</Heading>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <SummaryRow label="Buyer organization ID" value={result.buyerID} />
+            <SummaryRow label="Buyer user" value={`${result.username} · ${result.buyerUserID}`} />
+            <SummaryRow label="Event website access" value={result.catalogAccessAssigned ? `Assigned to ${result.catalogID}` : 'Not assigned yet'} />
+            <SummaryRow label="Booth" value={result.boothNumber} />
+            <SummaryRow label="Pricing tier" value={result.priceTier} />
+            <SummaryRow label="Shopper sign-in profile" value={result.securityProfileAssigned ? 'Assigned' : 'Needs review'} />
+          </SimpleGrid>
+          {result.warnings.length > 0 && (
+            <Box>
+              <Text fontWeight="semibold" color="orange.700">Setup completed with friendly warnings</Text>
+              <UnorderedList color="orange.700">
+                {result.warnings.map((warning) => <ListItem key={warning}>{warning}</ListItem>)}
+              </UnorderedList>
+            </Box>
+          )}
+        </Stack>
+      </CardBody>
+    </Card>
+    <Card variant="outline">
+      <CardBody>
+        <Stack spacing={3}>
+          <Heading as="h3" size="sm">Buyer access preview</Heading>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <SummaryRow label="Event website" value={result.eventWebsiteLabel} />
+            <SummaryRow label="Exhibitor" value={companyName} />
+            <SummaryRow label="Booth" value={result.boothNumber} />
+            <SummaryRow label="Can access event products" value={result.catalogAccessAssigned ? 'Yes' : 'No'} />
+            <SummaryRow label="Pricing tier" value={result.priceTier} />
+            <SummaryRow label="Example product" value={result.exampleProductAvailable ? 'Pizza' : 'Pizza not confirmed yet'} />
+          </SimpleGrid>
+        </Stack>
+      </CardBody>
+    </Card>
   </Stack>
 )
 
@@ -205,6 +249,19 @@ export const RaiBuyerWizard: FC = () => {
   const toast = useToast()
   const steps = ['Select event', 'Exhibitor company', 'Buyer user', 'Access and pricing', 'Review']
   const [currentStep, setCurrentStep] = useState(0)
+  const [result, setResult] = useState<RaiBuyerSetupResult>()
+  const buyerMutation = useAuthMutation({
+    mutationKey: ['rai-event-buyer-setup'],
+    mutationFn: submitRaiBuyerSetup,
+    onSuccess: (data) => {
+      setResult(data)
+      toast({ title: `${form.companyName} is ready`, description: 'The exhibitor buyer was created or updated in OrderCloud.', status: data.warnings.length ? 'warning' : 'success' })
+    },
+    onError: (error) => {
+      const description = error instanceof Error ? error.message : 'OrderCloud could not create the buyer setup.'
+      toast({ title: 'Buyer setup failed', description, status: 'error' })
+    },
+  })
   const [form, setForm] = useState<RaiBuyerSetupForm>({ eventName: 'ISE 2026', companyName: 'Blue Ocean Exhibits', boothNumber: '12-A40', firstName: 'Alex', lastName: 'Demo', email: 'alex.demo@blue-ocean-exhibits.example', eventWebsites: ['ISE 2026'], productAccess: ['Food & Catering', 'Pizza'], pricingTier: 'ISE 2026 exhibitor pricing' })
   const update = <K extends keyof RaiBuyerSetupForm>(key: K, value: RaiBuyerSetupForm[K]) => setForm((prev) => ({ ...prev, [key]: value }))
   const body = useMemo(() => {
@@ -212,7 +269,7 @@ export const RaiBuyerWizard: FC = () => {
     if (currentStep === 1) return <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}><FormControl><FormLabel>Company</FormLabel><Input value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></FormControl><FormControl><FormLabel>Booth</FormLabel><Input value={form.boothNumber} onChange={(e) => update('boothNumber', e.target.value)} /></FormControl></SimpleGrid>
     if (currentStep === 2) return <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}><FormControl><FormLabel>First name</FormLabel><Input value={form.firstName} onChange={(e) => update('firstName', e.target.value)} /></FormControl><FormControl><FormLabel>Last name</FormLabel><Input value={form.lastName} onChange={(e) => update('lastName', e.target.value)} /></FormControl><FormControl><FormLabel>Email</FormLabel><Input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} /></FormControl></SimpleGrid>
     if (currentStep === 3) return <VStack align="stretch" spacing={5}><CheckboxGroup value={form.eventWebsites} onChange={(v) => update('eventWebsites', v as string[])}><FormLabel>Exhibitor access</FormLabel><Stack><Checkbox value="ISE 2026">ISE 2026 event website</Checkbox><Checkbox value="RAI Catering Portal">RAI Catering Portal</Checkbox></Stack></CheckboxGroup><CheckboxGroup value={form.productAccess} onChange={(v) => update('productAccess', v as string[])}><FormLabel>Product access</FormLabel><HStack flexWrap="wrap"><Checkbox value="Food & Catering">Food & Catering</Checkbox><Checkbox value="Pizza">Pizza</Checkbox><Checkbox value="Furniture">Furniture</Checkbox></HStack></CheckboxGroup><FormControl><FormLabel>Pricing for this event</FormLabel><Select value={form.pricingTier} onChange={(e) => update('pricingTier', e.target.value)}><option>ISE 2026 exhibitor pricing</option><option>Standard exhibitor pricing</option><option>Partner pricing</option></Select></FormControl></VStack>
-    return <BuyerReview form={form} />
-  }, [currentStep, form])
-  return <WizardShell title="Register Exhibitor Buyer" description="Register an exhibitor buyer and give them the event access they need." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={async () => { await submitRaiBuyerSetup(form); toast({ title: 'Demo buyer setup ready', description: 'Phase 2 will connect this guided flow to OrderCloud writes.', status: 'success' }) }}>{body}</WizardShell>
+    return <BuyerReview form={form} result={result} />
+  }, [currentStep, form, result])
+  return <WizardShell title="Register Exhibitor Buyer" description="Register an exhibitor buyer and give them the event access they need." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => buyerMutation.mutate(form)} isSubmitting={buyerMutation.isPending}>{body}</WizardShell>
 }
