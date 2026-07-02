@@ -9,50 +9,11 @@ import {
 } from "@chakra-ui/react";
 import { FC } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import defaultHeroImage from "../assets/default_images/default_hero_image.jpg";
-import {
-  DASHBOARD_HERO_CTA_LINK,
-  DASHBOARD_HERO_CTA_TEXT,
-  DASHBOARD_HERO_IMAGE,
-  DASHBOARD_HERO_TAGLINE,
-  DASHBOARD_SECONDARY_CTA_LINK,
-  DASHBOARD_SECONDARY_CTA_TEXT,
-  DASHBOARD_SECONDARY_DESCRIPTION,
-  DASHBOARD_SECONDARY_HEADING,
-  DASHBOARD_SECONDARY_IMAGE,
-  DASHBOARD_TERTIARY_CTA_LINK,
-  DASHBOARD_TERTIARY_CTA_TEXT,
-  DASHBOARD_TERTIARY_DESCRIPTION,
-  DASHBOARD_TERTIARY_HEADING,
-  DASHBOARD_TERTIARY_IMAGE
-} from "../constants";
-
-import defaultImage1 from "../assets/default_images/default_image_1.jpg";
-import defaultImage2 from "../assets/default_images/default_image_2.jpg";
-import defaultImage3 from "../assets/default_images/default_image_3.jpg";
-import defaultImage4 from "../assets/default_images/default_image_4.jpg";
-import defaultImage5 from "../assets/default_images/default_image_5.jpg";
-import defaultImage6 from "../assets/default_images/default_image_6.jpg";
-import defaultImage7 from "../assets/default_images/default_image_7.jpg";
-import defaultImage8 from "../assets/default_images/default_image_8.jpg";
-
-const defaultImages = [
-  defaultImage1,
-  defaultImage2,
-  defaultImage3,
-  defaultImage4,
-  defaultImage5,
-  defaultImage6,
-  defaultImage7,
-  defaultImage8,
-];
+import hero1 from "../assets/bristan/hero1.jpg";
+import hero2 from "../assets/bristan/hero2.jpg";
+import hero3 from "../assets/bristan/hero3.jpg";
 
 const Dashboard: FC = () => {
-  const getDefaultImage = () => {
-    const randomIndex = Math.floor(Math.random() * defaultImages.length);
-    return defaultImages[randomIndex];
-  };
-
   return (
     <Container maxW="full">
       <SimpleGrid gridTemplateColumns={{ lg: "1fr 2fr" }}>
@@ -65,21 +26,19 @@ const Dashboard: FC = () => {
           minH={{ base: "40vh", lg: "unset%" }}
         >
           <Heading maxW={{ lg: "sm" }} size="4xl" as="h1">
-            {DASHBOARD_HERO_TAGLINE}
+            Find the right Bristan product faster
           </Heading>
-          {DASHBOARD_HERO_CTA_LINK && (
-            <Button size="sm" mt={8} onClick={DASHBOARD_HERO_CTA_LINK}>
-              {DASHBOARD_HERO_CTA_TEXT}
-            </Button>
-          )}
+          <Button as={RouterLink} to="/products" size="sm" mt={8}>
+            Shop products
+          </Button>
         </Stack>
         <Image
           h="75dvh"
           w="full"
           objectFit="cover"
           objectPosition="center center"
-          src={DASHBOARD_HERO_IMAGE || defaultHeroImage}
-          alt="homepage hero"
+          src={hero1}
+          alt="Bristan kitchen tap and sink product hero"
         />
       </SimpleGrid>
       <SimpleGrid gridTemplateColumns={{ lg: "1fr 1fr" }}>
@@ -88,8 +47,8 @@ const Dashboard: FC = () => {
           w="full"
           objectFit="cover"
           objectPosition="center center"
-          src={DASHBOARD_SECONDARY_IMAGE || getDefaultImage()}
-          alt="homepage hero"
+          src={hero2}
+          alt="Bristan bathroom tap product detail"
         />
         <Stack
           direction="column"
@@ -100,19 +59,11 @@ const Dashboard: FC = () => {
           minH={{ base: "40vh", lg: "unset%" }}
           maxW="prose"
         >
-          <Heading>{DASHBOARD_SECONDARY_HEADING}</Heading>
-          <Text>{DASHBOARD_SECONDARY_DESCRIPTION}</Text>
-          {DASHBOARD_SECONDARY_CTA_LINK && (
-            <Button
-              as={RouterLink}
-              to={DASHBOARD_SECONDARY_CTA_LINK}
-              mt={6}
-              variant="outline"
-              colorScheme="secondary"
-            >
-              {DASHBOARD_SECONDARY_CTA_TEXT}
-            </Button>
-          )}
+          <Heading>Spare parts self-service for installers</Heading>
+          <Text>
+            Help installers and builders identify the right Bristan accessories,
+            spares, and product codes without calling support.
+          </Text>
         </Stack>
       </SimpleGrid>
       <SimpleGrid gridTemplateColumns={{ lg: "1fr 1fr" }}>
@@ -125,27 +76,20 @@ const Dashboard: FC = () => {
           minH={{ base: "40vh", lg: "unset" }}
           maxW="prose"
         >
-          <Heading>{DASHBOARD_TERTIARY_HEADING}</Heading>
-          <Text>{DASHBOARD_TERTIARY_DESCRIPTION}</Text>
-          {DASHBOARD_TERTIARY_CTA_LINK && (
-            <Button
-              as={RouterLink}
-              to={DASHBOARD_TERTIARY_CTA_LINK}
-              mt={6}
-              variant="outline"
-              colorScheme="secondary"
-            >
-              {DASHBOARD_TERTIARY_CTA_TEXT}
-            </Button>
-          )}
+          <Heading>Trade buying and marketplace readiness</Heading>
+          <Text>
+            Support supplier bulk purchasing, account-specific pricing, and
+            future supplier-led marketplace journeys using Bristan-governed
+            product data.
+          </Text>
         </Stack>
         <Image
           h="75dvh"
           w="full"
           objectFit="cover"
           objectPosition="center center"
-          src={DASHBOARD_TERTIARY_IMAGE || getDefaultImage()}
-          alt="homepage hero"
+          src={hero3}
+          alt="Bristan trade bathroom product setting"
         />
       </SimpleGrid>
     </Container>
