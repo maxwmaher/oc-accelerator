@@ -51,3 +51,20 @@ export interface RaiProductSetupResult {
   warnings: string[]
   technicalSummary: string[]
 }
+
+export interface RaiBuyerSetupResult {
+  buyerID: string
+  buyerUserID: string
+  username: string
+  email: string
+  eventWebsiteLabel: string
+  catalogID?: string
+  catalogAccessAssigned: boolean
+  productPricingAssigned: boolean
+  securityProfileAssigned: boolean
+  boothNumber: string
+  priceTier: string
+  exampleProductAvailable: boolean
+  warnings: string[]
+  technicalSummary: string[]
+}
