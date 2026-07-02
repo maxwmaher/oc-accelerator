@@ -1,6 +1,7 @@
 import {
   Buyers,
   Catalogs,
+  Locales,
   OrderCloudError,
   PriceSchedules,
   Products,
@@ -13,6 +14,8 @@ import {
   Buyer,
   User,
   Catalog,
+  Locale,
+  SecurityProfile,
 } from 'ordercloud-javascript-sdk'
 import {
   RaiBuyerSetupForm,
@@ -34,6 +37,8 @@ const RAI_DEMO_MANAGER = 'RAI Event Setup'
 const DEFAULT_DEMO_BUYER_ID = 'RAI_EXHIBITOR_BLUE_OCEAN_EXHIBITS_ISE_2026'
 const DEFAULT_DEMO_BUYER_USER_ID = 'RAI_BUYER_ALEX_DEMO_ISE_2026'
 const DEFAULT_DEMO_BUYER_CATALOG_LABEL = 'Blue Ocean Exhibits default buyer catalog'
+const RAI_EUR_LOCALE_ID = 'RAI_EUR_LOCALE'
+const RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID = 'RAI_DEMO_SHOPPER_SECURITY_PROFILE'
 
 const RAI_EVENT_CATALOGS: RaiEventCatalogConfig[] = [
   { eventWebsiteLabel: 'ISE 2026', catalogID: 'ISE_2026_CATALOG' },
@@ -177,6 +182,22 @@ const assignBuyerCatalogAccess = async (buyerID: string, eventWebsiteLabel: stri
 
 const PIZZA_PRICING_LOCALE_WARNING = 'Pizza pricing override was not applied because the buyer’s locale does not match the Pizza price currency. Event website access was still assigned.'
 
+const ensureDemoBuyerEurLocale = async (buyerID: string) => {
+  const locale: Locale = {
+    ID: RAI_EUR_LOCALE_ID,
+    Currency: 'EUR',
+    Language: 'en-US',
+  }
+
+  try {
+    await Locales.Save(RAI_EUR_LOCALE_ID, locale)
+    await Locales.SaveAssignment({ LocaleID: RAI_EUR_LOCALE_ID, BuyerID: buyerID })
+    return `Locale assignment created/updated: ${RAI_EUR_LOCALE_ID} assigned to ${buyerID} for EUR Pizza pricing.`
+  } catch (error) {
+    throw new Error(`EUR locale setup failed: ${getReadableErrorMessage(error)}`)
+  }
+}
+
 const assignPizzaPricing = async (buyerID: string, canWarnForOptionalAssignmentFailure: boolean) => {
   try {
     await Products.Get(RAI_PRODUCT_ID)
@@ -187,8 +208,9 @@ const assignPizzaPricing = async (buyerID: string, canWarnForOptionalAssignmentF
   }
 
   try {
+    const localeSummary = await ensureDemoBuyerEurLocale(buyerID)
     await Products.SaveAssignment({ ProductID: RAI_PRODUCT_ID, BuyerID: buyerID, PriceScheduleID: RAI_PRICE_SCHEDULE_ID })
-    return { assigned: true, exampleProductAvailable: true, summary: `Product/pricing assignment created/updated: ${RAI_PRODUCT_ID} uses ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}.` }
+    return { assigned: true, exampleProductAvailable: true, summary: `${localeSummary} Product/pricing assignment created/updated: ${RAI_PRODUCT_ID} uses ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}.` }
   } catch (error) {
     if (isOrderCloudErrorCode(error, 'PriceSchedule.CurrencyMismatch')) {
       return { assigned: false, exampleProductAvailable: true, warning: PIZZA_PRICING_LOCALE_WARNING, summary: `Product/pricing assignment skipped: ${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}. ${getReadableErrorMessage(error)}` }
@@ -201,7 +223,7 @@ const assignPizzaPricing = async (buyerID: string, canWarnForOptionalAssignmentF
 }
 
 const assignDemoSecurityProfile = async (buyerID: string, buyerUserID: string) => {
-  const candidateIDs = ['RAI_BUYER_SHOPPER', 'Storefront', 'storefront', 'Storefront Security Profile']
+  const candidateIDs = [RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID, 'RAI_BUYER_SHOPPER', 'Storefront', 'storefront', 'Storefront Security Profile']
 
   for (const securityProfileID of candidateIDs) {
     try {
@@ -220,7 +242,18 @@ const assignDemoSecurityProfile = async (buyerID: string, buyerUserID: string) =
     return { assigned: true, summary: `Security profile assignment created/updated: ${shopperProfile.ID} assigned to buyer user.` }
   }
 
-  return { assigned: false, warning: 'Shopper access profile was not found in this demo environment. You can continue recording the main flow.', summary: 'Security profile assignment skipped: no matching shopper security profile was found.' }
+  try {
+    const securityProfile: SecurityProfile = {
+      ID: RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID,
+      Name: 'RAI Demo Shopper',
+      Roles: ['Shopper'],
+    }
+    await SecurityProfiles.Save(RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID, securityProfile)
+    await SecurityProfiles.SaveAssignment({ SecurityProfileID: RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID, BuyerID: buyerID, UserID: buyerUserID })
+    return { assigned: true, summary: `Security profile created/updated and assigned: ${RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID} assigned to buyer user.` }
+  } catch (error) {
+    return { assigned: false, warning: 'Shopper access profile was not found in this demo environment. You can continue recording the main flow.', summary: `Security profile assignment skipped: ${getReadableErrorMessage(error)}` }
+  }
 }
 
 const getErrorNumber = (value: unknown) => {
@@ -329,6 +362,10 @@ const getResetStatus = (result: Omit<RaiDeleteDemoDataResult, 'overallStatus'>):
 }
 
 const isRaiPriceSchedule = (priceSchedule: PriceSchedule) => priceSchedule.ID === RAI_PRICE_SCHEDULE_ID && priceSchedule.Name === 'Pizza Default Price'
+
+const isRaiDemoLocale = (locale: Locale) => locale.ID === RAI_EUR_LOCALE_ID && locale.Currency === 'EUR'
+
+const isRaiDemoShopperSecurityProfile = (securityProfile: SecurityProfile) => securityProfile.ID === RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID && securityProfile.Name === 'RAI Demo Shopper' && Boolean(securityProfile.Roles?.includes('Shopper'))
 
 const deleteIfFound = async <TResource extends { ID?: string; Name?: string; xp?: unknown }>(
   result: Omit<RaiDeleteDemoDataResult, 'overallStatus'>,
@@ -597,6 +634,7 @@ export const deleteRaiDemoData = async (): Promise<RaiDeleteDemoDataResult> => {
   }
 
   await deleteAssignmentIfPresent(result, 'Pizza pricing assignment', `${RAI_PRODUCT_ID} / ${DEFAULT_DEMO_BUYER_ID}`, () => Products.DeleteAssignment(RAI_PRODUCT_ID, DEFAULT_DEMO_BUYER_ID))
+  await deleteAssignmentIfPresent(result, 'RAI EUR locale assignment', `${RAI_EUR_LOCALE_ID} / ${DEFAULT_DEMO_BUYER_ID}`, () => Locales.DeleteAssignment(RAI_EUR_LOCALE_ID, { buyerID: DEFAULT_DEMO_BUYER_ID }))
 
   for (const config of RAI_EVENT_CATALOGS) {
     await deleteAssignmentIfPresent(result, 'Buyer catalog access', `${config.catalogID} / ${DEFAULT_DEMO_BUYER_ID}`, () => Catalogs.DeleteAssignment(config.catalogID, { buyerID: DEFAULT_DEMO_BUYER_ID }))
@@ -625,6 +663,8 @@ export const deleteRaiDemoData = async (): Promise<RaiDeleteDemoDataResult> => {
     }
   }
 
+  await deleteIfFound(result, 'RAI demo shopper security profile', RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID, () => SecurityProfiles.Get(RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID), isRaiDemoShopperSecurityProfile, () => SecurityProfiles.Delete(RAI_DEMO_SHOPPER_SECURITY_PROFILE_ID))
+
   await deleteIfFound(result, 'Buyer contact', DEFAULT_DEMO_BUYER_USER_ID, () => Users.Get(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID), hasRaiDemoMarker, () => Users.Delete(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID))
   await deleteIfFound(result, 'Blue Ocean Exhibits buyer', DEFAULT_DEMO_BUYER_ID, () => Buyers.Get(DEFAULT_DEMO_BUYER_ID), hasRaiDemoMarker, () => Buyers.Delete(DEFAULT_DEMO_BUYER_ID))
   await deleteIfFound(result, DEFAULT_DEMO_BUYER_CATALOG_LABEL, DEFAULT_DEMO_BUYER_ID, () => Catalogs.Get(DEFAULT_DEMO_BUYER_ID), isSafeDemoBuyerDefaultCatalog, () => Catalogs.Delete(DEFAULT_DEMO_BUYER_ID))
@@ -640,6 +680,7 @@ export const deleteRaiDemoData = async (): Promise<RaiDeleteDemoDataResult> => {
   }
 
   await deleteIfFound(result, 'Pizza price schedule', RAI_PRICE_SCHEDULE_ID, () => PriceSchedules.Get(RAI_PRICE_SCHEDULE_ID), isRaiPriceSchedule, () => PriceSchedules.Delete(RAI_PRICE_SCHEDULE_ID))
+  await deleteIfFound(result, 'RAI EUR demo locale', RAI_EUR_LOCALE_ID, () => Locales.Get(RAI_EUR_LOCALE_ID), isRaiDemoLocale, () => Locales.Delete(RAI_EUR_LOCALE_ID))
 
   for (const config of RAI_EVENT_CATALOGS) {
     await deleteIfFound(result, 'Demo event website', config.catalogID, () => Catalogs.Get(config.catalogID), hasRaiDemoMarker, () => Catalogs.Delete(config.catalogID))

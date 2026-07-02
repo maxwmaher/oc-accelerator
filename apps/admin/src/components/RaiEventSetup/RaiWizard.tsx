@@ -167,6 +167,11 @@ const BuyerReview: FC<{ form: RaiBuyerSetupForm; result?: RaiBuyerSetupResult }>
 
 const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = ({ result, companyName }) => {
   const colors = useResultCardColors(result.warnings.length ? 'orange' : 'green')
+  const heading = result.warnings.length && result.catalogAccessAssigned
+    ? 'Blue Ocean Exhibits has event access for ISE 2026'
+    : result.warnings.length
+      ? 'Blue Ocean Exhibits needs another pass for ISE 2026'
+      : 'Blue Ocean Exhibits is ready for ISE 2026'
 
   return (
     <Stack spacing={4}>
@@ -174,7 +179,7 @@ const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = (
         <CardBody>
           <Stack spacing={3} color={colors.textColor}>
             <Heading as="h2" size="md" color={colors.headingColor}>
-              {result.warnings.length ? 'Blue Ocean Exhibits is partly ready for ISE 2026' : 'Blue Ocean Exhibits is ready for ISE 2026'}
+              {heading}
             </Heading>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
             <SummaryRow label="Event website access" value={result.catalogAccessAssigned ? result.eventWebsiteLabel : 'Prepare event websites, then run this step again'} />
