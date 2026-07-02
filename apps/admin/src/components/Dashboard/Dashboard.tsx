@@ -1,6 +1,7 @@
 import { CheckIcon, CloseIcon, EmailIcon, PhoneIcon } from "@chakra-ui/icons";
 import {
   Badge,
+  Button,
   Card,
   Container,
   HStack,
@@ -10,6 +11,7 @@ import {
 } from "@chakra-ui/react";
 import { useOrderCloudContext } from "@ordercloud/react-sdk";
 import { FC } from "react";
+import { Link } from "react-router-dom";
 import { useCurrentUser } from "../../hooks/currentUser";
 
 const Dashboard: FC = () => {
@@ -26,6 +28,15 @@ const Dashboard: FC = () => {
         gap={6}
         mt={6}
       >
+        <Card variant="outline" p={6} alignItems="flex-start" gap={3}>
+          <Text color="chakra-subtle-text" fontWeight="semibold">RAI Event Setup</Text>
+          <Text color="chakra-subtle-text">
+            Guided demo workflows for creating event products and registering exhibitor buyers.
+          </Text>
+          <Button as={Link} to="/rai-event-setup" colorScheme="blue" size="sm">
+            Open RAI Event Setup
+          </Button>
+        </Card>
         <Card variant="outline" p={6}>
           <Text color="chakra-subtle-text">My User:</Text>
           <Text>

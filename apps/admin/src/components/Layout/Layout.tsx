@@ -134,6 +134,14 @@ const Layout: FC = () => {
           p="3"
         >
           <VStack>
+            <NavButton
+              to="/rai-event-setup"
+              variant="solid"
+              colorScheme="blue"
+              justifyContent="start"
+            >
+              RAI Event Setup
+            </NavButton>
             {resources
               .filter((r) => !!r.label)
               .map((r, idx) => {
