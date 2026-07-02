@@ -45,10 +45,15 @@ interface WizardShellProps {
   onNext: () => void
   onSubmit: () => void
   isSubmitting?: boolean
+  isComplete?: boolean
+  successPrimaryLabel?: string
+  successTo?: string
+  rerunLabel?: string
 }
 
-const WizardShell: FC<WizardShellProps> = ({ title, description, steps, currentStep, children, onBack, onNext, onSubmit, isSubmitting = false }) => {
+const WizardShell: FC<WizardShellProps> = ({ title, description, steps, currentStep, children, onBack, onNext, onSubmit, isSubmitting = false, isComplete = false, successPrimaryLabel, successTo, rerunLabel = 'Run setup again' }) => {
   const isReviewStep = currentStep === steps.length - 1
+  const showSuccessActions = isReviewStep && isComplete && successPrimaryLabel && successTo
 
   return (
     <Container maxW="6xl" p={8}>
@@ -80,9 +85,20 @@ const WizardShell: FC<WizardShellProps> = ({ title, description, steps, currentS
               <Button onClick={onBack} isDisabled={currentStep === 0 || isSubmitting} variant="outline">
                 Previous
               </Button>
-              <Button colorScheme="blue" onClick={isReviewStep ? onSubmit : onNext} isLoading={isSubmitting} isDisabled={isSubmitting}>
-                {isReviewStep ? 'Create demo setup' : 'Next'}
-              </Button>
+              {showSuccessActions ? (
+                <HStack>
+                  <Button variant="outline" onClick={onSubmit} isLoading={isSubmitting} isDisabled={isSubmitting}>
+                    {rerunLabel}
+                  </Button>
+                  <Button as={Link} to={successTo} colorScheme="blue">
+                    {successPrimaryLabel}
+                  </Button>
+                </HStack>
+              ) : (
+                <Button colorScheme="blue" onClick={isReviewStep ? onSubmit : onNext} isLoading={isSubmitting} isDisabled={isSubmitting}>
+                  {isReviewStep ? 'Create demo setup' : 'Next'}
+                </Button>
+              )}
             </HStack>
           </Stack>
         </CardBody>
@@ -280,7 +296,7 @@ export const RaiProductWizard: FC = () => {
     if (currentStep === 3) return <CheckboxGroup value={form.eventWebsites} onChange={(v) => update('eventWebsites', v as string[])}><FormLabel>Product availability across event websites</FormLabel><Stack><Checkbox value="ISE 2026">ISE 2026</Checkbox><Checkbox value="RAI Catering Portal">RAI Catering Portal</Checkbox><Checkbox value="Interclean 2026">Interclean 2026</Checkbox><Checkbox value="Vegetarian-only Event">Vegetarian-only Event</Checkbox></Stack></CheckboxGroup>
     return <ProductReview form={form} result={result} />
   }, [currentStep, form, result])
-  return <WizardShell title="Create Pizza Product Setup" description="Create Pizza once, configure product options, and publish it across the selected event websites." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => productMutation.mutate(form)} isSubmitting={productMutation.isPending}>{body}</WizardShell>
+  return <WizardShell title="Create Pizza Product Setup" description="Create Pizza once, configure product options, and publish it across the selected event websites." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => productMutation.mutate(form)} isSubmitting={productMutation.isPending} isComplete={Boolean(result)} successPrimaryLabel="Continue to Step 3" successTo="/rai-event-setup?completed=product&focus=buyer">{body}</WizardShell>
 }
 
 export const RaiBuyerWizard: FC = () => {
@@ -309,5 +325,5 @@ export const RaiBuyerWizard: FC = () => {
     if (currentStep === 3) return <VStack align="stretch" spacing={5}><CheckboxGroup value={form.eventWebsites} onChange={(v) => update('eventWebsites', v as string[])}><FormLabel>Event website access</FormLabel><Stack><Checkbox value="ISE 2026">ISE 2026 event website</Checkbox><Checkbox value="RAI Catering Portal">RAI Catering Portal</Checkbox></Stack></CheckboxGroup><CheckboxGroup value={form.productAccess} onChange={(v) => update('productAccess', v as string[])}><FormLabel>Shopper access</FormLabel><HStack flexWrap="wrap"><Checkbox value="Food & Catering">Food & Catering</Checkbox><Checkbox value="Pizza">Pizza</Checkbox><Checkbox value="Furniture">Furniture</Checkbox></HStack></CheckboxGroup><FormControl><FormLabel>Pricing tier</FormLabel><Select value={form.pricingTier} onChange={(e) => update('pricingTier', e.target.value)}><option>ISE 2026 exhibitor pricing</option><option>Standard exhibitor pricing</option><option>Partner pricing</option></Select></FormControl></VStack>
     return <BuyerReview form={form} result={result} />
   }, [currentStep, form, result])
-  return <WizardShell title="Register Exhibitor Buyer" description="Register an exhibitor for an event, add the buyer contact, and grant event website access with the right pricing tier." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => buyerMutation.mutate(form)} isSubmitting={buyerMutation.isPending}>{body}</WizardShell>
+  return <WizardShell title="Register Exhibitor Buyer" description="Register an exhibitor for an event, add the buyer contact, and grant event website access with the right pricing tier." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => buyerMutation.mutate(form)} isSubmitting={buyerMutation.isPending} isComplete={Boolean(result)} successPrimaryLabel="Continue to final readiness check" successTo="/rai-event-setup?completed=buyer&focus=readiness">{body}</WizardShell>
 }

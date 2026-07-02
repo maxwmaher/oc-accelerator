@@ -33,7 +33,7 @@ import {
 } from '@chakra-ui/react'
 import { useAuthMutation } from '@ordercloud/react-sdk'
 import { FC, ReactNode, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { checkRaiDemoReadiness, deleteRaiDemoData, prepareRaiDemoEventWebsites } from './raiEventSetupService'
 import { RaiDeleteDemoDataResult, RaiDemoReadinessResult, RaiPrepareDemoEventWebsitesResult } from './types'
 
@@ -56,6 +56,7 @@ const hasPreparedRequiredEventWebsites = (result?: RaiPrepareDemoEventWebsitesRe
 
 const RaiEventSetupLanding: FC = () => {
   const toast = useToast()
+  const location = useLocation()
   const resetModal = useDisclosure()
   const [readiness, setReadiness] = useState<RaiDemoReadinessResult>()
   const [prepareResult, setPrepareResult] = useState<RaiPrepareDemoEventWebsitesResult>()
@@ -64,6 +65,7 @@ const RaiEventSetupLanding: FC = () => {
   const [selectedCatalogIDs, setSelectedCatalogIDs] = useState(DEFAULT_SELECTED_EVENT_WEBSITE_IDS)
   const [readinessError, setReadinessError] = useState<string>()
   const readinessCheckReason = useRef<'auto' | 'manual'>('auto')
+  const focusStep = new URLSearchParams(location.search).get('focus')
 
   const readinessMutation = useAuthMutation({
     mutationKey: ['rai-demo-readiness'],
@@ -161,6 +163,7 @@ const RaiEventSetupLanding: FC = () => {
         readiness={readiness}
         prepareResult={prepareResult}
         readinessError={readinessError}
+        focusStep={focusStep}
         selectedCatalogIDs={selectedCatalogIDs}
         onSelectionChange={setSelectedCatalogIDs}
         onRefresh={refreshStatus}
@@ -185,6 +188,7 @@ interface GuidedSetupChecklistProps {
   readiness?: RaiDemoReadinessResult
   prepareResult?: RaiPrepareDemoEventWebsitesResult
   readinessError?: string
+  focusStep: string | null
   selectedCatalogIDs: string[]
   onSelectionChange: (catalogIDs: string[]) => void
   onRefresh: () => void
@@ -210,7 +214,7 @@ const getStepStatus = (isReady: boolean, isNext: boolean, hasWarning = false): G
   return 'blocked'
 }
 
-const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepareResult, readinessError, selectedCatalogIDs, onSelectionChange, onRefresh, onPrepare, isChecking, isPreparing }) => {
+const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepareResult, readinessError, focusStep, selectedCatalogIDs, onSelectionChange, onRefresh, onPrepare, isChecking, isPreparing }) => {
   const eventWebsitesReady = readiness?.canCreatePizza || hasPreparedRequiredEventWebsites(prepareResult)
   const pizzaSetupReady = readiness?.pizzaSetupReady ?? false
   const exhibitorSetupReady = readiness?.exhibitorSetupReady ?? false
@@ -278,6 +282,7 @@ const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepar
               status={getStepStatus(exhibitorSetupReady, eventWebsitesReady && pizzaSetupReady && !exhibitorSetupReady, buyerWarnings)}
               readyText="Blue Ocean Exhibits setup is ready."
               blockedText={eventWebsitesReady ? 'Create the Pizza product setup first.' : 'Prepare event websites first.'}
+              isHighlighted={focusStep === 'buyer'}
               action={<Button as={Link} to="/rai-event-setup/buyers/new" colorScheme="blue" rightIcon={<ArrowForwardIcon />} isDisabled={!eventWebsitesReady || !pizzaSetupReady || isChecking}>{exhibitorSetupReady ? 'Review or update exhibitor setup' : 'Start exhibitor setup'}</Button>}
             />
             <GuidedStepCard
@@ -287,6 +292,7 @@ const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepar
               status={readyToRecord ? 'ready' : eventWebsitesReady && pizzaSetupReady && exhibitorSetupReady ? 'next' : 'blocked'}
               readyText="Ready to record."
               blockedText={!eventWebsitesReady ? 'Prepare event websites first.' : !pizzaSetupReady ? 'Create Pizza setup first.' : 'Register Blue Ocean Exhibits first.'}
+              isHighlighted={focusStep === 'readiness'}
               action={<Button colorScheme="blue" variant={readyToRecord ? 'outline' : 'solid'} onClick={onRefresh} isLoading={isChecking} isDisabled={!eventWebsitesReady || !pizzaSetupReady || !exhibitorSetupReady || isPreparing}>{readyToRecord ? 'Check again' : 'Check final readiness'}</Button>}
             />
           </Stack>
@@ -306,12 +312,14 @@ const GuidedStepCard: FC<{
   readyText?: string
   blockedText?: string
   result?: ReactNode
-}> = ({ stepNumber, title, description, status, action, readyText, blockedText, result }) => {
+  isHighlighted?: boolean
+}> = ({ stepNumber, title, description, status, action, readyText, blockedText, result, isHighlighted = false }) => {
   const statusDetails = guidedStatusCopy[status]
-  const borderColor = useColorModeValue(status === 'next' ? 'blue.300' : 'gray.200', status === 'next' ? 'blue.500' : 'gray.700')
+  const borderColor = useColorModeValue(isHighlighted || status === 'next' ? 'blue.300' : 'gray.200', isHighlighted || status === 'next' ? 'blue.500' : 'gray.700')
+  const boxShadow = isHighlighted ? '0 0 0 2px var(--chakra-colors-blue-300)' : undefined
 
   return (
-    <Card variant="outline" borderColor={borderColor}>
+    <Card variant="outline" borderColor={borderColor} boxShadow={boxShadow}>
       <CardBody>
         <Stack spacing={4}>
           <HStack justify="space-between" align="flex-start" flexWrap="wrap">
