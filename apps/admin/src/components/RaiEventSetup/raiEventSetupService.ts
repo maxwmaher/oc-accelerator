@@ -728,20 +728,41 @@ export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => 
   const buyer = await checkGet('Buyer organization', DEFAULT_DEMO_BUYER_ID, () => Buyers.Get(DEFAULT_DEMO_BUYER_ID), true)
   const user = await checkGet('Buyer user', DEFAULT_DEMO_BUYER_USER_ID, () => Users.Get(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID), true)
 
-  const catalogAssignments = await Catalogs.ListAssignments({ catalogID: 'ISE_2026_CATALOG', buyerID: DEFAULT_DEMO_BUYER_ID, pageSize: 1 })
-  const iseAccess: RaiReadinessItem = catalogAssignments.Items.length
-    ? { label: 'ISE 2026 access', status: 'ready', message: 'Exhibitor access is assigned.', technicalID: 'ISE_2026_CATALOG' }
-    : { label: 'ISE 2026 access', status: 'missing', message: 'Prepare event websites, then run the buyer setup again.', technicalID: 'ISE_2026_CATALOG' }
+  let iseAccess: RaiReadinessItem
+  try {
+    const catalogAssignments = await Catalogs.ListAssignments({ catalogID: 'ISE_2026_CATALOG', buyerID: DEFAULT_DEMO_BUYER_ID, pageSize: 1 })
+    iseAccess = catalogAssignments.Items.length
+      ? { label: 'ISE 2026 access', status: 'ready', message: 'Exhibitor access is assigned.', technicalID: 'ISE_2026_CATALOG' }
+      : { label: 'ISE 2026 access', status: 'missing', message: 'Register Blue Ocean Exhibits to assign event website access.', technicalID: 'ISE_2026_CATALOG' }
+  } catch (error) {
+    iseAccess = isOrderCloudNotFound(error)
+      ? { label: 'ISE 2026 access', status: 'missing', message: 'Register Blue Ocean Exhibits to assign event website access.', technicalID: 'ISE_2026_CATALOG' }
+      : { label: 'ISE 2026 access', status: 'warning', message: `Event website access could not be checked. ${getReadableErrorMessage(error)}`, technicalID: 'ISE_2026_CATALOG' }
+  }
 
-  const productAssignments = await Products.ListAssignments({ productID: RAI_PRODUCT_ID, buyerID: DEFAULT_DEMO_BUYER_ID, priceScheduleID: RAI_PRICE_SCHEDULE_ID, pageSize: 1 })
-  const pizzaPricing: RaiReadinessItem = productAssignments.Items.length
-    ? { label: 'Pizza pricing', status: 'ready', message: 'Pizza pricing is assigned.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
-    : { label: 'Pizza pricing', status: 'missing', message: 'Create the Pizza product setup, then run the buyer setup again.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+  let pizzaPricing: RaiReadinessItem
+  try {
+    const productAssignments = await Products.ListAssignments({ productID: RAI_PRODUCT_ID, buyerID: DEFAULT_DEMO_BUYER_ID, priceScheduleID: RAI_PRICE_SCHEDULE_ID, pageSize: 1 })
+    pizzaPricing = productAssignments.Items.length
+      ? { label: 'Pizza pricing', status: 'ready', message: 'Pizza pricing is assigned.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+      : { label: 'Pizza pricing', status: 'missing', message: 'Register Blue Ocean Exhibits to assign optional Pizza pricing.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+  } catch (error) {
+    pizzaPricing = isOrderCloudNotFound(error)
+      ? { label: 'Pizza pricing', status: 'missing', message: 'Register Blue Ocean Exhibits to assign optional Pizza pricing.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+      : { label: 'Pizza pricing', status: 'warning', message: `Pizza pricing could not be checked. ${getReadableErrorMessage(error)}`, technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+  }
 
-  const securityAssignments = await SecurityProfiles.ListAssignments({ buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID, pageSize: 20 })
-  const shopperAccess: RaiReadinessItem = securityAssignments.Items.length
-    ? { label: 'Shopper access/security profile', status: 'ready', message: 'Shopper-style access is assigned.', technicalID: securityAssignments.Items.map((item) => item.SecurityProfileID).filter(Boolean).join(', ') }
-    : { label: 'Shopper access/security profile', status: 'warning', message: 'Shopper access profile was not found in this demo environment. You can continue recording the main flow.', technicalID: 'SecurityProfiles.ListAssignments' }
+  let shopperAccess: RaiReadinessItem
+  try {
+    const securityAssignments = await SecurityProfiles.ListAssignments({ buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID, pageSize: 20 })
+    shopperAccess = securityAssignments.Items.length
+      ? { label: 'Shopper access/security profile', status: 'ready', message: 'Shopper-style access is assigned.', technicalID: securityAssignments.Items.map((item) => item.SecurityProfileID).filter(Boolean).join(', ') }
+      : { label: 'Shopper access/security profile', status: 'warning', message: 'Shopper access profile was not found in this demo environment. You can continue recording the main flow.', technicalID: 'SecurityProfiles.ListAssignments' }
+  } catch (error) {
+    shopperAccess = isOrderCloudNotFound(error)
+      ? { label: 'Shopper access/security profile', status: 'warning', message: 'Shopper access profile was not found in this demo environment. You can continue recording the main flow.', technicalID: 'SecurityProfiles.ListAssignments' }
+      : { label: 'Shopper access/security profile', status: 'warning', message: `Shopper access could not be checked. ${getReadableErrorMessage(error)}`, technicalID: 'SecurityProfiles.ListAssignments' }
+  }
   if (shopperAccess.status === 'warning') warnings.push('Shopper access/security profile: Shopper access profile was not found in this demo environment. You can continue recording the main flow.')
 
   const buyerSetup = [buyer, user, iseAccess, pizzaPricing, shopperAccess]
@@ -772,6 +793,10 @@ export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => 
       `Spec IDs: ${SPEC_CONFIG.map((spec) => spec.id).join(', ')}`,
       `Buyer ID: ${DEFAULT_DEMO_BUYER_ID}`,
       `Buyer user ID: ${DEFAULT_DEMO_BUYER_USER_ID}`,
+      `Required event websites ready: ${eventWebsitesReady}`,
+      `Pizza setup ready: ${pizzaSetupReady}`,
+      `Exhibitor setup ready: ${exhibitorSetupReady}`,
+      `Optional Interclean status: ${eventWebsites.find((item) => item.technicalID === 'INTERCLEAN_2026_CATALOG')?.status || 'unchecked'}`,
       ...warnings,
     ],
   }
