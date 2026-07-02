@@ -12,6 +12,7 @@ import {
   Spec,
   Buyer,
   User,
+  Catalog,
 } from 'ordercloud-javascript-sdk'
 import {
   RaiBuyerSetupForm,
@@ -21,11 +22,16 @@ import {
   RaiProductSetupResult,
   RaiProductSpecResult,
   RaiSkippedCatalog,
+  RaiDemoReadinessResult,
+  RaiPrepareDemoEventWebsitesResult,
+  RaiReadinessItem,
 } from './types'
 
 const RAI_PRODUCT_ID = 'RAI_PIZZA'
 const RAI_PRICE_SCHEDULE_ID = 'RAI_PIZZA_DEFAULT_PRICE'
 const RAI_DEMO_MANAGER = 'RAI Event Setup'
+const DEFAULT_DEMO_BUYER_ID = 'RAI_EXHIBITOR_BLUE_OCEAN_EXHIBITS_ISE_2026'
+const DEFAULT_DEMO_BUYER_USER_ID = 'RAI_BUYER_ALEX_DEMO_ISE_2026'
 
 const RAI_EVENT_CATALOGS: RaiEventCatalogConfig[] = [
   { eventWebsiteLabel: 'ISE 2026', catalogID: 'ISE_2026_CATALOG' },
@@ -372,3 +378,126 @@ export const createOrUpdateRaiExhibitorBuyer = async (form: RaiBuyerSetupForm): 
 }
 
 export const submitRaiBuyerSetup = createOrUpdateRaiExhibitorBuyer
+
+const getCatalogDescription = (eventWebsiteLabel: string) => {
+  if (eventWebsiteLabel === 'Vegetarian-only Event') return 'Demo event website for vegetarian-only catering visibility.'
+  if (eventWebsiteLabel === 'RAI Catering Portal') return 'Demo catering portal for reusable food and beverage products.'
+  return `Demo event website for ${eventWebsiteLabel} exhibitors.`
+}
+
+const getCatalogPatch = (config: RaiEventCatalogConfig): Catalog => ({
+  ID: config.catalogID,
+  Name: config.eventWebsiteLabel,
+  Description: getCatalogDescription(config.eventWebsiteLabel),
+  Active: true,
+  xp: {
+    rai: true,
+    demoManagedBy: RAI_DEMO_MANAGER,
+    eventWebsiteLabel: config.eventWebsiteLabel,
+    demoEventWebsite: true,
+    vegetarianOnly: config.catalogID === 'VEGETARIAN_EVENT_CATALOG' || undefined,
+    description: getCatalogDescription(config.eventWebsiteLabel),
+    useCase: config.eventWebsiteLabel === 'Vegetarian-only Event' ? 'Show event-specific product option filtering.' : 'Support the RAI admin demo recording flow.',
+  },
+})
+
+const getReadinessStatus = (items: RaiReadinessItem[]): RaiDemoReadinessResult['overallStatus'] => {
+  if (items.some((item) => item.status === 'missing')) return 'not-ready'
+  if (items.some((item) => item.status === 'warning' || item.status === 'unchecked')) return 'partial'
+  return 'ready'
+}
+
+const checkGet = async (label: string, technicalID: string, getter: () => Promise<object>, requireActive = false): Promise<RaiReadinessItem> => {
+  try {
+    const item = await getter()
+    if (requireActive && 'Active' in item && item.Active === false) return { label, status: 'warning', message: 'Found but not active.', technicalID }
+    return { label, status: 'ready', message: 'Ready', technicalID }
+  } catch (error) {
+    if (isNotFound(error)) return { label, status: 'missing', message: 'Missing', technicalID }
+    return { label, status: 'warning', message: getReadableErrorMessage(error), technicalID }
+  }
+}
+
+export const prepareRaiDemoEventWebsites = async (): Promise<RaiPrepareDemoEventWebsitesResult> => {
+  const createdCatalogIDs: string[] = []
+  const updatedCatalogIDs: string[] = []
+  const warnings: string[] = []
+  const technicalSummary: string[] = []
+
+  for (const config of RAI_EVENT_CATALOGS) {
+    const catalog = getCatalogPatch(config)
+    try {
+      await Catalogs.Get(config.catalogID)
+      await Catalogs.Patch(config.catalogID, catalog)
+      updatedCatalogIDs.push(config.catalogID)
+      technicalSummary.push(`Event website updated: ${config.catalogID}.`)
+    } catch (error) {
+      if (!isNotFound(error)) {
+        const warning = `${config.eventWebsiteLabel} could not be prepared: ${getReadableErrorMessage(error)}`
+        warnings.push(warning)
+        technicalSummary.push(warning)
+        continue
+      }
+      await Catalogs.Create(catalog)
+      createdCatalogIDs.push(config.catalogID)
+      technicalSummary.push(`Event website created: ${config.catalogID}.`)
+    }
+  }
+
+  return { createdCatalogIDs, updatedCatalogIDs, warnings, technicalSummary }
+}
+
+export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => {
+  const warnings: string[] = []
+  const eventWebsites = await Promise.all(RAI_EVENT_CATALOGS.map((config) => checkGet(config.eventWebsiteLabel, config.catalogID, () => Catalogs.Get(config.catalogID), true)))
+
+  const product = await checkGet('Product', RAI_PRODUCT_ID, () => Products.Get(RAI_PRODUCT_ID), true)
+  const price = await checkGet('Price', RAI_PRICE_SCHEDULE_ID, () => PriceSchedules.Get(RAI_PRICE_SCHEDULE_ID))
+  const specItems = await Promise.all(SPEC_CONFIG.map((spec) => checkGet(spec.name, spec.id, () => Specs.Get(spec.id))))
+  const optionsStatus: RaiReadinessItem = specItems.every((item) => item.status === 'ready')
+    ? { label: 'Options', status: 'ready', message: 'Size, flavour, and topping options are ready.', technicalID: SPEC_CONFIG.map((spec) => spec.id).join(', ') }
+    : { label: 'Options', status: specItems.some((item) => item.status === 'missing') ? 'missing' : 'warning', message: specItems.filter((item) => item.status !== 'ready').map((item) => `${item.label}: ${item.message}`).join(' · '), technicalID: SPEC_CONFIG.map((spec) => spec.id).join(', ') }
+  const productSetup = [product, price, optionsStatus]
+
+  const buyer = await checkGet('Buyer organization', DEFAULT_DEMO_BUYER_ID, () => Buyers.Get(DEFAULT_DEMO_BUYER_ID), true)
+  const user = await checkGet('Buyer user', DEFAULT_DEMO_BUYER_USER_ID, () => Users.Get(DEFAULT_DEMO_BUYER_ID, DEFAULT_DEMO_BUYER_USER_ID), true)
+
+  const catalogAssignments = await Catalogs.ListAssignments({ catalogID: 'ISE_2026_CATALOG', buyerID: DEFAULT_DEMO_BUYER_ID, pageSize: 1 })
+  const iseAccess: RaiReadinessItem = catalogAssignments.Items.length
+    ? { label: 'ISE 2026 access', status: 'ready', message: 'Exhibitor access is assigned.', technicalID: 'ISE_2026_CATALOG' }
+    : { label: 'ISE 2026 access', status: 'missing', message: 'Not assigned yet.', technicalID: 'ISE_2026_CATALOG' }
+
+  const productAssignments = await Products.ListAssignments({ productID: RAI_PRODUCT_ID, buyerID: DEFAULT_DEMO_BUYER_ID, priceScheduleID: RAI_PRICE_SCHEDULE_ID, pageSize: 1 })
+  const pizzaPricing: RaiReadinessItem = productAssignments.Items.length
+    ? { label: 'Pizza pricing', status: 'ready', message: 'Pizza pricing is assigned.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+    : { label: 'Pizza pricing', status: 'missing', message: 'Not assigned yet.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+
+  const securityAssignments = await SecurityProfiles.ListAssignments({ buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID, pageSize: 20 })
+  const shopperAccess: RaiReadinessItem = securityAssignments.Items.length
+    ? { label: 'Shopper access/security profile', status: 'ready', message: 'Shopper-style access is assigned.', technicalID: securityAssignments.Items.map((item) => item.SecurityProfileID).filter(Boolean).join(', ') }
+    : { label: 'Shopper access/security profile', status: 'warning', message: 'No assigned shopper-style access was found.', technicalID: 'SecurityProfiles.ListAssignments' }
+  if (shopperAccess.status === 'warning') warnings.push('Shopper access/security profile should be reviewed before recording.')
+
+  const buyerSetup = [buyer, user, iseAccess, pizzaPricing, shopperAccess]
+  const allItems = [...eventWebsites, ...productSetup, ...buyerSetup]
+  warnings.push(...allItems.filter((item) => item.status === 'missing' || item.status === 'warning').map((item) => `${item.label}: ${item.message || item.status}`))
+
+  return {
+    overallStatus: getReadinessStatus(allItems),
+    eventWebsites,
+    productSetup,
+    buyerSetup,
+    warnings,
+    technicalSummary: [
+      `Catalog IDs: ${RAI_EVENT_CATALOGS.map((catalog) => catalog.catalogID).join(', ')}`,
+      `Product ID: ${RAI_PRODUCT_ID}`,
+      `Price schedule ID: ${RAI_PRICE_SCHEDULE_ID}`,
+      `Spec IDs: ${SPEC_CONFIG.map((spec) => spec.id).join(', ')}`,
+      `Buyer ID: ${DEFAULT_DEMO_BUYER_ID}`,
+      `Buyer user ID: ${DEFAULT_DEMO_BUYER_USER_ID}`,
+      ...warnings,
+    ],
+  }
+}
+
+export const checkRaiDemoReadiness = getRaiDemoReadiness

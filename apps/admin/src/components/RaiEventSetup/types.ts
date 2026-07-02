@@ -68,3 +68,29 @@ export interface RaiBuyerSetupResult {
   warnings: string[]
   technicalSummary: string[]
 }
+
+export type RaiReadinessOverallStatus = 'ready' | 'partial' | 'not-ready'
+export type RaiReadinessItemStatus = 'ready' | 'missing' | 'warning' | 'unchecked'
+
+export interface RaiReadinessItem {
+  label: string
+  status: RaiReadinessItemStatus
+  message?: string
+  technicalID?: string
+}
+
+export interface RaiDemoReadinessResult {
+  overallStatus: RaiReadinessOverallStatus
+  eventWebsites: RaiReadinessItem[]
+  productSetup: RaiReadinessItem[]
+  buyerSetup: RaiReadinessItem[]
+  warnings: string[]
+  technicalSummary: string[]
+}
+
+export interface RaiPrepareDemoEventWebsitesResult {
+  createdCatalogIDs: string[]
+  updatedCatalogIDs: string[]
+  warnings: string[]
+  technicalSummary: string[]
+}
