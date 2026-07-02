@@ -166,6 +166,7 @@ const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = (
             <SummaryRow label="Exhibitor company ID" value={result.buyerID} />
             <SummaryRow label="Booth" value={result.boothNumber} />
             <SummaryRow label="Pricing tier" value={result.priceTier} />
+            <SummaryRow label="Pizza pricing override" value={result.productPricingAssigned ? 'Applied' : 'Not applied'} />
             <SummaryRow label="Shopper access" value={result.securityProfileAssigned ? 'Ready' : 'Shopper access profile was not found in this demo environment'} />
           </SimpleGrid>
           {result.warnings.length > 0 && (
@@ -188,7 +189,7 @@ const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = (
             <SummaryRow label="Exhibitor" value={companyName} />
             <SummaryRow label="Booth" value={result.boothNumber} />
             <SummaryRow label="Can access event products" value={result.catalogAccessAssigned ? 'Yes' : 'No'} />
-            <SummaryRow label="Pricing tier" value={result.priceTier} />
+            <SummaryRow label="Pizza pricing override" value={result.productPricingAssigned ? result.priceTier : 'Not applied; storefront access remains assigned'} />
             <SummaryRow label="Example product" value={result.exampleProductAvailable ? 'Pizza' : 'Pizza not confirmed yet'} />
           </SimpleGrid>
         </Stack>

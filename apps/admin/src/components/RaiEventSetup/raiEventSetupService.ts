@@ -164,15 +164,28 @@ const assignBuyerCatalogAccess = async (buyerID: string, eventWebsiteLabel: stri
   }
 }
 
-const assignPizzaPricing = async (buyerID: string) => {
+const PIZZA_PRICING_LOCALE_WARNING = 'Pizza pricing override was not applied because the buyer’s locale does not match the Pizza price currency. Event website access was still assigned.'
+
+const assignPizzaPricing = async (buyerID: string, canWarnForOptionalAssignmentFailure: boolean) => {
   try {
     await Products.Get(RAI_PRODUCT_ID)
     await PriceSchedules.Get(RAI_PRICE_SCHEDULE_ID)
-    await Products.SaveAssignment({ ProductID: RAI_PRODUCT_ID, BuyerID: buyerID, PriceScheduleID: RAI_PRICE_SCHEDULE_ID })
-    return { assigned: true, exampleProductAvailable: true, summary: `Product/pricing assignment created/updated: ${RAI_PRODUCT_ID} uses ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}.` }
   } catch (error) {
     if (!isOrderCloudNotFound(error)) throw new Error(`Pizza pricing setup failed: ${getReadableErrorMessage(error)}`)
     return { assigned: false, exampleProductAvailable: false, warning: 'Pizza pricing was not found in the demo environment. Create the Pizza product setup, then run this step again.', summary: 'Product/pricing assignment skipped: Pizza product or default price schedule was not found.' }
+  }
+
+  try {
+    await Products.SaveAssignment({ ProductID: RAI_PRODUCT_ID, BuyerID: buyerID, PriceScheduleID: RAI_PRICE_SCHEDULE_ID })
+    return { assigned: true, exampleProductAvailable: true, summary: `Product/pricing assignment created/updated: ${RAI_PRODUCT_ID} uses ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}.` }
+  } catch (error) {
+    if (isOrderCloudErrorCode(error, 'PriceSchedule.CurrencyMismatch')) {
+      return { assigned: false, exampleProductAvailable: true, warning: PIZZA_PRICING_LOCALE_WARNING, summary: `Product/pricing assignment skipped: ${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}. ${getReadableErrorMessage(error)}` }
+    }
+    if (canWarnForOptionalAssignmentFailure) {
+      return { assigned: false, exampleProductAvailable: true, warning: 'Pizza pricing override was not applied. Event website access was still assigned.', summary: `Product/pricing assignment skipped: ${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}. ${getReadableErrorMessage(error)}` }
+    }
+    throw new Error(`Pizza pricing setup failed: ${getReadableErrorMessage(error)}`)
   }
 }
 
@@ -259,6 +272,21 @@ const getReadableErrorMessage = (error: unknown) => {
   if (error instanceof Error) return `${error.message}${details}`
   return `OrderCloud could not complete the request.${details}`
 }
+
+const getOrderCloudErrorCode = (error: unknown) => {
+  const directCode = getObjectValue(error, 'errorCode')
+  if (typeof directCode === 'string') return directCode
+
+  const errors = getObjectValue(error, 'errors') ?? getObjectValue(getObjectValue(getObjectValue(error, 'response'), 'data'), 'Errors')
+  if (Array.isArray(errors)) {
+    const firstErrorWithCode = errors.find((item) => item && typeof item === 'object' && typeof getObjectValue(item, 'ErrorCode') === 'string')
+    if (firstErrorWithCode) return getObjectValue(firstErrorWithCode, 'ErrorCode') as string
+  }
+
+  return undefined
+}
+
+const isOrderCloudErrorCode = (error: unknown, errorCode: string) => getOrderCloudErrorCode(error) === errorCode
 
 const hasRaiDemoMarker = (resource: { xp?: unknown }) => {
   const xp = resource.xp
@@ -480,7 +508,7 @@ export const createOrUpdateRaiExhibitorBuyer = async (form: RaiBuyerSetupForm): 
   technicalSummary.push(catalogResult.summary)
   if (catalogResult.warning) warnings.push(catalogResult.warning)
 
-  const pricingResult = await assignPizzaPricing(buyerID)
+  const pricingResult = await assignPizzaPricing(buyerID, catalogResult.assigned)
   technicalSummary.push(pricingResult.summary)
   if (pricingResult.warning) warnings.push(pricingResult.warning)
 
