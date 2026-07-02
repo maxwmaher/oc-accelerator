@@ -45,6 +45,14 @@ const EVENT_WEBSITE_OPTIONS = [
 ]
 
 const DEFAULT_SELECTED_EVENT_WEBSITE_IDS = EVENT_WEBSITE_OPTIONS.filter((item) => item.required).map((item) => item.catalogID)
+const REQUIRED_EVENT_WEBSITE_IDS = DEFAULT_SELECTED_EVENT_WEBSITE_IDS
+
+const getPreparedCatalogIDs = (result?: RaiPrepareDemoEventWebsitesResult) => result ? [...result.createdCatalogIDs, ...result.updatedCatalogIDs] : []
+
+const hasPreparedRequiredEventWebsites = (result?: RaiPrepareDemoEventWebsitesResult) => {
+  const preparedCatalogIDs = getPreparedCatalogIDs(result)
+  return REQUIRED_EVENT_WEBSITE_IDS.every((catalogID) => preparedCatalogIDs.includes(catalogID))
+}
 
 const RaiEventSetupLanding: FC = () => {
   const toast = useToast()
@@ -80,11 +88,12 @@ const RaiEventSetupLanding: FC = () => {
     onSuccess: (data) => {
       setPrepareResult(data)
       const preparedCount = data.createdCatalogIDs.length + data.updatedCatalogIDs.length
+      const requiredEventWebsitesReady = hasPreparedRequiredEventWebsites(data)
       readinessCheckReason.current = 'auto'
       readinessMutation.mutate(undefined)
       toast({
         title: preparedCount ? 'Demo event websites prepared' : 'Demo event websites could not be prepared',
-        description: `${data.createdCatalogIDs.length} created, ${data.updatedCatalogIDs.length} updated.`,
+        description: requiredEventWebsitesReady ? 'Create Pizza setup is now available.' : `${data.createdCatalogIDs.length} created, ${data.updatedCatalogIDs.length} updated.`,
         status: preparedCount ? data.warnings.length ? 'warning' : 'success' : 'error',
       })
     },
@@ -202,7 +211,7 @@ const getStepStatus = (isReady: boolean, isNext: boolean, hasWarning = false): G
 }
 
 const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepareResult, readinessError, selectedCatalogIDs, onSelectionChange, onRefresh, onPrepare, isChecking, isPreparing }) => {
-  const eventWebsitesReady = readiness?.eventWebsitesReady ?? false
+  const eventWebsitesReady = readiness?.canCreatePizza || hasPreparedRequiredEventWebsites(prepareResult)
   const pizzaSetupReady = readiness?.pizzaSetupReady ?? false
   const exhibitorSetupReady = readiness?.exhibitorSetupReady ?? false
   const readyToRecord = readiness?.readyToRecord ?? false
@@ -246,7 +255,7 @@ const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepar
               result={prepareResult && <PrepareSummary result={prepareResult} />}
               action={(
                 <Stack spacing={4}>
-                  <EventWebsiteSelection selectedCatalogIDs={selectedCatalogIDs} onSelectionChange={onSelectionChange} readiness={readiness} />
+                  <EventWebsiteSelection selectedCatalogIDs={selectedCatalogIDs} onSelectionChange={onSelectionChange} readiness={readiness} prepareResult={prepareResult} />
                   <Button alignSelf="flex-start" colorScheme="blue" onClick={onPrepare} isLoading={isPreparing} isDisabled={isChecking || selectedCatalogIDs.length === 0}>
                     Create or refresh selected event websites
                   </Button>
@@ -326,7 +335,7 @@ const GuidedStepCard: FC<{
   )
 }
 
-const EventWebsiteSelection: FC<{ selectedCatalogIDs: string[]; onSelectionChange: (catalogIDs: string[]) => void; readiness?: RaiDemoReadinessResult }> = ({ selectedCatalogIDs, onSelectionChange, readiness }) => {
+const EventWebsiteSelection: FC<{ selectedCatalogIDs: string[]; onSelectionChange: (catalogIDs: string[]) => void; readiness?: RaiDemoReadinessResult; prepareResult?: RaiPrepareDemoEventWebsitesResult }> = ({ selectedCatalogIDs, onSelectionChange, readiness, prepareResult }) => {
   const toggleCatalog = (catalogID: string) => {
     onSelectionChange(selectedCatalogIDs.includes(catalogID)
       ? selectedCatalogIDs.filter((item) => item !== catalogID)
@@ -337,6 +346,7 @@ const EventWebsiteSelection: FC<{ selectedCatalogIDs: string[]; onSelectionChang
     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
       {EVENT_WEBSITE_OPTIONS.map((eventWebsite) => {
         const readinessItem = readiness?.eventWebsites.find((item) => item.technicalID === eventWebsite.catalogID)
+        const wasPrepared = getPreparedCatalogIDs(prepareResult).includes(eventWebsite.catalogID)
         const isSelected = selectedCatalogIDs.includes(eventWebsite.catalogID)
         return (
           <Card key={eventWebsite.catalogID} variant="outline">
@@ -352,7 +362,7 @@ const EventWebsiteSelection: FC<{ selectedCatalogIDs: string[]; onSelectionChang
                 <Text fontSize="sm" color="chakra-subtle-text">Required for: {eventWebsite.requiredFor}</Text>
                 <HStack flexWrap="wrap">
                   <Badge colorScheme={isSelected ? 'green' : 'gray'}>{isSelected ? 'Selected' : 'Not selected'}</Badge>
-                  {readinessItem && <Badge colorScheme={readinessItem.status === 'ready' ? 'green' : readinessItem.status === 'warning' ? 'orange' : 'red'}>{readinessItem.status === 'ready' ? 'Ready' : readinessItem.status === 'warning' ? 'Optional warning' : 'Not ready'}</Badge>}
+                  {(readinessItem || wasPrepared) && <Badge colorScheme={wasPrepared || readinessItem?.status === 'ready' ? 'green' : readinessItem?.status === 'warning' ? 'orange' : 'red'}>{wasPrepared || readinessItem?.status === 'ready' ? 'Ready' : readinessItem?.status === 'warning' ? 'Optional warning' : 'Not ready'}</Badge>}
                 </HStack>
                 <Text fontSize="xs" color="chakra-subtle-text">Catalog ID: {eventWebsite.catalogID}</Text>
               </Stack>
