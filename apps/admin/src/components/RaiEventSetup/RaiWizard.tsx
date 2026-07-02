@@ -76,10 +76,10 @@ const WizardShell: FC<WizardShellProps> = ({ title, description, steps, currentS
             <Divider />
             {children}
             <HStack justify="space-between">
-              <Button onClick={onBack} isDisabled={currentStep === 0} variant="outline">
+              <Button onClick={onBack} isDisabled={currentStep === 0 || isSubmitting} variant="outline">
                 Previous
               </Button>
-              <Button colorScheme="blue" onClick={isReviewStep ? onSubmit : onNext} isLoading={isSubmitting}>
+              <Button colorScheme="blue" onClick={isReviewStep ? onSubmit : onNext} isLoading={isSubmitting} isDisabled={isSubmitting}>
                 {isReviewStep ? 'Create demo setup' : 'Next'}
               </Button>
             </HStack>
@@ -99,19 +99,29 @@ const SummaryRow: FC<{ label: string; value: ReactNode }> = ({ label, value }) =
 
 const optionList = (items: string[]) => items.join(', ')
 
+
+const eventWebsiteLabelsByCatalogID: Record<string, string> = {
+  ISE_2026_CATALOG: 'ISE 2026',
+  INTERCLEAN_2026_CATALOG: 'Interclean 2026',
+  RAI_CATERING_CATALOG: 'RAI Catering Portal',
+  VEGETARIAN_EVENT_CATALOG: 'Vegetarian-only Event',
+}
+
+const formatEventWebsiteLabels = (catalogIDs: string[]) => catalogIDs.map((catalogID) => eventWebsiteLabelsByCatalogID[catalogID] ?? catalogID).join(', ')
+
 const ProductReview: FC<{ form: RaiProductSetupForm; result?: RaiProductSetupResult }> = ({ form, result }) => (
   <Stack spacing={5}>
     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-      <SummaryRow label="Product" value={`${form.name} · ${form.category}`} />
-      <SummaryRow label="Pricing for this event" value={`${form.currency} ${form.basePrice}`} />
+      <SummaryRow label="Reusable product" value={`${form.name} · ${form.category}`} />
+      <SummaryRow label="Pricing tier" value={`${form.currency} ${form.basePrice}`} />
       <SummaryRow label="Vegetarian-only event eligible" value={form.vegetarianOnlyEventEligible ? 'Yes' : 'No'} />
       <SummaryRow label="Product availability" value={optionList(form.eventWebsites)} />
-      <SummaryRow label="Sizes" value={optionList(form.sizes)} />
-      <SummaryRow label="Flavours" value={optionList(form.flavours)} />
-      <SummaryRow label="Toppings" value={optionList(form.toppings)} />
+      <SummaryRow label="Size options" value={optionList(form.sizes)} />
+      <SummaryRow label="Flavour options" value={optionList(form.flavours)} />
+      <SummaryRow label="Topping options" value={optionList(form.toppings)} />
     </SimpleGrid>
     {result && <ProductSuccess result={result} />}
-    <TechnicalDetails items={result?.technicalSummary ?? ['Product', 'Extended properties / XP', 'Price schedule', 'Product options/specs', 'Event website/catalog assignments']} label={result ? 'What happened in OrderCloud?' : undefined} />
+    <TechnicalDetails items={result?.technicalSummary ?? ['Product', 'Price schedule', 'Product options/specs', 'Event website/catalog assignments']} label={result ? 'What happened in OrderCloud?' : undefined} />
   </Stack>
 )
 
@@ -120,13 +130,13 @@ const BuyerReview: FC<{ form: RaiBuyerSetupForm; result?: RaiBuyerSetupResult }>
     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
       <SummaryRow label="Event" value={form.eventName} />
       <SummaryRow label="Exhibitor company" value={`${form.companyName} · Booth ${form.boothNumber}`} />
-      <SummaryRow label="Buyer user" value={`${form.firstName} ${form.lastName} · ${form.email}`} />
-      <SummaryRow label="Exhibitor access" value={optionList(form.eventWebsites)} />
-      <SummaryRow label="Products" value={optionList(form.productAccess)} />
-      <SummaryRow label="Pricing for this event" value={form.pricingTier} />
+      <SummaryRow label="Buyer contact" value={`${form.firstName} ${form.lastName} · ${form.email}`} />
+      <SummaryRow label="Event website access" value={optionList(form.eventWebsites)} />
+      <SummaryRow label="Shopper access" value={optionList(form.productAccess)} />
+      <SummaryRow label="Pricing tier" value={form.pricingTier} />
     </SimpleGrid>
     {result && <BuyerSuccess result={result} companyName={form.companyName} />}
-    <TechnicalDetails items={result?.technicalSummary ?? ['Buyer organization', 'Buyer user', 'Event website/catalog access', 'Product access', 'Pricing access']} label={result ? 'What happened in OrderCloud?' : undefined} />
+    <TechnicalDetails items={result?.technicalSummary ?? ['Buyer organization', 'Buyer user', 'Catalog access', 'Product/pricing assignment', 'Shopper/security profile']} label={result ? 'What happened in OrderCloud?' : undefined} />
   </Stack>
 )
 
@@ -135,18 +145,18 @@ const BuyerSuccess: FC<{ result: RaiBuyerSetupResult; companyName: string }> = (
     <Card bg="green.50" borderColor="green.200" variant="outline">
       <CardBody>
         <Stack spacing={3}>
-          <Heading as="h2" size="md" color="green.700">{companyName} is ready for {result.eventWebsiteLabel}</Heading>
+          <Heading as="h2" size="md" color="green.700">Blue Ocean Exhibits is ready for ISE 2026</Heading>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-            <SummaryRow label="Buyer organization ID" value={result.buyerID} />
-            <SummaryRow label="Buyer user" value={`${result.username} · ${result.buyerUserID}`} />
-            <SummaryRow label="Event website access" value={result.catalogAccessAssigned ? `Assigned to ${result.catalogID}` : 'Not assigned yet'} />
+            <SummaryRow label="Event website access" value={result.catalogAccessAssigned ? result.eventWebsiteLabel : 'Prepare event websites, then run this step again'} />
+            <SummaryRow label="Buyer contact" value={result.username} />
+            <SummaryRow label="Exhibitor company ID" value={result.buyerID} />
             <SummaryRow label="Booth" value={result.boothNumber} />
             <SummaryRow label="Pricing tier" value={result.priceTier} />
-            <SummaryRow label="Shopper sign-in profile" value={result.securityProfileAssigned ? 'Assigned' : 'Needs review'} />
+            <SummaryRow label="Shopper access" value={result.securityProfileAssigned ? 'Ready' : 'Optional shopper access was not found'} />
           </SimpleGrid>
           {result.warnings.length > 0 && (
             <Box>
-              <Text fontWeight="semibold" color="orange.700">Setup completed with friendly warnings</Text>
+              <Text fontWeight="semibold" color="orange.700">Setup completed with friendly notes</Text>
               <UnorderedList color="orange.700">
                 {result.warnings.map((warning) => <ListItem key={warning}>{warning}</ListItem>)}
               </UnorderedList>
@@ -179,14 +189,15 @@ const ProductSuccess: FC<{ result: RaiProductSetupResult }> = ({ result }) => (
       <Stack spacing={3}>
         <Heading as="h2" size="md" color="green.700">Pizza is ready</Heading>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-          <SummaryRow label="Product ID" value={result.productID} />
+          <SummaryRow label="Event websites published to" value={result.assignedCatalogIDs.length ? formatEventWebsiteLabels(result.assignedCatalogIDs) : 'Prepare event websites, then run this step again'} />
           <SummaryRow label="Default price" value={`${result.currency} ${result.defaultPrice.toFixed(2)}`} />
-          <SummaryRow label="Published event websites" value={result.assignedCatalogIDs.length ? result.assignedCatalogIDs.join(', ') : 'No matching catalogs found yet'} />
-          <SummaryRow label="Options created" value={result.specs.map((spec) => `${spec.name}: ${spec.optionIDs.length}`).join(' · ')} />
+          <SummaryRow label="Product ID" value={result.productID} />
+          <SummaryRow label="Product options" value={result.specs.map((spec) => `${spec.name}: ${spec.optionIDs.length}`).join(' · ')} />
+          <SummaryRow label="Vegetarian-only event restriction" value="Pepperoni and Ham are excluded for the vegetarian-only event." />
         </SimpleGrid>
         {result.skippedCatalogs.length > 0 && (
           <Box>
-            <Text fontWeight="semibold" color="orange.700">Some event websites were skipped</Text>
+            <Text fontWeight="semibold" color="orange.700">Some event websites need another pass</Text>
             <UnorderedList color="orange.700">
               {result.skippedCatalogs.map((catalog) => <ListItem key={catalog.eventWebsiteLabel}>{catalog.eventWebsiteLabel}: {catalog.reason}</ListItem>)}
             </UnorderedList>
@@ -236,13 +247,13 @@ export const RaiProductWizard: FC = () => {
   })
   const update = <K extends keyof RaiProductSetupForm>(key: K, value: RaiProductSetupForm[K]) => setForm((prev) => ({ ...prev, [key]: value }))
   const body = useMemo(() => {
-    if (currentStep === 0) return <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}><FormControl><FormLabel>Product name</FormLabel><Input value={form.name} onChange={(e) => update('name', e.target.value)} /></FormControl><FormControl><FormLabel>Category</FormLabel><Input value={form.category} onChange={(e) => update('category', e.target.value)} /></FormControl><Checkbox isChecked={form.vegetarianOnlyEventEligible} onChange={(e) => update('vegetarianOnlyEventEligible', e.target.checked)}>Vegetarian-only event eligible</Checkbox></SimpleGrid>
-    if (currentStep === 1) return <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}><FormControl><FormLabel>Pricing for this event</FormLabel><Input value={form.basePrice} onChange={(e) => update('basePrice', e.target.value)} /></FormControl><FormControl><FormLabel>Currency</FormLabel><Select value={form.currency} onChange={(e) => update('currency', e.target.value)}><option>EUR</option><option>USD</option><option>GBP</option></Select></FormControl></SimpleGrid>
-    if (currentStep === 2) return <VStack align="stretch" spacing={5}><CheckboxGroup value={form.sizes} onChange={(v) => update('sizes', v as string[])}><FormLabel>Sizes</FormLabel><HStack flexWrap="wrap"><Checkbox value="Small">Small</Checkbox><Checkbox value="Medium">Medium</Checkbox><Checkbox value="Large">Large</Checkbox></HStack></CheckboxGroup><CheckboxGroup value={form.flavours} onChange={(v) => update('flavours', v as string[])}><FormLabel>Flavours</FormLabel><HStack flexWrap="wrap"><Checkbox value="Margherita">Margherita</Checkbox><Checkbox value="Vegetarian">Vegetarian</Checkbox><Checkbox value="Pepperoni">Pepperoni</Checkbox></HStack></CheckboxGroup><CheckboxGroup value={form.toppings} onChange={(v) => update('toppings', v as string[])}><FormLabel>Toppings</FormLabel><HStack flexWrap="wrap">{['Olives', 'Mushrooms', 'Extra Cheese', 'Pepperoni', 'Ham'].map((item) => <Checkbox key={item} value={item}>{item}</Checkbox>)}</HStack></CheckboxGroup></VStack>
+    if (currentStep === 0) return <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}><FormControl><FormLabel>Product name</FormLabel><Input value={form.name} onChange={(e) => update('name', e.target.value)} /></FormControl><FormControl><FormLabel>Category</FormLabel><Input value={form.category} onChange={(e) => update('category', e.target.value)} /></FormControl><Checkbox isChecked={form.vegetarianOnlyEventEligible} onChange={(e) => update('vegetarianOnlyEventEligible', e.target.checked)}>Eligible for vegetarian-only events</Checkbox></SimpleGrid>
+    if (currentStep === 1) return <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}><FormControl><FormLabel>Pricing tier</FormLabel><Input value={form.basePrice} onChange={(e) => update('basePrice', e.target.value)} /></FormControl><FormControl><FormLabel>Currency</FormLabel><Select value={form.currency} onChange={(e) => update('currency', e.target.value)}><option>EUR</option><option>USD</option><option>GBP</option></Select></FormControl></SimpleGrid>
+    if (currentStep === 2) return <VStack align="stretch" spacing={5}><CheckboxGroup value={form.sizes} onChange={(v) => update('sizes', v as string[])}><FormLabel>Product options: size</FormLabel><HStack flexWrap="wrap"><Checkbox value="Small">Small</Checkbox><Checkbox value="Medium">Medium</Checkbox><Checkbox value="Large">Large</Checkbox></HStack></CheckboxGroup><CheckboxGroup value={form.flavours} onChange={(v) => update('flavours', v as string[])}><FormLabel>Product options: flavour</FormLabel><HStack flexWrap="wrap"><Checkbox value="Margherita">Margherita</Checkbox><Checkbox value="Vegetarian">Vegetarian</Checkbox><Checkbox value="Pepperoni">Pepperoni</Checkbox></HStack></CheckboxGroup><CheckboxGroup value={form.toppings} onChange={(v) => update('toppings', v as string[])}><FormLabel>Product options: toppings</FormLabel><HStack flexWrap="wrap">{['Olives', 'Mushrooms', 'Extra Cheese', 'Pepperoni', 'Ham'].map((item) => <Checkbox key={item} value={item}>{item}</Checkbox>)}</HStack></CheckboxGroup></VStack>
     if (currentStep === 3) return <CheckboxGroup value={form.eventWebsites} onChange={(v) => update('eventWebsites', v as string[])}><FormLabel>Product availability across event websites</FormLabel><Stack><Checkbox value="ISE 2026">ISE 2026</Checkbox><Checkbox value="RAI Catering Portal">RAI Catering Portal</Checkbox><Checkbox value="Interclean 2026">Interclean 2026</Checkbox><Checkbox value="Vegetarian-only Event">Vegetarian-only Event</Checkbox></Stack></CheckboxGroup>
     return <ProductReview form={form} result={result} />
   }, [currentStep, form, result])
-  return <WizardShell title="Create Event Product" description="Create a reusable event product and choose where it should be available." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => productMutation.mutate(form)} isSubmitting={productMutation.isPending}>{body}</WizardShell>
+  return <WizardShell title="Create Pizza Product Setup" description="Create Pizza once, configure product options, and publish it across the selected event websites." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => productMutation.mutate(form)} isSubmitting={productMutation.isPending}>{body}</WizardShell>
 }
 
 export const RaiBuyerWizard: FC = () => {
@@ -266,10 +277,10 @@ export const RaiBuyerWizard: FC = () => {
   const update = <K extends keyof RaiBuyerSetupForm>(key: K, value: RaiBuyerSetupForm[K]) => setForm((prev) => ({ ...prev, [key]: value }))
   const body = useMemo(() => {
     if (currentStep === 0) return <FormControl><FormLabel>Event</FormLabel><Select value={form.eventName} onChange={(e) => update('eventName', e.target.value)}><option>ISE 2026</option><option>IBC 2026</option><option>Amsterdam Drone Week 2026</option></Select></FormControl>
-    if (currentStep === 1) return <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}><FormControl><FormLabel>Company</FormLabel><Input value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></FormControl><FormControl><FormLabel>Booth</FormLabel><Input value={form.boothNumber} onChange={(e) => update('boothNumber', e.target.value)} /></FormControl></SimpleGrid>
+    if (currentStep === 1) return <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}><FormControl><FormLabel>Exhibitor company</FormLabel><Input value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></FormControl><FormControl><FormLabel>Booth number</FormLabel><Input value={form.boothNumber} onChange={(e) => update('boothNumber', e.target.value)} /></FormControl></SimpleGrid>
     if (currentStep === 2) return <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}><FormControl><FormLabel>First name</FormLabel><Input value={form.firstName} onChange={(e) => update('firstName', e.target.value)} /></FormControl><FormControl><FormLabel>Last name</FormLabel><Input value={form.lastName} onChange={(e) => update('lastName', e.target.value)} /></FormControl><FormControl><FormLabel>Email</FormLabel><Input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} /></FormControl></SimpleGrid>
-    if (currentStep === 3) return <VStack align="stretch" spacing={5}><CheckboxGroup value={form.eventWebsites} onChange={(v) => update('eventWebsites', v as string[])}><FormLabel>Exhibitor access</FormLabel><Stack><Checkbox value="ISE 2026">ISE 2026 event website</Checkbox><Checkbox value="RAI Catering Portal">RAI Catering Portal</Checkbox></Stack></CheckboxGroup><CheckboxGroup value={form.productAccess} onChange={(v) => update('productAccess', v as string[])}><FormLabel>Product access</FormLabel><HStack flexWrap="wrap"><Checkbox value="Food & Catering">Food & Catering</Checkbox><Checkbox value="Pizza">Pizza</Checkbox><Checkbox value="Furniture">Furniture</Checkbox></HStack></CheckboxGroup><FormControl><FormLabel>Pricing for this event</FormLabel><Select value={form.pricingTier} onChange={(e) => update('pricingTier', e.target.value)}><option>ISE 2026 exhibitor pricing</option><option>Standard exhibitor pricing</option><option>Partner pricing</option></Select></FormControl></VStack>
+    if (currentStep === 3) return <VStack align="stretch" spacing={5}><CheckboxGroup value={form.eventWebsites} onChange={(v) => update('eventWebsites', v as string[])}><FormLabel>Event website access</FormLabel><Stack><Checkbox value="ISE 2026">ISE 2026 event website</Checkbox><Checkbox value="RAI Catering Portal">RAI Catering Portal</Checkbox></Stack></CheckboxGroup><CheckboxGroup value={form.productAccess} onChange={(v) => update('productAccess', v as string[])}><FormLabel>Shopper access</FormLabel><HStack flexWrap="wrap"><Checkbox value="Food & Catering">Food & Catering</Checkbox><Checkbox value="Pizza">Pizza</Checkbox><Checkbox value="Furniture">Furniture</Checkbox></HStack></CheckboxGroup><FormControl><FormLabel>Pricing tier</FormLabel><Select value={form.pricingTier} onChange={(e) => update('pricingTier', e.target.value)}><option>ISE 2026 exhibitor pricing</option><option>Standard exhibitor pricing</option><option>Partner pricing</option></Select></FormControl></VStack>
     return <BuyerReview form={form} result={result} />
   }, [currentStep, form, result])
-  return <WizardShell title="Register Exhibitor Buyer" description="Register an exhibitor buyer and give them the event access they need." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => buyerMutation.mutate(form)} isSubmitting={buyerMutation.isPending}>{body}</WizardShell>
+  return <WizardShell title="Register Exhibitor Buyer" description="Register an exhibitor for an event, add the buyer contact, and grant event website access with the right pricing tier." steps={steps} currentStep={currentStep} onBack={() => setCurrentStep((s) => Math.max(0, s - 1))} onNext={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} onSubmit={() => buyerMutation.mutate(form)} isSubmitting={buyerMutation.isPending}>{body}</WizardShell>
 }

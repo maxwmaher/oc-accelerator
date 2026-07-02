@@ -14,6 +14,7 @@ import {
   HStack,
   Heading,
   ListItem,
+  OrderedList,
   SimpleGrid,
   Stack,
   Text,
@@ -77,7 +78,8 @@ const RaiEventSetupLanding: FC = () => {
           Guided daily workflows for ecommerce and admin teams preparing event websites, reusable products, exhibitor buyers, and event-specific pricing.
         </Text>
       </Stack>
-      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+      <DemoPathCard />
+      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} mt={6}>
         <Card variant="outline" p={2} _hover={{ borderColor: 'blue.300', boxShadow: 'md' }}>
           <CardBody>
             <Stack spacing={4} align="flex-start">
@@ -99,7 +101,7 @@ const RaiEventSetupLanding: FC = () => {
             <Stack spacing={4} align="flex-start">
               <Heading as="h2" size="md">Register Exhibitor Buyer</Heading>
               <Text color="chakra-subtle-text">
-                Register a new exhibitor buyer user, relate them to an event, and grant exhibitor access to products and pricing for that event website.
+                Register an exhibitor, create the buyer contact, and grant event website access with the right product availability and pricing tier.
               </Text>
               <HStack color="chakra-subtle-text" fontSize="sm" flexWrap="wrap">
                 <Text>Event</Text><Text>•</Text><Text>Company</Text><Text>•</Text><Text>User</Text><Text>•</Text><Text>Access</Text>
@@ -134,6 +136,41 @@ interface DemoReadinessCardProps {
   isPreparing: boolean
 }
 
+const DemoPathCard: FC = () => (
+  <Card variant="outline" p={2}>
+    <CardBody>
+      <Stack spacing={4}>
+        <Heading as="h2" size="md">Recommended demo path</Heading>
+        <Text color="chakra-subtle-text">Follow this sequence when recording the admin walkthrough.</Text>
+        <OrderedList spacing={2} color="chakra-subtle-text">
+          <ListItem><Text as="span" fontWeight="semibold" color="chakra-body-text">Prepare event websites</Text> so the demo destinations are ready.</ListItem>
+          <ListItem><Text as="span" fontWeight="semibold" color="chakra-body-text">Create Pizza product setup</Text> with product options, pricing, and event availability.</ListItem>
+          <ListItem><Text as="span" fontWeight="semibold" color="chakra-body-text">Register Blue Ocean Exhibits</Text> with event website access and shopper access.</ListItem>
+          <ListItem><Text as="span" fontWeight="semibold" color="chakra-body-text">Check demo readiness</Text> before recording the final take.</ListItem>
+        </OrderedList>
+        <Accordion allowToggle>
+          <AccordionItem>
+            <AccordionButton>
+              <Box as="span" flex="1" textAlign="left" fontWeight="semibold">Suggested narration</Box>
+              <AccordionIcon />
+            </AccordionButton>
+            <AccordionPanel color="chakra-subtle-text">
+              <UnorderedList spacing={2}>
+                <ListItem>This area is designed for the ecommerce team.</ListItem>
+                <ListItem>We can prepare event websites for a new event.</ListItem>
+                <ListItem>We can create Pizza once and publish it across multiple event websites.</ListItem>
+                <ListItem>We can configure options like size, flavour, and toppings.</ListItem>
+                <ListItem>We can register an exhibitor and give them the right event access and pricing.</ListItem>
+                <ListItem>The technical details are handled by OrderCloud behind the scenes.</ListItem>
+              </UnorderedList>
+            </AccordionPanel>
+          </AccordionItem>
+        </Accordion>
+      </Stack>
+    </CardBody>
+  </Card>
+)
+
 const DemoReadinessCard: FC<DemoReadinessCardProps> = ({ mt, readiness, prepareResult, onCheck, onPrepare, isChecking, isPreparing }) => (
   <Card variant="outline" mt={mt} p={2}>
     <CardBody>
@@ -145,8 +182,8 @@ const DemoReadinessCard: FC<DemoReadinessCardProps> = ({ mt, readiness, prepareR
           </Text>
         </Box>
         <HStack flexWrap="wrap">
-          <Button colorScheme="blue" variant="outline" onClick={onCheck} isLoading={isChecking}>Check demo readiness</Button>
-          <Button colorScheme="blue" onClick={onPrepare} isLoading={isPreparing}>Prepare demo event websites</Button>
+          <Button colorScheme="blue" onClick={onPrepare} isLoading={isPreparing} isDisabled={isChecking}>Prepare demo event websites</Button>
+          <Button colorScheme="blue" variant="outline" onClick={onCheck} isLoading={isChecking} isDisabled={isPreparing}>Check demo readiness</Button>
         </HStack>
         {prepareResult && <PrepareSummary result={prepareResult} />}
         {readiness && <ReadinessSummary result={readiness} />}
@@ -161,6 +198,7 @@ const PrepareSummary: FC<{ result: RaiPrepareDemoEventWebsitesResult }> = ({ res
       <Stack spacing={2}>
         <Text fontWeight="semibold">Event websites are prepared</Text>
         <Text color="chakra-subtle-text">Created {result.createdCatalogIDs.length} and updated {result.updatedCatalogIDs.length} event websites.</Text>
+        <Text fontWeight="semibold" color="blue.700">Next: create the Pizza product setup, then register Blue Ocean Exhibits.</Text>
         {result.warnings.length > 0 && <UnorderedList color="orange.700">{result.warnings.map((warning) => <ListItem key={warning}>{warning}</ListItem>)}</UnorderedList>}
       </Stack>
     </CardBody>
@@ -178,13 +216,18 @@ const ReadinessSummary: FC<{ result: RaiDemoReadinessResult }> = ({ result }) =>
         <Text fontWeight="semibold">Overall demo status</Text>
         <Badge colorScheme={result.overallStatus === 'ready' ? 'green' : result.overallStatus === 'partial' ? 'orange' : 'red'}>{result.overallStatus === 'ready' ? 'Ready' : result.overallStatus === 'partial' ? 'Partially ready' : 'Not ready'}</Badge>
       </HStack>
+      {result.overallStatus === 'ready' && (
+        <Card bg="green.50" borderColor="green.200" variant="outline">
+          <CardBody><Text fontWeight="semibold" color="green.700">Ready to record the admin walkthrough.</Text></CardBody>
+        </Card>
+      )}
       {(hasMissingEventWebsites || hasMissingPizza || hasMissingBuyer) && (
         <Card bg="orange.50" borderColor="orange.200" variant="outline">
           <CardBody>
             <UnorderedList color="orange.800">
-              {hasMissingEventWebsites && <ListItem>Some event websites are missing. Use Prepare demo event websites before recording.</ListItem>}
-              {hasMissingPizza && <ListItem>Create the Pizza product setup next.</ListItem>}
-              {hasMissingBuyer && <ListItem>Register the demo exhibitor next.</ListItem>}
+              {hasMissingEventWebsites && <ListItem>Next: prepare event websites.</ListItem>}
+              {hasMissingPizza && <ListItem>Next: create the Pizza product setup.</ListItem>}
+              {hasMissingBuyer && <ListItem>Next: register Blue Ocean Exhibits.</ListItem>}
             </UnorderedList>
           </CardBody>
         </Card>
