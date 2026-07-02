@@ -735,9 +735,20 @@ export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => 
   const buyerSetup = [buyer, user, iseAccess, pizzaPricing, shopperAccess]
   const allItems = [...eventWebsites, ...productSetup, ...buyerSetup]
   warnings.push(...allItems.filter((item) => item.status === 'missing' || item.status === 'warning').map((item) => `${item.label}: ${item.message || item.status}`))
+  const eventWebsitesReady = eventWebsites.every((item) => item.status === 'ready')
+  const pizzaSetupReady = productSetup.every((item) => item.status === 'ready')
+  const exhibitorSetupReady = [buyer, user, iseAccess].every((item) => item.status === 'ready')
+  const readyToRecord = eventWebsitesReady && pizzaSetupReady && exhibitorSetupReady
 
   return {
     overallStatus: getReadinessStatus(allItems),
+    eventWebsitesReady,
+    pizzaSetupReady,
+    exhibitorSetupReady,
+    readyToRecord,
+    canCreatePizza: eventWebsitesReady,
+    canRegisterBuyer: eventWebsitesReady && pizzaSetupReady,
+    canRunFinalReadinessCheck: readyToRecord,
     eventWebsites,
     productSetup,
     buyerSetup,

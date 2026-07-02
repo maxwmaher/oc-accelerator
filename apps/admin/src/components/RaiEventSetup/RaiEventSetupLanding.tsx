@@ -22,8 +22,6 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  OrderedList,
-  SimpleGrid,
   Stack,
   Text,
   UnorderedList,
@@ -32,17 +30,10 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import { useAuthMutation } from '@ordercloud/react-sdk'
-import { FC, ReactNode, useState } from 'react'
+import { FC, ReactNode, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { checkRaiDemoReadiness, deleteRaiDemoData, prepareRaiDemoEventWebsites } from './raiEventSetupService'
-import { RaiDeleteDemoDataResult, RaiDemoReadinessResult, RaiPrepareDemoEventWebsitesResult, RaiReadinessItem, RaiReadinessItemStatus } from './types'
-
-const statusCopy: Record<RaiReadinessItemStatus, { label: string; colorScheme: string }> = {
-  ready: { label: 'Ready', colorScheme: 'green' },
-  missing: { label: 'Missing', colorScheme: 'red' },
-  warning: { label: 'Warning', colorScheme: 'orange' },
-  unchecked: { label: 'Not checked', colorScheme: 'gray' },
-}
+import { RaiDeleteDemoDataResult, RaiDemoReadinessResult, RaiPrepareDemoEventWebsitesResult } from './types'
 
 const RaiEventSetupLanding: FC = () => {
   const toast = useToast()
@@ -51,17 +42,23 @@ const RaiEventSetupLanding: FC = () => {
   const [prepareResult, setPrepareResult] = useState<RaiPrepareDemoEventWebsitesResult>()
   const [deleteResult, setDeleteResult] = useState<RaiDeleteDemoDataResult>()
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [readinessError, setReadinessError] = useState<string>()
+  const readinessCheckReason = useRef<'auto' | 'manual'>('auto')
 
   const readinessMutation = useAuthMutation({
     mutationKey: ['rai-demo-readiness'],
     mutationFn: checkRaiDemoReadiness,
     onSuccess: (data) => {
       setReadiness(data)
-      toast({ title: data.overallStatus === 'ready' ? 'Demo environment is ready' : 'Demo readiness checked', description: data.overallStatus === 'ready' ? 'The RAI demo setup is ready to record.' : 'Review the friendly readiness hints before recording.', status: data.overallStatus === 'ready' ? 'success' : 'warning' })
+      setReadinessError(undefined)
+      if (readinessCheckReason.current === 'manual') {
+        toast({ title: data.readyToRecord ? 'Ready to record' : 'Demo status refreshed', description: data.readyToRecord ? 'The RAI demo setup is ready to record.' : 'Follow the next available setup step.', status: data.readyToRecord ? 'success' : 'info' })
+      }
     },
     onError: (error) => {
       const description = error instanceof Error ? error.message : 'Demo readiness could not be checked.'
-      toast({ title: 'Readiness check failed', description, status: 'error' })
+      setReadinessError(description)
+      if (readinessCheckReason.current === 'manual') toast({ title: 'Status refresh failed', description, status: 'warning' })
     },
   })
 
@@ -71,6 +68,8 @@ const RaiEventSetupLanding: FC = () => {
     onSuccess: (data) => {
       setPrepareResult(data)
       const preparedCount = data.createdCatalogIDs.length + data.updatedCatalogIDs.length
+      readinessCheckReason.current = 'auto'
+      readinessMutation.mutate(undefined)
       toast({
         title: preparedCount ? 'Demo event websites prepared' : 'Demo event websites could not be prepared',
         description: `${data.createdCatalogIDs.length} created, ${data.updatedCatalogIDs.length} updated.`,
@@ -92,6 +91,8 @@ const RaiEventSetupLanding: FC = () => {
       setPrepareResult(undefined)
       setDeleteConfirmation('')
       resetModal.onClose()
+      readinessCheckReason.current = 'auto'
+      readinessMutation.mutate(undefined)
       const title = data.overallStatus === 'already-clean'
         ? 'Demo data is already clean'
         : data.overallStatus === 'partial'
@@ -111,6 +112,17 @@ const RaiEventSetupLanding: FC = () => {
     },
   })
 
+  useEffect(() => {
+    readinessCheckReason.current = 'auto'
+    readinessMutation.mutate(undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const refreshStatus = () => {
+    readinessCheckReason.current = 'manual'
+    readinessMutation.mutate(undefined)
+  }
+
   return (
     <Container maxW="6xl" p={8}>
       <Stack spacing={3} mb={8}>
@@ -124,55 +136,16 @@ const RaiEventSetupLanding: FC = () => {
           Guided daily workflows for ecommerce and admin teams preparing event websites, reusable products, exhibitor buyers, and event-specific pricing.
         </Text>
       </Stack>
-      <DemoPathCard />
-      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} mt={6}>
-        <Card variant="outline" p={2} _hover={{ borderColor: 'blue.300', boxShadow: 'md' }}>
-          <CardBody>
-            <Stack spacing={4} align="flex-start">
-              <Heading as="h2" size="md">Create Event Product</Heading>
-              <Text color="chakra-subtle-text">
-                Create a reusable Pizza product, configure business fields, product options, pricing for this event, and product availability across event websites.
-              </Text>
-              <HStack color="chakra-subtle-text" fontSize="sm" flexWrap="wrap">
-                <Text>Basics</Text><Text>•</Text><Text>Pricing</Text><Text>•</Text><Text>Options</Text><Text>•</Text><Text>Availability</Text>
-              </HStack>
-              <Button as={Link} to="/rai-event-setup/products/new" colorScheme="blue" rightIcon={<ArrowForwardIcon />}>
-                Start product setup
-              </Button>
-            </Stack>
-          </CardBody>
-        </Card>
-        <Card variant="outline" p={2} _hover={{ borderColor: 'blue.300', boxShadow: 'md' }}>
-          <CardBody>
-            <Stack spacing={4} align="flex-start">
-              <Heading as="h2" size="md">Register Exhibitor Buyer</Heading>
-              <Text color="chakra-subtle-text">
-                Register an exhibitor, create the buyer contact, and grant event website access with the right product availability and pricing tier.
-              </Text>
-              <HStack color="chakra-subtle-text" fontSize="sm" flexWrap="wrap">
-                <Text>Event</Text><Text>•</Text><Text>Company</Text><Text>•</Text><Text>User</Text><Text>•</Text><Text>Access</Text>
-              </HStack>
-              <Button as={Link} to="/rai-event-setup/buyers/new" colorScheme="blue" rightIcon={<ArrowForwardIcon />}>
-                Start buyer setup
-              </Button>
-            </Stack>
-          </CardBody>
-        </Card>
-      </SimpleGrid>
-      <DemoReadinessCard
-        mt={6}
+      <GuidedSetupChecklist
         readiness={readiness}
         prepareResult={prepareResult}
-        onCheck={() => readinessMutation.mutate(undefined)}
+        readinessError={readinessError}
+        onRefresh={refreshStatus}
         onPrepare={() => prepareMutation.mutate(undefined)}
         isChecking={readinessMutation.isPending}
         isPreparing={prepareMutation.isPending}
       />
-      <ResetDemoDataCard
-        result={deleteResult}
-        onOpen={resetModal.onOpen}
-        isDeleting={deleteMutation.isPending}
-      />
+      <AdvancedResetSection result={deleteResult} onOpen={resetModal.onOpen} isDeleting={deleteMutation.isPending} />
       <DeleteDemoDataModal
         isOpen={resetModal.isOpen}
         onClose={resetModal.onClose}
@@ -185,14 +158,149 @@ const RaiEventSetupLanding: FC = () => {
   )
 }
 
-interface DemoReadinessCardProps {
-  mt?: number
+interface GuidedSetupChecklistProps {
   readiness?: RaiDemoReadinessResult
   prepareResult?: RaiPrepareDemoEventWebsitesResult
-  onCheck: () => void
+  readinessError?: string
+  onRefresh: () => void
   onPrepare: () => void
   isChecking: boolean
   isPreparing: boolean
+}
+
+type GuidedStepStatus = 'ready' | 'next' | 'blocked' | 'attention' | 'optional'
+
+const guidedStatusCopy: Record<GuidedStepStatus, { label: string; colorScheme: string }> = {
+  ready: { label: 'Ready', colorScheme: 'green' },
+  next: { label: 'Next step', colorScheme: 'blue' },
+  blocked: { label: 'Blocked', colorScheme: 'gray' },
+  attention: { label: 'Needs attention', colorScheme: 'orange' },
+  optional: { label: 'Optional warning', colorScheme: 'orange' },
+}
+
+const getStepStatus = (isReady: boolean, isNext: boolean, hasWarning = false): GuidedStepStatus => {
+  if (isReady && hasWarning) return 'optional'
+  if (isReady) return 'ready'
+  if (isNext) return 'next'
+  return 'blocked'
+}
+
+const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepareResult, readinessError, onRefresh, onPrepare, isChecking, isPreparing }) => {
+  const eventWebsitesReady = readiness?.eventWebsitesReady ?? false
+  const pizzaSetupReady = readiness?.pizzaSetupReady ?? false
+  const exhibitorSetupReady = readiness?.exhibitorSetupReady ?? false
+  const readyToRecord = readiness?.readyToRecord ?? false
+  const productWarnings = readiness?.productSetup.some((item) => item.status === 'warning') ?? false
+  const buyerWarnings = readiness?.buyerSetup.some((item) => item.status === 'warning') ?? false
+  const eventWebsiteNames = 'ISE 2026, Interclean 2026, RAI Catering Portal, Vegetarian-only Event'
+
+  return (
+    <Card variant="outline" p={2}>
+      <CardBody>
+        <Stack spacing={6}>
+          <HStack justify="space-between" align="flex-start" flexWrap="wrap">
+            <Box>
+              <Heading as="h2" size="lg">RAI Admin Demo Setup</Heading>
+              <Text color="chakra-subtle-text" mt={2}>
+                Follow these steps in order to prepare the OrderCloud demo environment and record the walkthrough.
+              </Text>
+            </Box>
+            <Button variant="outline" onClick={onRefresh} isLoading={isChecking} isDisabled={isPreparing}>
+              Refresh status
+            </Button>
+          </HStack>
+          {isChecking && !readiness && <Text color="chakra-subtle-text">Checking current demo status…</Text>}
+          {readinessError && (
+            <Card variant="outline" borderColor="orange.300">
+              <CardBody>
+                <Stack spacing={2}>
+                  <Text fontWeight="semibold">Current demo status could not be checked.</Text>
+                  <Text color="chakra-subtle-text">You can retry status refresh. If this continues, check your API access.</Text>
+                </Stack>
+              </CardBody>
+            </Card>
+          )}
+          <Stack spacing={4}>
+            <GuidedStepCard
+              stepNumber={1}
+              title="Prepare event websites"
+              description="Create the event websites that products and exhibitors will be connected to."
+              status={getStepStatus(eventWebsitesReady, !eventWebsitesReady)}
+              readyText={`These event websites are ready: ${eventWebsiteNames}.`}
+              result={prepareResult && <PrepareSummary result={prepareResult} />}
+              action={<Button colorScheme="blue" onClick={onPrepare} isLoading={isPreparing} isDisabled={isChecking}>{eventWebsitesReady ? 'Prepare again' : 'Prepare event websites'}</Button>}
+            />
+            <GuidedStepCard
+              stepNumber={2}
+              title="Create Pizza product setup"
+              description="Create Pizza once, configure pricing and options, then publish it to selected event websites."
+              status={getStepStatus(pizzaSetupReady, eventWebsitesReady && !pizzaSetupReady, productWarnings)}
+              readyText="Pizza product setup is ready."
+              blockedText="Prepare event websites first."
+              action={<Button as={Link} to="/rai-event-setup/products/new" colorScheme="blue" rightIcon={<ArrowForwardIcon />} isDisabled={!eventWebsitesReady || isChecking}>{pizzaSetupReady ? 'Review or update Pizza setup' : 'Start Pizza setup'}</Button>}
+            />
+            <GuidedStepCard
+              stepNumber={3}
+              title="Register Blue Ocean Exhibits"
+              description="Create the exhibitor, buyer contact, event website access, and pricing access."
+              status={getStepStatus(exhibitorSetupReady, eventWebsitesReady && pizzaSetupReady && !exhibitorSetupReady, buyerWarnings)}
+              readyText="Blue Ocean Exhibits setup is ready."
+              blockedText={eventWebsitesReady ? 'Create the Pizza product setup first.' : 'Prepare event websites first.'}
+              action={<Button as={Link} to="/rai-event-setup/buyers/new" colorScheme="blue" rightIcon={<ArrowForwardIcon />} isDisabled={!eventWebsitesReady || !pizzaSetupReady || isChecking}>{exhibitorSetupReady ? 'Review or update exhibitor setup' : 'Start exhibitor setup'}</Button>}
+            />
+            <GuidedStepCard
+              stepNumber={4}
+              title="Final readiness check"
+              description="Confirm the event websites, Pizza product setup, and exhibitor access are ready before recording."
+              status={readyToRecord ? 'ready' : eventWebsitesReady && pizzaSetupReady && exhibitorSetupReady ? 'next' : 'blocked'}
+              readyText="Ready to record."
+              blockedText={!eventWebsitesReady ? 'Prepare event websites first.' : !pizzaSetupReady ? 'Create Pizza setup first.' : 'Register Blue Ocean Exhibits first.'}
+              action={<Button colorScheme="blue" variant={readyToRecord ? 'outline' : 'solid'} onClick={onRefresh} isLoading={isChecking} isDisabled={!eventWebsitesReady || !pizzaSetupReady || !exhibitorSetupReady || isPreparing}>{readyToRecord ? 'Check again' : 'Check final readiness'}</Button>}
+            />
+          </Stack>
+          {readiness && <TechnicalDetails items={readiness.technicalSummary} />}
+        </Stack>
+      </CardBody>
+    </Card>
+  )
+}
+
+const GuidedStepCard: FC<{
+  stepNumber: number
+  title: string
+  description: string
+  status: GuidedStepStatus
+  action: ReactNode
+  readyText?: string
+  blockedText?: string
+  result?: ReactNode
+}> = ({ stepNumber, title, description, status, action, readyText, blockedText, result }) => {
+  const statusDetails = guidedStatusCopy[status]
+  const borderColor = useColorModeValue(status === 'next' ? 'blue.300' : 'gray.200', status === 'next' ? 'blue.500' : 'gray.700')
+
+  return (
+    <Card variant="outline" borderColor={borderColor}>
+      <CardBody>
+        <Stack spacing={4}>
+          <HStack justify="space-between" align="flex-start" flexWrap="wrap">
+            <HStack align="flex-start">
+              <Badge borderRadius="full" colorScheme={statusDetails.colorScheme}>{stepNumber}</Badge>
+              <Box>
+                <Heading as="h3" size="md">{title}</Heading>
+                <Text color="chakra-subtle-text" mt={1}>{description}</Text>
+              </Box>
+            </HStack>
+            <Badge colorScheme={statusDetails.colorScheme}>{statusDetails.label}</Badge>
+          </HStack>
+          {status === 'ready' && readyText && <Text color="chakra-subtle-text">{readyText} Rerunning this step is safe.</Text>}
+          {status === 'optional' && readyText && <Text color="chakra-subtle-text">{readyText} Review optional notes below when needed.</Text>}
+          {status === 'blocked' && blockedText && <Text color="chakra-subtle-text">{blockedText}</Text>}
+          <Box>{action}</Box>
+          {result}
+        </Stack>
+      </CardBody>
+    </Card>
+  )
 }
 
 const useResultCardColors = (scheme: 'green' | 'orange' | 'blue' | 'red') => ({
@@ -203,23 +311,28 @@ const useResultCardColors = (scheme: 'green' | 'orange' | 'blue' | 'red') => ({
   subtleColor: useColorModeValue('gray.700', `${scheme}.100`),
 })
 
-const ResetDemoDataCard: FC<{ result?: RaiDeleteDemoDataResult; onOpen: () => void; isDeleting: boolean }> = ({ result, onOpen, isDeleting }) => (
-  <Card variant="outline" mt={6} p={2}>
-    <CardBody>
-      <Stack spacing={4}>
-        <Box>
-          <Heading as="h2" size="md">Reset demo data</Heading>
-          <Text color="chakra-subtle-text" mt={2}>
-            This removes only the RAI demo resources created by this guided setup, so you can test or record the demo from a clean starting point.
-          </Text>
+const AdvancedResetSection: FC<{ result?: RaiDeleteDemoDataResult; onOpen: () => void; isDeleting: boolean }> = ({ result, onOpen, isDeleting }) => (
+  <Accordion allowToggle mt={6}>
+    <AccordionItem border="1px solid" borderColor="chakra-border-color" borderRadius="md">
+      <AccordionButton>
+        <Box as="span" flex="1" textAlign="left" fontWeight="semibold">
+          Advanced: reset demo data
         </Box>
-        <Button alignSelf="flex-start" colorScheme="red" variant="outline" leftIcon={<DeleteIcon />} onClick={onOpen} isLoading={isDeleting}>
-          Delete demo data
-        </Button>
-        {result && <DeleteSummary result={result} />}
-      </Stack>
-    </CardBody>
-  </Card>
+        <AccordionIcon />
+      </AccordionButton>
+      <AccordionPanel>
+        <Stack spacing={4}>
+          <Text color="chakra-subtle-text">
+            Use this only when you want to test the demo from a clean starting point.
+          </Text>
+          <Button alignSelf="flex-start" colorScheme="red" variant="outline" leftIcon={<DeleteIcon />} onClick={onOpen} isLoading={isDeleting}>
+            Delete demo data
+          </Button>
+          {result && <DeleteSummary result={result} />}
+        </Stack>
+      </AccordionPanel>
+    </AccordionItem>
+  </Accordion>
 )
 
 const DeleteDemoDataModal: FC<{
@@ -304,62 +417,6 @@ const DeleteSummary: FC<{ result: RaiDeleteDemoDataResult }> = ({ result }) => {
   )
 }
 
-const DemoPathCard: FC = () => (
-  <Card variant="outline" p={2}>
-    <CardBody>
-      <Stack spacing={4}>
-        <Heading as="h2" size="md">Recommended demo path</Heading>
-        <Text color="chakra-subtle-text">Follow this sequence when recording the admin walkthrough.</Text>
-        <OrderedList spacing={2} color="chakra-subtle-text">
-          <ListItem><Text as="span" fontWeight="semibold" color="chakra-body-text">Prepare event websites</Text> so the demo destinations are ready.</ListItem>
-          <ListItem><Text as="span" fontWeight="semibold" color="chakra-body-text">Create Pizza product setup</Text> with product options, pricing, and event availability.</ListItem>
-          <ListItem><Text as="span" fontWeight="semibold" color="chakra-body-text">Register Blue Ocean Exhibits</Text> with event website access and shopper access.</ListItem>
-          <ListItem><Text as="span" fontWeight="semibold" color="chakra-body-text">Check demo readiness</Text> before recording the final take.</ListItem>
-        </OrderedList>
-        <Accordion allowToggle>
-          <AccordionItem>
-            <AccordionButton>
-              <Box as="span" flex="1" textAlign="left" fontWeight="semibold">Suggested narration</Box>
-              <AccordionIcon />
-            </AccordionButton>
-            <AccordionPanel color="chakra-subtle-text">
-              <UnorderedList spacing={2}>
-                <ListItem>This area is designed for the ecommerce team.</ListItem>
-                <ListItem>We can prepare event websites for a new event.</ListItem>
-                <ListItem>We can create Pizza once and publish it across multiple event websites.</ListItem>
-                <ListItem>We can configure options like size, flavour, and toppings.</ListItem>
-                <ListItem>We can register an exhibitor and give them the right event access and pricing.</ListItem>
-                <ListItem>The technical details are handled by OrderCloud behind the scenes.</ListItem>
-              </UnorderedList>
-            </AccordionPanel>
-          </AccordionItem>
-        </Accordion>
-      </Stack>
-    </CardBody>
-  </Card>
-)
-
-const DemoReadinessCard: FC<DemoReadinessCardProps> = ({ mt, readiness, prepareResult, onCheck, onPrepare, isChecking, isPreparing }) => (
-  <Card variant="outline" mt={mt} p={2}>
-    <CardBody>
-      <Stack spacing={5}>
-        <Box>
-          <Heading as="h2" size="md">Demo readiness</Heading>
-          <Text color="chakra-subtle-text" mt={2}>
-            Check whether the event websites, Pizza product setup, and demo exhibitor are ready before recording the RAI admin demo video.
-          </Text>
-        </Box>
-        <HStack flexWrap="wrap">
-          <Button colorScheme="blue" onClick={onPrepare} isLoading={isPreparing} isDisabled={isChecking}>Prepare demo event websites</Button>
-          <Button colorScheme="blue" variant="outline" onClick={onCheck} isLoading={isChecking} isDisabled={isPreparing}>Check demo readiness</Button>
-        </HStack>
-        {prepareResult && <PrepareSummary result={prepareResult} />}
-        {readiness && <ReadinessSummary result={readiness} />}
-      </Stack>
-    </CardBody>
-  </Card>
-)
-
 const PrepareSummary: FC<{ result: RaiPrepareDemoEventWebsitesResult }> = ({ result }) => {
   const hasPreparedCatalogs = result.createdCatalogIDs.length + result.updatedCatalogIDs.length > 0
   const hasWarnings = result.warnings.length > 0
@@ -378,81 +435,6 @@ const PrepareSummary: FC<{ result: RaiPrepareDemoEventWebsitesResult }> = ({ res
         </Stack>
       </CardBody>
     </Card>
-  )
-}
-
-const ReadinessSummary: FC<{ result: RaiDemoReadinessResult }> = ({ result }) => {
-  const hasMissingEventWebsites = result.eventWebsites.some((item) => item.status === 'missing')
-  const hasMissingPizza = result.productSetup.some((item) => item.status === 'missing')
-  const hasMissingBuyer = result.buyerSetup.some((item) => ['Buyer organization', 'Buyer user'].includes(item.label) && item.status === 'missing')
-
-  return (
-    <Stack spacing={4}>
-      <HStack>
-        <Text fontWeight="semibold">Overall demo status</Text>
-        <Badge colorScheme={result.overallStatus === 'ready' ? 'green' : result.overallStatus === 'partial' ? 'orange' : 'red'}>{result.overallStatus === 'ready' ? 'Ready' : result.overallStatus === 'partial' ? 'Partially ready' : 'Not ready'}</Badge>
-      </HStack>
-      {result.overallStatus === 'ready' && (
-        <ReadyToRecordCard />
-      )}
-      {(hasMissingEventWebsites || hasMissingPizza || hasMissingBuyer) && (
-        <ReadinessNextSteps hasMissingEventWebsites={hasMissingEventWebsites} hasMissingPizza={hasMissingPizza} hasMissingBuyer={hasMissingBuyer} />
-      )}
-      <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={4}>
-        <StatusGroup title="Event websites" items={result.eventWebsites} />
-        <StatusGroup title="Pizza product setup" items={result.productSetup} />
-        <StatusGroup title="Exhibitor buyer setup" items={result.buyerSetup} />
-      </SimpleGrid>
-      <TechnicalDetails items={result.technicalSummary} />
-    </Stack>
-  )
-}
-
-const ReadyToRecordCard: FC = () => {
-  const colors = useResultCardColors('green')
-  return (
-    <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
-      <CardBody><Text fontWeight="semibold" color={colors.headingColor}>Ready to record the admin walkthrough.</Text></CardBody>
-    </Card>
-  )
-}
-
-const ReadinessNextSteps: FC<{ hasMissingEventWebsites: boolean; hasMissingPizza: boolean; hasMissingBuyer: boolean }> = ({ hasMissingEventWebsites, hasMissingPizza, hasMissingBuyer }) => {
-  const colors = useResultCardColors('orange')
-  return (
-    <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
-      <CardBody color={colors.textColor}>
-        <UnorderedList>
-          {hasMissingEventWebsites && <ListItem>Next: prepare event websites.</ListItem>}
-          {hasMissingPizza && <ListItem>Next: create the Pizza product setup.</ListItem>}
-          {hasMissingBuyer && <ListItem>Next: register Blue Ocean Exhibits.</ListItem>}
-        </UnorderedList>
-      </CardBody>
-    </Card>
-  )
-}
-
-const StatusGroup: FC<{ title: string; items: RaiReadinessItem[] }> = ({ title, items }) => (
-  <Card variant="outline">
-    <CardBody>
-      <Stack spacing={3}>
-        <Heading as="h3" size="sm">{title}</Heading>
-        {items.map((item) => <StatusRow key={`${title}-${item.label}`} item={item} />)}
-      </Stack>
-    </CardBody>
-  </Card>
-)
-
-const StatusRow: FC<{ item: RaiReadinessItem }> = ({ item }) => {
-  const status = statusCopy[item.status]
-  return (
-    <HStack justify="space-between" align="flex-start">
-      <Box>
-        <Text fontWeight="semibold">{item.label}</Text>
-        {item.message && <Text fontSize="sm" color="chakra-subtle-text">{item.message}</Text>}
-      </Box>
-      <Badge colorScheme={status.colorScheme}>{status.label}</Badge>
-    </HStack>
   )
 }
 

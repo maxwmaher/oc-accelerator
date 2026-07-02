@@ -81,6 +81,13 @@ export interface RaiReadinessItem {
 
 export interface RaiDemoReadinessResult {
   overallStatus: RaiReadinessOverallStatus
+  eventWebsitesReady: boolean
+  pizzaSetupReady: boolean
+  exhibitorSetupReady: boolean
+  readyToRecord: boolean
+  canCreatePizza: boolean
+  canRegisterBuyer: boolean
+  canRunFinalReadinessCheck: boolean
   eventWebsites: RaiReadinessItem[]
   productSetup: RaiReadinessItem[]
   buyerSetup: RaiReadinessItem[]
