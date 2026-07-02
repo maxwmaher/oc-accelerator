@@ -143,7 +143,7 @@ const upsertBuyerUser = async (form: RaiBuyerSetupForm, buyerID: string, buyerUs
 }
 
 const assignBuyerCatalogAccess = async (buyerID: string, eventWebsiteLabel: string, catalogID?: string) => {
-  if (!catalogID) return { assigned: false, warning: `${eventWebsiteLabel}: No demo catalog mapping is configured yet.`, summary: 'Catalog assignment skipped: no mapping is configured for the selected event website.' }
+  if (!catalogID) return { assigned: false, warning: `${eventWebsiteLabel}: This optional event website setup was not found in the demo environment. You can continue recording the main flow.`, summary: 'Catalog access skipped: no mapping is configured for the selected event website.' }
 
   try {
     await Catalogs.Get(catalogID)
@@ -151,7 +151,7 @@ const assignBuyerCatalogAccess = async (buyerID: string, eventWebsiteLabel: stri
     return { assigned: true, summary: `Catalog assignment created/updated: ${catalogID} assigned to ${buyerID}.` }
   } catch (error) {
     if (!isNotFound(error)) throw new Error(`Event website access setup failed: ${getReadableErrorMessage(error)}`)
-    return { assigned: false, warning: `${eventWebsiteLabel}: Event website access could not be assigned because catalog ${catalogID} was not found.`, summary: `Catalog assignment skipped: ${catalogID} was not found.` }
+    return { assigned: false, warning: `${eventWebsiteLabel}: This optional event website setup was not found in the demo environment. Prepare event websites, then run this step again.`, summary: `Catalog access skipped: ${catalogID} was not found.` }
   }
 }
 
@@ -163,7 +163,7 @@ const assignPizzaPricing = async (buyerID: string) => {
     return { assigned: true, exampleProductAvailable: true, summary: `Product/pricing assignment created/updated: ${RAI_PRODUCT_ID} uses ${RAI_PRICE_SCHEDULE_ID} for ${buyerID}.` }
   } catch (error) {
     if (!isNotFound(error)) throw new Error(`Pizza pricing setup failed: ${getReadableErrorMessage(error)}`)
-    return { assigned: false, exampleProductAvailable: false, warning: 'Pizza pricing override was not applied because the Pizza product or default price schedule was not found.', summary: 'Product/pricing assignment skipped: Pizza product or default price schedule was not found.' }
+    return { assigned: false, exampleProductAvailable: false, warning: 'Pizza pricing was not found in the demo environment. Create the Pizza product setup, then run this step again.', summary: 'Product/pricing assignment skipped: Pizza product or default price schedule was not found.' }
   }
 }
 
@@ -187,7 +187,7 @@ const assignDemoSecurityProfile = async (buyerID: string, buyerUserID: string) =
     return { assigned: true, summary: `Security profile assignment created/updated: ${shopperProfile.ID} assigned to buyer user.` }
   }
 
-  return { assigned: false, warning: 'Buyer user was created, but no demo buyer security profile was assigned because no matching security profile was found.', summary: 'Security profile assignment skipped: no matching shopper security profile was found.' }
+  return { assigned: false, warning: 'This optional shopper access setup was not found in the demo environment. You can continue recording the main flow.', summary: 'Security profile assignment skipped: no matching shopper security profile was found.' }
 }
 
 const getErrorStatus = (error: unknown) => error instanceof OrderCloudError ? error.status : undefined
@@ -290,7 +290,7 @@ const assignProductToCatalogs = async (eventWebsites: string[]) => {
   for (const eventWebsiteLabel of eventWebsites) {
     const config = RAI_EVENT_CATALOGS.find((item) => item.eventWebsiteLabel === eventWebsiteLabel)
     if (!config) {
-      skippedCatalogs.push({ eventWebsiteLabel, reason: 'No demo catalog mapping is configured yet.' })
+      skippedCatalogs.push({ eventWebsiteLabel, reason: 'This optional setup was not found in the demo environment.' })
       continue
     }
 
@@ -300,7 +300,7 @@ const assignProductToCatalogs = async (eventWebsites: string[]) => {
       assignedCatalogIDs.push(config.catalogID)
     } catch (error) {
       if (!isNotFound(error)) throw new Error(`Publishing to ${eventWebsiteLabel} failed: ${getReadableErrorMessage(error)}`)
-      skippedCatalogs.push({ eventWebsiteLabel, catalogID: config.catalogID, reason: 'Catalog was not found in this environment.' })
+      skippedCatalogs.push({ eventWebsiteLabel, catalogID: config.catalogID, reason: 'Prepare event websites, then run this step again.' })
     }
   }
 
@@ -410,11 +410,11 @@ const getReadinessStatus = (items: RaiReadinessItem[]): RaiDemoReadinessResult['
 const checkGet = async (label: string, technicalID: string, getter: () => Promise<object>, requireActive = false): Promise<RaiReadinessItem> => {
   try {
     const item = await getter()
-    if (requireActive && 'Active' in item && item.Active === false) return { label, status: 'warning', message: 'Found but not active.', technicalID }
+    if (requireActive && 'Active' in item && item.Active === false) return { label, status: 'warning', message: 'Found, but it is not active yet.', technicalID }
     return { label, status: 'ready', message: 'Ready', technicalID }
   } catch (error) {
-    if (isNotFound(error)) return { label, status: 'missing', message: 'Missing', technicalID }
-    return { label, status: 'warning', message: getReadableErrorMessage(error), technicalID }
+    if (isNotFound(error)) return { label, status: 'missing', message: 'Not found in the demo environment yet.', technicalID }
+    return { label, status: 'warning', message: 'This optional setup could not be checked. You can continue recording the main flow if the core steps are visible.', technicalID }
   }
 }
 
@@ -433,7 +433,7 @@ export const prepareRaiDemoEventWebsites = async (): Promise<RaiPrepareDemoEvent
       technicalSummary.push(`Event website updated: ${config.catalogID}.`)
     } catch (error) {
       if (!isNotFound(error)) {
-        const warning = `${config.eventWebsiteLabel} could not be prepared: ${getReadableErrorMessage(error)}`
+        const warning = `${config.eventWebsiteLabel}: This optional setup could not be prepared. You can continue recording the main flow or try again later.`
         warnings.push(warning)
         technicalSummary.push(warning)
         continue
@@ -465,18 +465,18 @@ export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => 
   const catalogAssignments = await Catalogs.ListAssignments({ catalogID: 'ISE_2026_CATALOG', buyerID: DEFAULT_DEMO_BUYER_ID, pageSize: 1 })
   const iseAccess: RaiReadinessItem = catalogAssignments.Items.length
     ? { label: 'ISE 2026 access', status: 'ready', message: 'Exhibitor access is assigned.', technicalID: 'ISE_2026_CATALOG' }
-    : { label: 'ISE 2026 access', status: 'missing', message: 'Not assigned yet.', technicalID: 'ISE_2026_CATALOG' }
+    : { label: 'ISE 2026 access', status: 'missing', message: 'Prepare event websites, then run the buyer setup again.', technicalID: 'ISE_2026_CATALOG' }
 
   const productAssignments = await Products.ListAssignments({ productID: RAI_PRODUCT_ID, buyerID: DEFAULT_DEMO_BUYER_ID, priceScheduleID: RAI_PRICE_SCHEDULE_ID, pageSize: 1 })
   const pizzaPricing: RaiReadinessItem = productAssignments.Items.length
     ? { label: 'Pizza pricing', status: 'ready', message: 'Pizza pricing is assigned.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
-    : { label: 'Pizza pricing', status: 'missing', message: 'Not assigned yet.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
+    : { label: 'Pizza pricing', status: 'missing', message: 'Create the Pizza product setup, then run the buyer setup again.', technicalID: `${RAI_PRODUCT_ID} / ${RAI_PRICE_SCHEDULE_ID}` }
 
   const securityAssignments = await SecurityProfiles.ListAssignments({ buyerID: DEFAULT_DEMO_BUYER_ID, userID: DEFAULT_DEMO_BUYER_USER_ID, pageSize: 20 })
   const shopperAccess: RaiReadinessItem = securityAssignments.Items.length
     ? { label: 'Shopper access/security profile', status: 'ready', message: 'Shopper-style access is assigned.', technicalID: securityAssignments.Items.map((item) => item.SecurityProfileID).filter(Boolean).join(', ') }
-    : { label: 'Shopper access/security profile', status: 'warning', message: 'No assigned shopper-style access was found.', technicalID: 'SecurityProfiles.ListAssignments' }
-  if (shopperAccess.status === 'warning') warnings.push('Shopper access/security profile should be reviewed before recording.')
+    : { label: 'Shopper access/security profile', status: 'warning', message: 'This optional setup was not found in the demo environment. You can continue recording the main flow.', technicalID: 'SecurityProfiles.ListAssignments' }
+  if (shopperAccess.status === 'warning') warnings.push('Shopper access/security profile: This optional setup was not found in the demo environment. You can continue recording the main flow.')
 
   const buyerSetup = [buyer, user, iseAccess, pizzaPricing, shopperAccess]
   const allItems = [...eventWebsites, ...productSetup, ...buyerSetup]
