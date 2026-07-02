@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   CardBody,
+  Checkbox,
   Container,
   HStack,
   Heading,
@@ -22,6 +23,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
+  SimpleGrid,
   Stack,
   Text,
   UnorderedList,
@@ -35,6 +37,15 @@ import { Link } from 'react-router-dom'
 import { checkRaiDemoReadiness, deleteRaiDemoData, prepareRaiDemoEventWebsites } from './raiEventSetupService'
 import { RaiDeleteDemoDataResult, RaiDemoReadinessResult, RaiPrepareDemoEventWebsitesResult } from './types'
 
+const EVENT_WEBSITE_OPTIONS = [
+  { label: 'ISE 2026', catalogID: 'ISE_2026_CATALOG', purpose: 'Main exhibitor ordering site', requiredFor: 'Blue Ocean Exhibits buyer setup', required: true },
+  { label: 'RAI Catering Portal', catalogID: 'RAI_CATERING_CATALOG', purpose: 'Shared catering product availability', requiredFor: 'Pizza product demo', required: true },
+  { label: 'Vegetarian-only Event', catalogID: 'VEGETARIAN_EVENT_CATALOG', purpose: 'Shows event-specific product rules', requiredFor: 'Vegetarian topping exclusion demo', required: true },
+  { label: 'Interclean 2026', catalogID: 'INTERCLEAN_2026_CATALOG', purpose: 'Additional event website example', requiredFor: 'Optional reuse/exclusion story', required: false },
+]
+
+const DEFAULT_SELECTED_EVENT_WEBSITE_IDS = EVENT_WEBSITE_OPTIONS.filter((item) => item.required).map((item) => item.catalogID)
+
 const RaiEventSetupLanding: FC = () => {
   const toast = useToast()
   const resetModal = useDisclosure()
@@ -42,6 +53,7 @@ const RaiEventSetupLanding: FC = () => {
   const [prepareResult, setPrepareResult] = useState<RaiPrepareDemoEventWebsitesResult>()
   const [deleteResult, setDeleteResult] = useState<RaiDeleteDemoDataResult>()
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [selectedCatalogIDs, setSelectedCatalogIDs] = useState(DEFAULT_SELECTED_EVENT_WEBSITE_IDS)
   const [readinessError, setReadinessError] = useState<string>()
   const readinessCheckReason = useRef<'auto' | 'manual'>('auto')
 
@@ -140,8 +152,10 @@ const RaiEventSetupLanding: FC = () => {
         readiness={readiness}
         prepareResult={prepareResult}
         readinessError={readinessError}
+        selectedCatalogIDs={selectedCatalogIDs}
+        onSelectionChange={setSelectedCatalogIDs}
         onRefresh={refreshStatus}
-        onPrepare={() => prepareMutation.mutate(undefined)}
+        onPrepare={() => prepareMutation.mutate(selectedCatalogIDs)}
         isChecking={readinessMutation.isPending}
         isPreparing={prepareMutation.isPending}
       />
@@ -162,6 +176,8 @@ interface GuidedSetupChecklistProps {
   readiness?: RaiDemoReadinessResult
   prepareResult?: RaiPrepareDemoEventWebsitesResult
   readinessError?: string
+  selectedCatalogIDs: string[]
+  onSelectionChange: (catalogIDs: string[]) => void
   onRefresh: () => void
   onPrepare: () => void
   isChecking: boolean
@@ -185,14 +201,14 @@ const getStepStatus = (isReady: boolean, isNext: boolean, hasWarning = false): G
   return 'blocked'
 }
 
-const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepareResult, readinessError, onRefresh, onPrepare, isChecking, isPreparing }) => {
+const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepareResult, readinessError, selectedCatalogIDs, onSelectionChange, onRefresh, onPrepare, isChecking, isPreparing }) => {
   const eventWebsitesReady = readiness?.eventWebsitesReady ?? false
   const pizzaSetupReady = readiness?.pizzaSetupReady ?? false
   const exhibitorSetupReady = readiness?.exhibitorSetupReady ?? false
   const readyToRecord = readiness?.readyToRecord ?? false
   const productWarnings = readiness?.productSetup.some((item) => item.status === 'warning') ?? false
   const buyerWarnings = readiness?.buyerSetup.some((item) => item.status === 'warning') ?? false
-  const eventWebsiteNames = 'ISE 2026, Interclean 2026, RAI Catering Portal, Vegetarian-only Event'
+  const selectedEventWebsiteNames = EVENT_WEBSITE_OPTIONS.filter((item) => selectedCatalogIDs.includes(item.catalogID)).map((item) => item.label).join(', ')
 
   return (
     <Card variant="outline" p={2}>
@@ -223,12 +239,19 @@ const GuidedSetupChecklist: FC<GuidedSetupChecklistProps> = ({ readiness, prepar
           <Stack spacing={4}>
             <GuidedStepCard
               stepNumber={1}
-              title="Prepare event websites"
-              description="Create the event websites that products and exhibitors will be connected to."
+              title="Review event websites"
+              description="These are the event websites used in the walkthrough. Select the ones to create or refresh before publishing products and registering exhibitors."
               status={getStepStatus(eventWebsitesReady, !eventWebsitesReady)}
-              readyText={`These event websites are ready: ${eventWebsiteNames}.`}
+              readyText={`These event websites are ready: ${selectedEventWebsiteNames || 'none selected'}.`}
               result={prepareResult && <PrepareSummary result={prepareResult} />}
-              action={<Button colorScheme="blue" onClick={onPrepare} isLoading={isPreparing} isDisabled={isChecking}>{eventWebsitesReady ? 'Prepare again' : 'Prepare event websites'}</Button>}
+              action={(
+                <Stack spacing={4}>
+                  <EventWebsiteSelection selectedCatalogIDs={selectedCatalogIDs} onSelectionChange={onSelectionChange} readiness={readiness} />
+                  <Button alignSelf="flex-start" colorScheme="blue" onClick={onPrepare} isLoading={isPreparing} isDisabled={isChecking || selectedCatalogIDs.length === 0}>
+                    Create or refresh selected event websites
+                  </Button>
+                </Stack>
+              )}
             />
             <GuidedStepCard
               stepNumber={2}
@@ -300,6 +323,44 @@ const GuidedStepCard: FC<{
         </Stack>
       </CardBody>
     </Card>
+  )
+}
+
+const EventWebsiteSelection: FC<{ selectedCatalogIDs: string[]; onSelectionChange: (catalogIDs: string[]) => void; readiness?: RaiDemoReadinessResult }> = ({ selectedCatalogIDs, onSelectionChange, readiness }) => {
+  const toggleCatalog = (catalogID: string) => {
+    onSelectionChange(selectedCatalogIDs.includes(catalogID)
+      ? selectedCatalogIDs.filter((item) => item !== catalogID)
+      : [...selectedCatalogIDs, catalogID])
+  }
+
+  return (
+    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+      {EVENT_WEBSITE_OPTIONS.map((eventWebsite) => {
+        const readinessItem = readiness?.eventWebsites.find((item) => item.technicalID === eventWebsite.catalogID)
+        const isSelected = selectedCatalogIDs.includes(eventWebsite.catalogID)
+        return (
+          <Card key={eventWebsite.catalogID} variant="outline">
+            <CardBody>
+              <Stack spacing={3}>
+                <HStack justify="space-between" align="flex-start">
+                  <Checkbox isChecked={isSelected} onChange={() => toggleCatalog(eventWebsite.catalogID)}>
+                    <Text fontWeight="semibold">{eventWebsite.label}</Text>
+                  </Checkbox>
+                  <Badge colorScheme={eventWebsite.required ? 'blue' : 'gray'}>{eventWebsite.required ? 'Required' : 'Optional'}</Badge>
+                </HStack>
+                <Text color="chakra-subtle-text">{eventWebsite.purpose}</Text>
+                <Text fontSize="sm" color="chakra-subtle-text">Required for: {eventWebsite.requiredFor}</Text>
+                <HStack flexWrap="wrap">
+                  <Badge colorScheme={isSelected ? 'green' : 'gray'}>{isSelected ? 'Selected' : 'Not selected'}</Badge>
+                  {readinessItem && <Badge colorScheme={readinessItem.status === 'ready' ? 'green' : readinessItem.status === 'warning' ? 'orange' : 'red'}>{readinessItem.status === 'ready' ? 'Ready' : readinessItem.status === 'warning' ? 'Optional warning' : 'Not ready'}</Badge>}
+                </HStack>
+                <Text fontSize="xs" color="chakra-subtle-text">Catalog ID: {eventWebsite.catalogID}</Text>
+              </Stack>
+            </CardBody>
+          </Card>
+        )
+      })}
+    </SimpleGrid>
   )
 }
 
@@ -421,17 +482,28 @@ const PrepareSummary: FC<{ result: RaiPrepareDemoEventWebsitesResult }> = ({ res
   const hasPreparedCatalogs = result.createdCatalogIDs.length + result.updatedCatalogIDs.length > 0
   const hasWarnings = result.warnings.length > 0
   const colors = useResultCardColors(!hasPreparedCatalogs && hasWarnings ? 'red' : hasWarnings ? 'orange' : 'blue')
+  const readyCatalogIDs = [...result.createdCatalogIDs, ...result.updatedCatalogIDs]
+  const readyEventWebsites = EVENT_WEBSITE_OPTIONS.filter((item) => readyCatalogIDs.includes(item.catalogID)).map((item) => item.label)
+  const skippedEventWebsites = EVENT_WEBSITE_OPTIONS.filter((item) => result.skippedCatalogIDs.includes(item.catalogID)).map((item) => item.label)
 
   return (
     <Card bg={colors.bg} borderColor={colors.borderColor} variant="outline">
       <CardBody>
         <Stack spacing={2} color={colors.textColor}>
           <Text fontWeight="semibold" color={colors.headingColor}>
-            {hasPreparedCatalogs ? 'Event websites are prepared' : 'Event websites could not be prepared'}
+            {hasPreparedCatalogs ? `${readyEventWebsites.length} event websites are ready` : 'Event websites could not be prepared'}
           </Text>
+          {readyEventWebsites.length > 0 && <UnorderedList>{readyEventWebsites.map((label) => <ListItem key={label}>{label}</ListItem>)}</UnorderedList>}
+          {skippedEventWebsites.length > 0 && <Text color={colors.subtleColor}>{skippedEventWebsites.join(', ')} {skippedEventWebsites.length === 1 ? 'was' : 'were'} not selected for this run.</Text>}
           <Text color={colors.subtleColor}>Created {result.createdCatalogIDs.length} and updated {result.updatedCatalogIDs.length} event websites.</Text>
           <Text fontWeight="semibold" color={colors.headingColor}>Next: create the Pizza product setup, then register Blue Ocean Exhibits.</Text>
           {hasWarnings && <UnorderedList>{result.warnings.map((warning) => <ListItem key={warning}>{warning}</ListItem>)}</UnorderedList>}
+          <TechnicalDetails items={[
+            `Created: ${result.createdCatalogIDs.length ? result.createdCatalogIDs.join(', ') : 'none'}`,
+            `Updated: ${result.updatedCatalogIDs.length ? result.updatedCatalogIDs.join(', ') : 'none'}`,
+            `Skipped by selection: ${result.skippedCatalogIDs.length ? result.skippedCatalogIDs.join(', ') : 'none'}`,
+            ...result.technicalSummary,
+          ]} />
         </Stack>
       </CardBody>
     </Card>

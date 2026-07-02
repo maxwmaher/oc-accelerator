@@ -98,6 +98,7 @@ export interface RaiDemoReadinessResult {
 export interface RaiPrepareDemoEventWebsitesResult {
   createdCatalogIDs: string[]
   updatedCatalogIDs: string[]
+  skippedCatalogIDs: string[]
   warnings: string[]
   technicalSummary: string[]
 }

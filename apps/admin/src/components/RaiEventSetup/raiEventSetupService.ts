@@ -40,6 +40,7 @@ const RAI_EVENT_CATALOGS: RaiEventCatalogConfig[] = [
   { eventWebsiteLabel: 'RAI Catering Portal', catalogID: 'RAI_CATERING_CATALOG' },
   { eventWebsiteLabel: 'Vegetarian-only Event', catalogID: 'VEGETARIAN_EVENT_CATALOG' },
 ]
+const REQUIRED_DEMO_CATALOG_IDS = ['ISE_2026_CATALOG', 'RAI_CATERING_CATALOG', 'VEGETARIAN_EVENT_CATALOG']
 
 const SPEC_CONFIG = [
   { id: 'RAI_PIZZA_SIZE', name: 'Size', formKey: 'sizes' },
@@ -665,13 +666,20 @@ const checkGet = async (label: string, technicalID: string, getter: () => Promis
   }
 }
 
-export const prepareRaiDemoEventWebsites = async (): Promise<RaiPrepareDemoEventWebsitesResult> => {
+export const prepareRaiDemoEventWebsites = async (selectedCatalogIDs?: string[]): Promise<RaiPrepareDemoEventWebsitesResult> => {
   const createdCatalogIDs: string[] = []
   const updatedCatalogIDs: string[] = []
+  const skippedCatalogIDs: string[] = []
   const warnings: string[] = []
   const technicalSummary: string[] = []
+  const selectedIDs = new Set(selectedCatalogIDs?.length ? selectedCatalogIDs : RAI_EVENT_CATALOGS.map((config) => config.catalogID))
 
   for (const config of RAI_EVENT_CATALOGS) {
+    if (!selectedIDs.has(config.catalogID)) {
+      skippedCatalogIDs.push(config.catalogID)
+      technicalSummary.push(`Event website skipped by selection: ${config.catalogID}.`)
+      continue
+    }
     const catalog = getCatalogPatch(config)
     try {
       await Catalogs.Get(config.catalogID)
@@ -698,12 +706,16 @@ export const prepareRaiDemoEventWebsites = async (): Promise<RaiPrepareDemoEvent
     }
   }
 
-  return { createdCatalogIDs, updatedCatalogIDs, warnings, technicalSummary }
+  return { createdCatalogIDs, updatedCatalogIDs, skippedCatalogIDs, warnings, technicalSummary }
 }
 
 export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => {
   const warnings: string[] = []
-  const eventWebsites = await Promise.all(RAI_EVENT_CATALOGS.map((config) => checkGet(config.eventWebsiteLabel, config.catalogID, () => Catalogs.Get(config.catalogID), true)))
+  const eventWebsites = await Promise.all(RAI_EVENT_CATALOGS.map(async (config) => {
+    const item = await checkGet(config.eventWebsiteLabel, config.catalogID, () => Catalogs.Get(config.catalogID), true)
+    if (item.status === 'missing' && !REQUIRED_DEMO_CATALOG_IDS.includes(config.catalogID)) return { ...item, status: 'warning' as const, message: 'Optional event website has not been prepared yet.' }
+    return item
+  }))
 
   const product = await checkGet('Product', RAI_PRODUCT_ID, () => Products.Get(RAI_PRODUCT_ID), true)
   const price = await checkGet('Price', RAI_PRICE_SCHEDULE_ID, () => PriceSchedules.Get(RAI_PRICE_SCHEDULE_ID))
@@ -735,7 +747,7 @@ export const getRaiDemoReadiness = async (): Promise<RaiDemoReadinessResult> => 
   const buyerSetup = [buyer, user, iseAccess, pizzaPricing, shopperAccess]
   const allItems = [...eventWebsites, ...productSetup, ...buyerSetup]
   warnings.push(...allItems.filter((item) => item.status === 'missing' || item.status === 'warning').map((item) => `${item.label}: ${item.message || item.status}`))
-  const eventWebsitesReady = eventWebsites.every((item) => item.status === 'ready')
+  const eventWebsitesReady = eventWebsites.filter((item) => REQUIRED_DEMO_CATALOG_IDS.includes(item.technicalID || '')).every((item) => item.status === 'ready')
   const pizzaSetupReady = productSetup.every((item) => item.status === 'ready')
   const exhibitorSetupReady = [buyer, user, iseAccess].every((item) => item.status === 'ready')
   const readyToRecord = eventWebsitesReady && pizzaSetupReady && exhibitorSetupReady
