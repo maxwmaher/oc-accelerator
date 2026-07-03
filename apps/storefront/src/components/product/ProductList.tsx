@@ -59,6 +59,7 @@ import {
   RAI_DEMO_CONTEXT_CHANGED_EVENT,
   RaiDemoCatalogueFilter,
 } from "../../demo/raiDemoVisibility";
+import { mapRouteParamsToOrderCloudListOptions } from "../../utils/orderCloudListOptions";
 
 export interface ProductListProps {
   renderItem?: (product: BuyerProduct) => JSX.Element;
@@ -147,8 +148,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
     {
       search: searchTerm,
       page: currentPage.toString(),
-      catalogId,
-      categoryId,
+      ...mapRouteParamsToOrderCloudListOptions({ catalogId, categoryId }),
       ...filters,
     }
   );

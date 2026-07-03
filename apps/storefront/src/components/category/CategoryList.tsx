@@ -4,6 +4,7 @@ import React, { FunctionComponent, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import CategoryCard from "./CategoryCard";
 import { useOcResourceList } from "@ordercloud/react-sdk";
+import { mapRouteParamsToOrderCloudListOptions } from "../../utils/orderCloudListOptions";
 
 export interface CategoryListProps {
   renderItem?: (category: Category) => JSX.Element;
@@ -16,7 +17,10 @@ const CategoryList: FunctionComponent<CategoryListProps> = ({ renderItem }) => {
   }>();
   const { data, isLoading } = useOcResourceList<Category>(
     "Me.Categories",
-    { catalogId, ParentID: categoryId },
+    {
+      ...mapRouteParamsToOrderCloudListOptions({ catalogId }),
+      ParentID: categoryId,
+    },
     {},
     {
       staleTime: 300000,

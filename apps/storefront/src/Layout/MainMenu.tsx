@@ -35,6 +35,7 @@ import {
 import { useCurrentUser } from "../hooks/currentUser";
 import { useRaiDemoContext } from "../hooks/useRaiDemoContext";
 import MegaMenu from "../Layout/MegaMenu";
+import { mapRouteParamsToOrderCloudListOptions } from "../utils/orderCloudListOptions";
 
 interface MainMenuProps {
   loginDisclosure: UseDisclosureProps;
@@ -66,7 +67,9 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
 
   const { data: categoryData } = useOcResourceList<Category>(
     "Me.Categories",
-    activeCatalogId ? { catalogId: activeCatalogId } : undefined,
+    activeCatalogId
+      ? mapRouteParamsToOrderCloudListOptions({ catalogId: activeCatalogId })
+      : undefined,
     undefined,
     { staleTime: 300000 },
   );
