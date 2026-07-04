@@ -9,6 +9,7 @@ import {
 import { Category } from "ordercloud-javascript-sdk";
 import { FunctionComponent } from "react";
 import { Link as RouterLink } from "react-router-dom";
+import { getCategoryCardRoute } from "./raiCategories";
 
 interface CategoryCardProps {
   category: Category;
@@ -23,7 +24,7 @@ const CategoryCard: FunctionComponent<CategoryCardProps> = ({
     <>
       {category && (
         <RouterLink
-          to={category.ChildCount ? `/shop/${catalogId}/categories/${category.ID}` : `/shop/${catalogId}/categories/${category.ID}/products`}
+          to={getCategoryCardRoute(catalogId, category.ID, category.ChildCount)}
           style={{ textDecoration: "none" }}
         >
           <Card
