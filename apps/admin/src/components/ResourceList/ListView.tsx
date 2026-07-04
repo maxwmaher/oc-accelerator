@@ -1,7 +1,7 @@
 import { Flex, useToast } from '@chakra-ui/react'
-import { useListAssignments, useOcResourceList } from '@ordercloud/react-sdk'
+import { useAuthQuery, useListAssignments, useOcResourceList } from '@ordercloud/react-sdk'
 import { ColumnDef, TableState } from '@tanstack/react-table'
-import { RequiredDeep } from 'ordercloud-javascript-sdk'
+import { Products, RequiredDeep } from 'ordercloud-javascript-sdk'
 import { ReactElement, useEffect, useMemo } from 'react'
 import { ApiError } from '../OperationForm'
 import DataTable from './DataTable'
@@ -53,10 +53,20 @@ const ListView = <T extends IDefaultResource>({
   onOptionChange,
   itemActions,
 }: IListView<T>) => {
-  
+  const isProductsList = resourceName === 'Products' && !listAssignments
+
   const dataQuery = useOcResourceList(resourceName, listOptions, parameters, {
     staleTime: 300000, // 5 min
-    disabled: !(!preloadAssignments && !listAssignments ? hasAccess : !!listOptions?.ID),
+    disabled:
+      isProductsList ||
+      !(!preloadAssignments && !listAssignments ? hasAccess : !!listOptions?.ID),
+  })
+
+  const productsDataQuery = useAuthQuery({
+    queryKey: ['Products.List', listOptions, parameters],
+    queryFn: async () => await Products.List(listOptions as any),
+    staleTime: 300000, // 5 min
+    disabled: !isProductsList || !hasAccess,
   })
 
   const assignmentDataQuery = useListAssignments(resourceName, undefined, listOptions, parameters, {
@@ -86,7 +96,7 @@ const ListView = <T extends IDefaultResource>({
         overflow="hidden"
       >
         <DataTable
-          query={listAssignments ? assignmentDataQuery : dataQuery}
+          query={listAssignments ? assignmentDataQuery : isProductsList ? productsDataQuery : dataQuery}
           columns={columnDef}
           tableState={tableState}
           onOptionChange={onOptionChange}
@@ -101,6 +111,8 @@ const ListView = <T extends IDefaultResource>({
     listAssignments,
     assignmentDataQuery,
     dataQuery,
+    productsDataQuery,
+    isProductsList,
     columnDef,
     tableState,
     onOptionChange,
