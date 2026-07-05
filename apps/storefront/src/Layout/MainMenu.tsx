@@ -195,6 +195,11 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
               </Button>
             )}
             {renderCatalogMenu()}
+            {isLoggedIn && (
+              <Button as={RouterLink} to="/orders" variant="ghost" size="sm">
+                My Orders
+              </Button>
+            )}
           </HStack>
           <HStack>
             {isLoggedIn && (

@@ -33,7 +33,7 @@ interface BristanSupplierOffersProps {
 }
 
 const supplierName = (offer: BristanSupplierOfferSummary) =>
-  offer.SupplierName || offer.SupplierID || "Approved supplier";
+  offer.SupplierName || offer.SupplierID || "Approved merchant";
 
 const offerRank = (offer: BristanSupplierOfferSummary) =>
   Number(offer.OfferRank ?? 999);
@@ -106,7 +106,7 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
             isClosable: true,
           });
         } else {
-          console.error("Failed to add supplier offer to cart:", error);
+          console.error("Failed to add merchant offer to cart:", error);
           toast({
             title: "Error",
             description: "An unexpected error occurred. Please try again.",
@@ -129,7 +129,7 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
   return (
     <Box w="full" maxW="2xl" mt={2}>
       <Heading size="md" mb={3}>
-        Available from approved suppliers
+        Available from approved merchants
       </Heading>
       {offers.length > 0 ? (
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
@@ -143,7 +143,7 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
                 <Box>
                   <Text fontSize="sm">
                     <strong>Availability:</strong>{" "}
-                    {offer.Availability || "Contact supplier"}
+                    {offer.Availability || "Contact merchant"}
                   </Text>
                   <Text fontSize="sm">
                     <strong>Lead time:</strong>{" "}
@@ -159,7 +159,7 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
                   isLoading={addingOfferId === offer.OfferProductID}
                   isDisabled={Boolean(addingOfferId)}
                 >
-                  Buy from this supplier
+                  Buy from this merchant
                 </Button>
               </CardBody>
             </Card>
@@ -167,7 +167,7 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
         </SimpleGrid>
       ) : (
         <Text color="chakra-subtle-text">
-          No supplier offers are available for this product yet.
+          No merchant offers are available for this product yet.
         </Text>
       )}
     </Box>

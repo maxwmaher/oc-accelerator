@@ -241,7 +241,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                 Minimum order quantity: {minimumQuantity} units
               </Text>
               <Text color="chakra-subtle-text" fontSize="sm" mt={1}>
-                Your Bristan supplier buyer account includes account-specific
+                Your Bristan trade merchant account includes account-specific
                 bulk price breaks. Trade pricing improves at higher quantities.
               </Text>
               {priceBreaks.length > 0 && (

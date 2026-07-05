@@ -23,18 +23,18 @@ export const BRISTAN_DEMO_ACCOUNTS = [
     targetRoute: BRISTAN_DEMO_JOURNEY_ROUTES.spares,
   },
   {
-    persona: "Supplier Buying from Bristan - North Supplies",
+    persona: "Trade Merchant Buying from Bristan - North Supplies",
     story:
-      "Bulk buying from Bristan with supplier-specific quantity breaks for the North Supplies account.",
+      "Bulk buying from Bristan with account-specific quantity breaks for the North Supplies account.",
     username: "bristan-demo-supplier-north-buyer-user",
     buyerID: "bristan-demo-supplier-north-buyer",
     catalogID: BRISTAN_DEMO_CATALOG_IDS.supplierNorth,
     targetRoute: BRISTAN_DEMO_JOURNEY_ROUTES.supplierNorth,
   },
   {
-    persona: "Supplier Buying from Bristan - South Supplies",
+    persona: "Trade Merchant Buying from Bristan - South Supplies",
     story:
-      "A second supplier buyer account that shows how account-specific pricing and future order history can differ by trading partner.",
+      "A second trade merchant account that shows how account-specific pricing and future order history can differ by trading partner.",
     username: "bristan-demo-supplier-south-buyer-user",
     buyerID: "bristan-demo-supplier-south-buyer",
     catalogID: BRISTAN_DEMO_CATALOG_IDS.supplierSouth,
@@ -43,7 +43,7 @@ export const BRISTAN_DEMO_ACCOUNTS = [
   {
     persona: "Marketplace Buyer",
     story:
-      "A normal buyer browsing Bristan-governed product data with supplier offers seeded for the next PDP comparison phase.",
+      "A normal buyer browsing Bristan-governed product data with merchant offers seeded for the next PDP comparison phase.",
     username: "bristan-demo-marketplace-user",
     buyerID: "bristan-demo-marketplace-buyer",
     catalogID: BRISTAN_DEMO_CATALOG_IDS.marketplace,

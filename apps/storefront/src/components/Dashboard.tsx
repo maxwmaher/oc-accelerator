@@ -24,12 +24,12 @@ const featureCards = [
   {
     image: hero2,
     title: "Trade buying and bulk pricing",
-    body: "Support supplier buyer accounts with account-specific catalogs, minimum quantities, and quantity price breaks.",
+    body: "Support trade merchant accounts with account-specific catalogs, minimum quantities, and quantity price breaks.",
   },
   {
     image: hero3,
-    title: "Approved supplier marketplace",
-    body: "Show Bristan-owned canonical product data with supplier-specific offers, availability, lead times, and supplier selection carried into the cart.",
+    title: "Approved merchant marketplace",
+    body: "Show Bristan-owned canonical product data with merchant-specific offers, availability, lead times, and merchant selection carried into the cart.",
   },
 ];
 
@@ -54,7 +54,7 @@ const Dashboard: FC = () => {
                   Find the right Bristan product faster
                 </Heading>
                 <Text fontSize={{ base: "lg", md: "xl" }} color="whiteAlpha.900" maxW="xl">
-                  Explore Bristan-governed product data, spare-parts self-service, trade buying, and approved supplier marketplace journeys in one connected demo.
+                  Explore Bristan-governed product data, spare-parts self-service, trade buying, and approved merchant marketplace journeys in one connected demo.
                 </Text>
               </Stack>
               <Stack direction={{ base: "column", sm: "row" }} spacing={4} w={{ base: "full", sm: "auto" }}>
@@ -127,7 +127,7 @@ const Dashboard: FC = () => {
               Demo journeys
             </Text>
             <Heading color="gray.800" fontSize={{ base: "3xl", md: "4xl" }}>
-              One Bristan experience for consumers, trade buyers, and approved suppliers
+              One Bristan experience for consumers, trade buyers, and approved merchants
             </Heading>
           </Stack>
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>

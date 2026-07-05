@@ -149,9 +149,9 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
             <VStack alignItems="flex-start" gap={0} mt={-2}>
               <Text fontSize="xs" color="chakra-subtle-text">
                 <Text fontWeight="600" display="inline">
-                  Supplier:
+                  Merchant:
                 </Text>{" "}
-                {lineItem.xp?.SupplierName || "Approved supplier"}
+                {lineItem.xp?.SupplierName || "Approved merchant"}
               </Text>
               {lineItem.xp?.OfferProductID && (
                 <Text fontSize="xs" color="chakra-subtle-text">
