@@ -24,8 +24,7 @@ import { Catalog, Category } from "ordercloud-javascript-sdk";
 import { FC, useEffect, useMemo, useState } from "react";
 import { TbShoppingCartFilled } from "react-icons/tb";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
-import { DEFAULT_BRAND } from "../assets/DEFAULT_BRAND";
-import { BRAND_LOGO_DARK, BRAND_LOGO_LIGHT } from "../constants";
+import bristanLogo from "../assets/bristan/bristan-logo.png";
 import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "../Layout/MegaMenu";
 import {
@@ -170,13 +169,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
       <Container h="100%" maxW="full">
         <HStack h="100%" justify="flex-start" alignItems="center">
           <RouterLink to="/">
-            {BRAND_LOGO_LIGHT ? (
-              <Image src={BRAND_LOGO_LIGHT} alt="WildSite Logo" h="10" />
-            ) : BRAND_LOGO_DARK ? (
-              <Image src={BRAND_LOGO_DARK} alt="WildSite Logo (Dark)" h="10" />
-            ) : (
-              <DEFAULT_BRAND h="10" />
-            )}
+            <Image src={bristanLogo} alt="Bristan" h="10" objectFit="contain" />
           </RouterLink>
           <HStack as="nav" flexGrow="1" ml={3}>
             {categories.length > 0 && (
