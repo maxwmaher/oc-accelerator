@@ -24,8 +24,7 @@ import { Catalog, Category } from "ordercloud-javascript-sdk";
 import { FC, useEffect, useMemo, useState } from "react";
 import { TbShoppingCartFilled } from "react-icons/tb";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
-import { DEFAULT_BRAND } from "../assets/DEFAULT_BRAND";
-import { BRAND_LOGO_DARK, BRAND_LOGO_LIGHT } from "../constants";
+import bristanLogo from "../assets/bristan/bristan-logo.png";
 import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "../Layout/MegaMenu";
 import {
@@ -159,9 +158,9 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
       w="full"
       top="0"
       zIndex={2}
-      bgColor="whiteAlpha.600"
+      bgColor="whiteAlpha.900"
       borderBottom="1px solid"
-      borderColor="whiteAlpha.900"
+      borderColor="blue.50"
       px="8"
       backdropFilter="auto"
       backdropBlur="5px"
@@ -169,14 +168,20 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     >
       <Container h="100%" maxW="full">
         <HStack h="100%" justify="flex-start" alignItems="center">
-          <RouterLink to="/">
-            {BRAND_LOGO_LIGHT ? (
-              <Image src={BRAND_LOGO_LIGHT} alt="WildSite Logo" h="10" />
-            ) : BRAND_LOGO_DARK ? (
-              <Image src={BRAND_LOGO_DARK} alt="WildSite Logo (Dark)" h="10" />
-            ) : (
-              <DEFAULT_BRAND h="10" />
-            )}
+          <RouterLink to="/" aria-label="Bristan demo home">
+            <HStack spacing={3}>
+              <Image src={bristanLogo} alt="Bristan" h="9" objectFit="contain" />
+              <Text
+                display={{ base: "none", md: "block" }}
+                color="blue.900"
+                fontSize="sm"
+                fontWeight="bold"
+                letterSpacing="0.04em"
+                textTransform="uppercase"
+              >
+                Demo marketplace
+              </Text>
+            </HStack>
           </RouterLink>
           <HStack as="nav" flexGrow="1" ml={3}>
             {categories.length > 0 && (
