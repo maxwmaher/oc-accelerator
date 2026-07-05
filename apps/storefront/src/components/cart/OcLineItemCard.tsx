@@ -65,7 +65,7 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
         onChange(response);
       }
     },
-    [lineItem.ID, lineItem.Quantity, onChange, patchCartLineItem]
+    [lineItem.ID, lineItem.Quantity, onChange, patchCartLineItem],
   );
 
   useEffect(() => {
@@ -145,6 +145,24 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
               {lineItem.Product?.ID}
             </Text>
           </HStack>
+          {lineItem.xp?.MarketplaceSupplierOffer && (
+            <VStack alignItems="flex-start" gap={0} mt={-2}>
+              <Text fontSize="xs" color="chakra-subtle-text">
+                <Text fontWeight="600" display="inline">
+                  Supplier:
+                </Text>{" "}
+                {lineItem.xp?.SupplierName || "Approved supplier"}
+              </Text>
+              {lineItem.xp?.OfferProductID && (
+                <Text fontSize="xs" color="chakra-subtle-text">
+                  <Text fontWeight="600" display="inline">
+                    Offer:
+                  </Text>{" "}
+                  {lineItem.xp.OfferProductID}
+                </Text>
+              )}
+            </VStack>
+          )}
           {lineItem?.Specs?.map((spec) => (
             <React.Fragment key={spec.SpecID}>
               <Text mt={-3} fontSize="xs" color="chakra-subtle-text">
