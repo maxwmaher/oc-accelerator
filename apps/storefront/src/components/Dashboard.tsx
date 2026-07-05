@@ -8,12 +8,19 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { FC } from "react";
+import { FC, useMemo } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import bristanLogo from "../assets/bristan/bristan-logo.png";
 import hero1 from "../assets/bristan/hero1.jpg";
 import hero2 from "../assets/bristan/hero2.jpg";
 import hero3 from "../assets/bristan/hero3.jpg";
+import { useCurrentUser } from "../hooks/currentUser";
+import {
+  BRISTAN_DEMO_CATALOG_IDS,
+  getBristanDemoCatalogId,
+  getBristanDemoProductsRoute,
+  getBristanDemoTargetRoute,
+} from "./bristan/bristanDemoRoutes";
 
 const featureCards = [
   {
@@ -34,6 +41,27 @@ const featureCards = [
 ];
 
 const Dashboard: FC = () => {
+  const { data: user } = useCurrentUser();
+
+  const { browseCategoriesRoute, shopAllProductsRoute } = useMemo(() => {
+    const username = user?.Username;
+    const bristanDemoCatalogId = getBristanDemoCatalogId(username);
+    const bristanDemoTargetRoute = getBristanDemoTargetRoute(username);
+    const bristanDemoProductsRoute = getBristanDemoProductsRoute(username);
+
+    const safeDemoProductRoute =
+      bristanDemoTargetRoute?.endsWith("/categories")
+        ? bristanDemoTargetRoute
+        : bristanDemoProductsRoute;
+
+    return {
+      browseCategoriesRoute: bristanDemoCatalogId
+        ? `/shop/${bristanDemoCatalogId}/categories`
+        : `/shop/${BRISTAN_DEMO_CATALOG_IDS.marketplace}/categories`,
+      shopAllProductsRoute: safeDemoProductRoute ?? "/products",
+    };
+  }, [user?.Username]);
+
   return (
     <Box bg="gray.50">
       <Box
@@ -58,12 +86,12 @@ const Dashboard: FC = () => {
                 </Text>
               </Stack>
               <Stack direction={{ base: "column", sm: "row" }} spacing={4} w={{ base: "full", sm: "auto" }}>
-                <Button as={RouterLink} to="/products" size="lg" colorScheme="cyan" color="blue.900">
+                <Button as={RouterLink} to={shopAllProductsRoute} size="lg" colorScheme="cyan" color="blue.900">
                   Shop all products
                 </Button>
                 <Button
                   as={RouterLink}
-                  to="/shop/bristan-demo-marketplace-catalog/categories"
+                  to={browseCategoriesRoute}
                   size="lg"
                   variant="outline"
                   borderColor="whiteAlpha.800"
