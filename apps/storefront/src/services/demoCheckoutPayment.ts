@@ -96,15 +96,27 @@ const getOrderTotal = (orderWorksheet: OrderWorksheet): number => {
   return total;
 };
 
-const findReusableDemoPayment = async (paymentID: string) => {
+const findReusableDemoPayment = async (payment: Payment<DemoPaymentXp>) => {
   const payments = await Cart.ListPayments<Payment<DemoPaymentXp>>();
-  return payments.Items.find(
-    (payment) => payment.ID === paymentID || payment.xp?.DemoPayment === true
-  );
+  return payments.Items.find((existingPayment) => {
+    if (payment.ID && existingPayment.ID === payment.ID) return true;
+    if (existingPayment.Type !== payment.Type || existingPayment.xp?.DemoPayment !== true) {
+      return false;
+    }
+
+    if (payment.Type === "PurchaseOrder") {
+      return (
+        existingPayment.xp?.AccountReference === payment.xp?.AccountReference ||
+        existingPayment.xp?.PurchaseOrderNumber === payment.xp?.PurchaseOrderNumber
+      );
+    }
+
+    return existingPayment.xp?.PaymentMethodLabel === payment.xp?.PaymentMethodLabel;
+  });
 };
 
 const upsertDemoPayment = async (payment: Payment<DemoPaymentXp>) => {
-  const existingPayment = await findReusableDemoPayment(payment.ID ?? "");
+  const existingPayment = await findReusableDemoPayment(payment);
 
   if (existingPayment?.ID) {
     if (existingPayment.Type === payment.Type) {
@@ -196,7 +208,6 @@ export const prepareDemoAccountOnFilePayment = async (
 ) => {
   const amount = getOrderTotal(orderWorksheet);
   const payment = await upsertDemoPayment({
-    ID: ACCOUNT_PAYMENT_ID,
     Type: "PurchaseOrder",
     Amount: amount,
     Accepted: false,
