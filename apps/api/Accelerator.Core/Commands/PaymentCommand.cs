@@ -95,11 +95,39 @@ namespace Accelerator.Commands
             var worksheet = await oc.IntegrationEvents.GetWorksheetAsync(OrderDirection.All, orderID);
             var payment = await oc.Payments.GetAsync(OrderDirection.All, orderID, paymentID);
 
+            Require.That(
+                payment.Type == PaymentType.PurchaseOrder,
+                new ErrorCode(
+                    "Payment.NotPurchaseOrder",
+                    "Only PurchaseOrder demo payments can be accepted as account-on-file payments."),
+                payment);
+
+            Require.That(
+                payment.xp?.DemoPayment == true
+                    || payment.ID.Equals(DemoAccountReference, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(
+                        GetDynamicString(payment.xp, "AccountReference"),
+                        DemoAccountReference,
+                        StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(
+                        GetDynamicString(payment.xp, "PurchaseOrderNumber"),
+                        DemoAccountReference,
+                        StringComparison.OrdinalIgnoreCase),
+                new ErrorCode(
+                    "Payment.NotDemoAccountOnFile",
+                    "Only the Bristan demo account-on-file payment can be accepted by this endpoint."),
+                payment);
+
+            if (payment.Accepted == true)
+            {
+                return payment;
+            }
+
             return await oc.Payments.PatchAsync<Payment>(
                 OrderDirection.All,
                 worksheet.Order.ID,
                 payment.ID,
-                new PartialPayment
+                new
                 {
                     Accepted = true,
                     Amount = worksheet.Order.Total,
