@@ -9,6 +9,7 @@ const DEFAULT_API = 'https://westeurope-sandbox.ordercloud.io/v1';
 const args = new Set(process.argv.slice(2));
 let dryRun = args.has('--dry-run');
 const DEMO_PASSWORD = process.env.BRISTAN_DEMO_PASSWORD || 'BristanDemo123!';
+const MARKETPLACE_BUYER_ID = 'bristan-demo-marketplace-buyer';
 
 const CATEGORIES = [
   { ID: 'bristan-taps', Name: 'Taps' },
@@ -135,7 +136,7 @@ async function assignProductToBuyerWithPriceSchedule(productID, buyerID, priceSc
   await assign('product priceSchedule to supplier buyer', '/products/assignments', { ProductID: productID, BuyerID: buyerID, PriceScheduleID: priceScheduleID });
 }
 async function assignProductToMarketplaceBuyerWithPriceSchedule(productID, priceScheduleID) {
-  await assign('supplier offer product to marketplace buyer', '/products/assignments', { ProductID: productID, BuyerID: 'bristan-demo-marketplace-buyer', PriceScheduleID: priceScheduleID });
+  await assign('supplier offer product to marketplace buyer', '/products/assignments', { ProductID: productID, BuyerID: MARKETPLACE_BUYER_ID, PriceScheduleID: priceScheduleID });
 }
 function user(id, username, email) { return { ID: id, Username: username, FirstName: 'Bristan', LastName: 'Demo', Email: email, Active: true, xp: { Demo: 'BristanMarketplace' } }; }
 function buyerUser(id, username, email) { return { ...user(id, username, email), Password: DEMO_PASSWORD }; }
@@ -180,13 +181,13 @@ async function seed() {
   await ocInit();
 
   await saveEntity('buyer', '/buyers', { ID: 'bristan-demo-spares-buyer', Name: 'Bristan Demo Spare Parts Buyer', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'SpareParts' } });
-  await saveEntity('buyer', '/buyers', { ID: 'bristan-demo-marketplace-buyer', Name: 'Bristan Demo Marketplace Buyer', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'MarketplaceBuyer' } });
+  await saveEntity('buyer', '/buyers', { ID: MARKETPLACE_BUYER_ID, Name: 'Bristan Demo Marketplace Buyer', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'MarketplaceBuyer' } });
   await saveEntity('catalog', '/catalogs', { ID: 'bristan-demo-spares-catalog', Name: 'Bristan Demo Spare Parts Catalog', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'SpareParts' } });
   await saveEntity('catalog', '/catalogs', { ID: 'bristan-demo-marketplace-catalog', Name: 'Bristan Demo Marketplace Catalog', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'MarketplaceBuyer' } });
   await saveBuyerUser('bristan-demo-spares-buyer', buyerUser('bristan-demo-spares-user', 'bristan-demo-spares-user', 'bristan-demo-spares@example.com'));
-  await saveBuyerUser('bristan-demo-marketplace-buyer', buyerUser('bristan-demo-marketplace-user', 'bristan-demo-marketplace-user', 'bristan-demo-marketplace@example.com'));
+  await saveBuyerUser(MARKETPLACE_BUYER_ID, buyerUser('bristan-demo-marketplace-user', 'bristan-demo-marketplace-user', 'bristan-demo-marketplace@example.com'));
   await assign('catalog to spares buyer', '/catalogs/assignments', { CatalogID: 'bristan-demo-spares-catalog', BuyerID: 'bristan-demo-spares-buyer', ViewAllCategories: true, ViewAllProducts: true });
-  await assign('catalog to marketplace buyer', '/catalogs/assignments', { CatalogID: 'bristan-demo-marketplace-catalog', BuyerID: 'bristan-demo-marketplace-buyer', ViewAllCategories: true, ViewAllProducts: true });
+  await assign('catalog to marketplace buyer', '/catalogs/assignments', { CatalogID: 'bristan-demo-marketplace-catalog', BuyerID: MARKETPLACE_BUYER_ID, ViewAllCategories: true, ViewAllProducts: true });
 
   for (const c of CATEGORIES.filter((c) => ACCESSORY_CATEGORY_IDS.has(c.ID))) await saveEntity('spares category', '/catalogs/bristan-demo-spares-catalog/categories', categoryPayload(c));
   for (const p of accessories) await assign('spares category product', '/catalogs/bristan-demo-spares-catalog/categories/productassignments', { CategoryID: p.categoryID, ProductID: p.id });
