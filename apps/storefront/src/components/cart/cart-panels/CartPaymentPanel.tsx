@@ -38,6 +38,7 @@ type CartPaymentPanelProps = {
   submitOrder: () => Promise<void>;
   submitting: boolean;
   username?: string;
+  handlePrevTab?: () => void;
 };
 
 export const CartPaymentPanel = ({
@@ -45,6 +46,7 @@ export const CartPaymentPanel = ({
   submitOrder,
   submitting,
   username,
+  handlePrevTab,
 }: CartPaymentPanelProps) => {
   const [paymentMethod, setPaymentMethod] =
     useState<DemoPaymentMethod>("credit-card");
@@ -119,10 +121,10 @@ export const CartPaymentPanel = ({
           <Stack spacing={4}>
             <Box borderWidth="1px" borderRadius="md" p={4}>
               <Radio value="credit-card" fontWeight="semibold">
-                Pay by credit card
+                Demo credit card
               </Radio>
               <Text color="gray.600" fontSize="sm" mt={2}>
-                Use a secure demo card authorization for this checkout.
+                Use the safe demo card authorization for this checkout.
               </Text>
             </Box>
             {canUseAccountOnFile && (
@@ -131,7 +133,7 @@ export const CartPaymentPanel = ({
                   Pay by account on file
                 </Radio>
                 <Text color="gray.600" fontSize="sm" mt={2}>
-                  Invoice this order to the merchant account on file.
+                  Available for Bristan trade merchant accounts.
                 </Text>
               </Box>
             )}
@@ -141,7 +143,7 @@ export const CartPaymentPanel = ({
 
       {paymentMethod === "credit-card" && (
         <Stack borderWidth="1px" borderRadius="md" p={4} spacing={4}>
-          <Text fontWeight="semibold">Credit card details</Text>
+          <Text fontWeight="semibold">Demo credit card details</Text>
           <FormControl isInvalid={!cardForm.cardholderName.trim()}>
             <FormLabel>Cardholder name</FormLabel>
             <Input
@@ -204,18 +206,20 @@ export const CartPaymentPanel = ({
         </Alert>
       )}
 
-      <Button
-        alignSelf="flex-end"
-        onClick={handleSubmit}
-        mt={2}
-        isDisabled={
-          isBusy || (paymentMethod === "credit-card" && cardValidationErrors.length > 0)
-        }
-        isLoading={isBusy}
-        loadingText={preparingPayment ? "Preparing payment" : "Submitting"}
-      >
-        Submit Order
-      </Button>
+      <HStack alignSelf="flex-end" mt={2}>
+        <Button variant="ghost" onClick={handlePrevTab}>Back to shipping</Button>
+        <Button
+          onClick={handleSubmit}
+          isDisabled={
+            isBusy || (paymentMethod === "credit-card" && cardValidationErrors.length > 0)
+          }
+          isLoading={isBusy}
+          loadingText={preparingPayment ? "Preparing payment" : "Submitting"}
+          colorScheme="blue"
+        >
+          Place order
+        </Button>
+      </HStack>
     </Stack>
   );
 };

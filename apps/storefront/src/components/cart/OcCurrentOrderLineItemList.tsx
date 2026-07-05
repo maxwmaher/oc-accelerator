@@ -8,6 +8,7 @@ interface OcCurrentOrderLineItemListProps {
   productType?: string;
   lineItems?: LineItem[];
   onChange: (newLineItem: LineItem) => void;
+  isTradeBuyer?: boolean;
 }
 
 const OcCurrentOrderLineItemList: FunctionComponent<OcCurrentOrderLineItemListProps> = ({
@@ -15,7 +16,8 @@ const OcCurrentOrderLineItemList: FunctionComponent<OcCurrentOrderLineItemListPr
   editable,
   productType,
   lineItems,
-  onChange
+  onChange,
+  isTradeBuyer
 }) => {
   let productItems = lineItems
   if (productType != null) {
@@ -30,6 +32,7 @@ const OcCurrentOrderLineItemList: FunctionComponent<OcCurrentOrderLineItemListPr
       editable={editable}
       lineItems={productItems}
       onChange={onChange}
+      isTradeBuyer={isTradeBuyer}
     />
   )
 }
