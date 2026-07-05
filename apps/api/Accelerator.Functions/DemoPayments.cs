@@ -31,14 +31,29 @@ namespace Accelerator.Functions
             string orderID,
             string paymentID)
         {
-            var body = await new StreamReader(req.Body).ReadToEndAsync();
-            var request = string.IsNullOrWhiteSpace(body)
-                ? new DemoPaymentAcceptRequest()
-                : JsonConvert.DeserializeObject<DemoPaymentAcceptRequest>(body) ?? new DemoPaymentAcceptRequest();
+            if (string.IsNullOrWhiteSpace(orderID) || string.IsNullOrWhiteSpace(paymentID))
+            {
+                logger.LogWarning("Demo payment acceptance request is missing route values. OrderID: {OrderID}; PaymentID: {PaymentID}", orderID, paymentID);
+                return new BadRequestObjectResult(new DemoPaymentErrorResponse("MissingRouteValue", "Order ID and payment ID are required."));
+            }
+
+            DemoPaymentAcceptRequest request;
+            try
+            {
+                var body = await new StreamReader(req.Body).ReadToEndAsync();
+                request = string.IsNullOrWhiteSpace(body)
+                    ? new DemoPaymentAcceptRequest()
+                    : JsonConvert.DeserializeObject<DemoPaymentAcceptRequest>(body) ?? new DemoPaymentAcceptRequest();
+            }
+            catch (JsonException ex)
+            {
+                logger.LogWarning(ex, "Demo payment acceptance request contained invalid JSON. OrderID: {OrderID}; PaymentID: {PaymentID}", orderID, paymentID);
+                return new BadRequestObjectResult(new DemoPaymentErrorResponse("InvalidJson", "Request body must be valid JSON."));
+            }
 
             if (string.IsNullOrWhiteSpace(request.PaymentMethod) || !SupportedPaymentMethods.Contains(request.PaymentMethod))
             {
-                return new BadRequestObjectResult("Demo payment acceptance supports only CreditCard and PurchaseOrder.");
+                return new BadRequestObjectResult(new DemoPaymentErrorResponse("UnsupportedPaymentMethod", "Demo payment acceptance supports only CreditCard and PurchaseOrder."));
             }
 
             OrderWorksheet worksheet;
@@ -52,12 +67,12 @@ namespace Accelerator.Functions
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Demo payment lookup failed. OrderID: {OrderID}; PaymentID: {PaymentID}", orderID, paymentID);
-                return new NotFoundObjectResult("Payment was not found for the supplied order.");
+                return new NotFoundObjectResult(new DemoPaymentErrorResponse("PaymentNotFound", "Payment was not found for the supplied order."));
             }
 
             if (worksheet?.Order?.ID != orderID || payment?.ID != paymentID)
             {
-                return new NotFoundObjectResult("Payment was not found for the supplied order.");
+                return new NotFoundObjectResult(new DemoPaymentErrorResponse("PaymentNotFound", "Payment was not found for the supplied order."));
             }
 
             var isDemoPayment = payment.xp?.DemoPayment == true
@@ -67,13 +82,13 @@ namespace Accelerator.Functions
             if (!isDemoPayment)
             {
                 logger.LogWarning("Rejected non-demo payment acceptance request. OrderID: {OrderID}; PaymentID: {PaymentID}; Type: {PaymentType}", orderID, paymentID, payment.Type);
-                return new BadRequestObjectResult("Only demo checkout payments can be accepted by this endpoint.");
+                return new BadRequestObjectResult(new DemoPaymentErrorResponse("NotDemoPayment", "Only demo checkout payments can be accepted by this endpoint."));
             }
 
             if (!Enum.TryParse<PaymentType>(request.PaymentMethod, ignoreCase: true, out var requestedPaymentType)
                 || payment.Type != requestedPaymentType)
             {
-                return new BadRequestObjectResult("Payment method does not match the OrderCloud payment type.");
+                return new BadRequestObjectResult(new DemoPaymentErrorResponse("PaymentMethodMismatch", "Payment method does not match the OrderCloud payment type."));
             }
 
             var buyerUsername = worksheet.Order.FromUser?.Username;
@@ -87,7 +102,7 @@ namespace Accelerator.Functions
                     paymentID,
                     buyerID,
                     buyerUsername);
-                return new BadRequestObjectResult("Pay by account on file is not available for this buyer.");
+                return new BadRequestObjectResult(new DemoPaymentErrorResponse("AccountOnFileUnavailable", "Pay by account on file is not available for this buyer."));
             }
 
             var amount = worksheet.Order.Total;
@@ -125,7 +140,7 @@ namespace Accelerator.Functions
                     payment.Type,
                     buyerID,
                     buyerUsername);
-                return new BadRequestObjectResult("Demo payment could not be accepted. Please verify the payment details and try again.");
+                return new BadRequestObjectResult(new DemoPaymentErrorResponse("DemoPaymentAcceptFailed", "Demo payment could not be accepted. Please verify the payment details and try again."));
             }
         }
     }
@@ -139,4 +154,6 @@ namespace Accelerator.Functions
     }
 
     public record DemoPaymentAcceptResponse(Payment Payment, bool AlreadyAccepted);
+
+    public record DemoPaymentErrorResponse(string Code, string Message);
 }
