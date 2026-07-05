@@ -19,6 +19,12 @@ namespace Accelerator.Functions
             "PurchaseOrder",
         };
 
+        private static readonly HashSet<string> AccountOnFileUsernames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "bristan-demo-supplier-north-buyer-user",
+            "bristan-demo-supplier-south-buyer-user",
+        };
+
         [Function("acceptdemopayment")]
         public async Task<IActionResult> AcceptDemoPaymentAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "demo/payments/{orderID}/{paymentID}/accept")] HttpRequest req,
@@ -35,8 +41,19 @@ namespace Accelerator.Functions
                 return new BadRequestObjectResult("Demo payment acceptance supports only CreditCard and PurchaseOrder.");
             }
 
-            var worksheet = await oc.IntegrationEvents.GetWorksheetAsync(OrderDirection.All, orderID);
-            var payment = await oc.Payments.GetAsync(OrderDirection.All, orderID, paymentID);
+            OrderWorksheet worksheet;
+            Payment payment;
+
+            try
+            {
+                worksheet = await oc.IntegrationEvents.GetWorksheetAsync(OrderDirection.All, orderID);
+                payment = await oc.Payments.GetAsync(OrderDirection.All, orderID, paymentID);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Demo payment lookup failed. OrderID: {OrderID}; PaymentID: {PaymentID}", orderID, paymentID);
+                return new NotFoundObjectResult("Payment was not found for the supplied order.");
+            }
 
             if (worksheet?.Order?.ID != orderID || payment?.ID != paymentID)
             {
@@ -59,26 +76,57 @@ namespace Accelerator.Functions
                 return new BadRequestObjectResult("Payment method does not match the OrderCloud payment type.");
             }
 
+            var buyerUsername = worksheet.Order.FromUser?.Username;
+            var buyerID = worksheet.Order.FromCompanyID;
+
+            if (requestedPaymentType == PaymentType.PurchaseOrder && !AccountOnFileUsernames.Contains(buyerUsername ?? string.Empty))
+            {
+                logger.LogWarning(
+                    "Rejected account-on-file demo payment for ineligible buyer. OrderID: {OrderID}; PaymentID: {PaymentID}; BuyerID: {BuyerID}; BuyerUsername: {BuyerUsername}",
+                    orderID,
+                    paymentID,
+                    buyerID,
+                    buyerUsername);
+                return new BadRequestObjectResult("Pay by account on file is not available for this buyer.");
+            }
+
             var amount = worksheet.Order.Total;
             var alreadyAccepted = payment.Accepted == true;
             logger.LogInformation(
-                "Demo payment acceptance requested. OrderID: {OrderID}; PaymentID: {PaymentID}; PaymentType: {PaymentType}; Amount: {Amount}; AlreadyAccepted: {AlreadyAccepted}",
+                "Demo payment acceptance requested. OrderID: {OrderID}; PaymentID: {PaymentID}; PaymentType: {PaymentType}; Amount: {Amount}; AlreadyAccepted: {AlreadyAccepted}; BuyerID: {BuyerID}; BuyerUsername: {BuyerUsername}",
                 orderID,
                 paymentID,
                 payment.Type,
                 amount,
-                alreadyAccepted);
+                alreadyAccepted,
+                buyerID,
+                buyerUsername);
 
             if (alreadyAccepted)
             {
                 return new OkObjectResult(new DemoPaymentAcceptResponse(payment, true));
             }
 
-            var acceptedPayment = string.Equals(request.PaymentMethod, "CreditCard", StringComparison.OrdinalIgnoreCase)
-                ? await paymentCommand.AuthorizeCardPaymentAsync(orderID, paymentID)
-                : await paymentCommand.AcceptPurchaseOrderPaymentAsync(orderID, paymentID);
+            try
+            {
+                var acceptedPayment = string.Equals(request.PaymentMethod, "CreditCard", StringComparison.OrdinalIgnoreCase)
+                    ? await paymentCommand.AuthorizeCardPaymentAsync(orderID, paymentID)
+                    : await paymentCommand.AcceptPurchaseOrderPaymentAsync(orderID, paymentID);
 
-            return new OkObjectResult(new DemoPaymentAcceptResponse(acceptedPayment, false));
+                return new OkObjectResult(new DemoPaymentAcceptResponse(acceptedPayment, false));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Demo payment acceptance failed. OrderID: {OrderID}; PaymentID: {PaymentID}; PaymentType: {PaymentType}; BuyerID: {BuyerID}; BuyerUsername: {BuyerUsername}",
+                    orderID,
+                    paymentID,
+                    payment.Type,
+                    buyerID,
+                    buyerUsername);
+                return new BadRequestObjectResult("Demo payment could not be accepted. Please verify the payment details and try again.");
+            }
         }
     }
 

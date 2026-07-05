@@ -92,6 +92,9 @@ export const isBristanSupplierBuyerUsername = (username?: string) =>
       ),
   );
 
+export const canUseBristanDemoAccountOnFile = (username?: string) =>
+  isBristanSupplierBuyerUsername(username);
+
 export const isBristanSupplierBuyerCatalogId = (catalogId?: string) =>
   Boolean(
     catalogId &&

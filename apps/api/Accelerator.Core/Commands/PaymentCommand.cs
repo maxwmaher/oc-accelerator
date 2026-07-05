@@ -103,7 +103,6 @@ namespace Accelerator.Commands
                 {
                     Accepted = true,
                     Amount = worksheet.Order.Total,
-                    Type = PaymentType.PurchaseOrder,
                     xp = new
                     {
                         DemoPayment = true,

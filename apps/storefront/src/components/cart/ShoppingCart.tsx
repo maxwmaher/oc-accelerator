@@ -24,6 +24,7 @@ import { CartPaymentPanel } from "./cart-panels/CartPaymentPanel";
 import CartShippingPanel from "./cart-panels/CartShippingPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
+import { useCurrentUser } from "../../hooks/currentUser";
 
 export const TABS = {
   INFORMATION: 0,
@@ -34,6 +35,8 @@ export const TABS = {
 export const ShoppingCart = (): JSX.Element => {
   const [submitting, setSubmitting] = useState(false);
   const [tabIndex, setTabIndex] = useState(TABS.INFORMATION);
+
+  const { data: user } = useCurrentUser();
 
   const {
     orderWorksheet,
@@ -193,6 +196,7 @@ export const ShoppingCart = (): JSX.Element => {
                             orderWorksheet={orderWorksheet}
                             submitOrder={submitOrder}
                             submitting={submitting}
+                            username={user?.Username}
                           />
                         </TabPanel>
                       </TabPanels>

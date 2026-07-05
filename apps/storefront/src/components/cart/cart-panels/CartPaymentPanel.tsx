@@ -15,7 +15,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { OrderWorksheet } from "ordercloud-javascript-sdk";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DemoCreditCardForm,
   DemoPaymentMethod,
@@ -23,6 +23,7 @@ import {
   prepareDemoCreditCardPayment,
   validateDemoCreditCard,
 } from "../../../services/demoCheckoutPayment";
+import { canUseBristanDemoAccountOnFile } from "../../bristan/bristanDemoRoutes";
 
 const defaultCardForm: DemoCreditCardForm = {
   cardholderName: "Bristan Demo Buyer",
@@ -36,12 +37,14 @@ type CartPaymentPanelProps = {
   orderWorksheet: OrderWorksheet;
   submitOrder: () => Promise<void>;
   submitting: boolean;
+  username?: string;
 };
 
 export const CartPaymentPanel = ({
   orderWorksheet,
   submitOrder,
   submitting,
+  username,
 }: CartPaymentPanelProps) => {
   const [paymentMethod, setPaymentMethod] =
     useState<DemoPaymentMethod>("credit-card");
@@ -49,6 +52,14 @@ export const CartPaymentPanel = ({
   const [preparingPayment, setPreparingPayment] = useState(false);
   const [validationError, setValidationError] = useState<string>();
   const toast = useToast();
+
+  const canUseAccountOnFile = canUseBristanDemoAccountOnFile(username);
+
+  useEffect(() => {
+    if (!canUseAccountOnFile && paymentMethod === "account-on-file") {
+      setPaymentMethod("credit-card");
+    }
+  }, [canUseAccountOnFile, paymentMethod]);
 
   const cardValidationErrors = useMemo(
     () => validateDemoCreditCard(cardForm),
@@ -68,6 +79,9 @@ export const CartPaymentPanel = ({
       if (paymentMethod === "credit-card") {
         await prepareDemoCreditCardPayment(orderWorksheet, cardForm);
       } else {
+        if (!canUseAccountOnFile) {
+          throw new Error("Pay by account on file is not available for this buyer.");
+        }
         await prepareDemoAccountOnFilePayment(orderWorksheet);
       }
 
@@ -111,14 +125,16 @@ export const CartPaymentPanel = ({
                 Use a secure demo card authorization for this checkout.
               </Text>
             </Box>
-            <Box borderWidth="1px" borderRadius="md" p={4}>
-              <Radio value="account-on-file" fontWeight="semibold">
-                Pay by account on file
-              </Radio>
-              <Text color="gray.600" fontSize="sm" mt={2}>
-                Invoice this order to the buyer account on file.
-              </Text>
-            </Box>
+            {canUseAccountOnFile && (
+              <Box borderWidth="1px" borderRadius="md" p={4}>
+                <Radio value="account-on-file" fontWeight="semibold">
+                  Pay by account on file
+                </Radio>
+                <Text color="gray.600" fontSize="sm" mt={2}>
+                  Invoice this order to the merchant account on file.
+                </Text>
+              </Box>
+            )}
           </Stack>
         </RadioGroup>
       </Box>
