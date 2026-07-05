@@ -17,6 +17,7 @@ import pluralize from "pluralize";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import formatPrice from "../../utils/formatPrice";
+import { BRISTAN_DEMO_CATALOG_IDS } from "./bristanDemoRoutes";
 
 interface BristanSupplierOffersProps {
   canonicalProductId: string;
@@ -28,11 +29,19 @@ const supplierName = (offer: BuyerProduct) =>
 const offerRank = (offer: BuyerProduct) => Number(offer.xp?.OfferRank ?? 999);
 
 const BRISTAN_DEMO_SUPPLIER_OFFER_KEYS = ["north", "south"] as const;
+const BRISTAN_DEMO_MARKETPLACE_CATALOG_ID = BRISTAN_DEMO_CATALOG_IDS.marketplace;
+const BRISTAN_SUPPLIER_OFFERS_PAGE_SIZE = 100;
+const BRISTAN_SUPPLIER_OFFERS_PAGE_CAP = 5;
 
 const getExpectedOfferProductIds = (canonicalProductId: string) =>
   BRISTAN_DEMO_SUPPLIER_OFFER_KEYS.map(
     (supplierKey) => `bristan-demo-offer-${supplierKey}-${canonicalProductId}`,
   );
+
+const getOfferSortIndex = (offer: BuyerProduct, expectedOfferIds: string[]) => {
+  const expectedIndex = offer.ID ? expectedOfferIds.indexOf(offer.ID) : -1;
+  return expectedIndex === -1 ? Number.MAX_SAFE_INTEGER : expectedIndex;
+};
 
 const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
   canonicalProductId,
@@ -48,35 +57,52 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
     let isCurrent = true;
 
     const fetchOfferProducts = async () => {
+      const expectedOfferIds = getExpectedOfferProductIds(canonicalProductId);
+      const expectedOfferIdSet = new Set(expectedOfferIds);
+
       setIsLoading(true);
       try {
-        const offerResults = await Promise.all(
-          getExpectedOfferProductIds(canonicalProductId).map(
-            async (offerProductId) => {
-              try {
-                return await Me.GetProduct<BuyerProduct>(offerProductId);
-              } catch (error) {
-                console.warn(
-                  "Bristan supplier offer product was not available:",
-                  offerProductId,
-                  error,
-                );
-                return undefined;
-              }
-            },
+        const firstPage = await Me.ListProducts<BuyerProduct>({
+          catalogID: BRISTAN_DEMO_MARKETPLACE_CATALOG_ID,
+          page: 1,
+          pageSize: BRISTAN_SUPPLIER_OFFERS_PAGE_SIZE,
+        });
+        const totalPages = Math.min(
+          firstPage.Meta?.TotalPages ?? 1,
+          BRISTAN_SUPPLIER_OFFERS_PAGE_CAP,
+        );
+        const additionalPages = Array.from(
+          { length: Math.max(totalPages - 1, 0) },
+          (_, index) => index + 2,
+        );
+        const additionalResults = await Promise.all(
+          additionalPages.map((page) =>
+            Me.ListProducts<BuyerProduct>({
+              catalogID: BRISTAN_DEMO_MARKETPLACE_CATALOG_ID,
+              page,
+              pageSize: BRISTAN_SUPPLIER_OFFERS_PAGE_SIZE,
+            }),
           ),
         );
+        const catalogProducts = [
+          ...(firstPage.Items ?? []),
+          ...additionalResults.flatMap((result) => result.Items ?? []),
+        ];
 
         if (isCurrent) {
           setOfferProducts(
-            offerResults
-              .filter(
-                (offer) =>
-                  offer?.xp?.SupplierOffer === true &&
-                  offer?.xp?.CanonicalProductID === canonicalProductId,
-              )
-              .map((offer) => offer as BuyerProduct),
+            catalogProducts.filter(
+              (offer) =>
+                Boolean(offer.ID && expectedOfferIdSet.has(offer.ID)) &&
+                offer.xp?.SupplierOffer === true &&
+                offer.xp?.CanonicalProductID === canonicalProductId,
+            ),
           );
+        }
+      } catch (error) {
+        console.warn("Unable to load Bristan supplier offers:", error);
+        if (isCurrent) {
+          setOfferProducts([]);
         }
       } finally {
         if (isCurrent) {
@@ -92,14 +118,19 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
     };
   }, [canonicalProductId]);
 
-  const offers = useMemo(
-    () =>
-      [...offerProducts].sort((a, b) => {
-        const rankDelta = offerRank(a) - offerRank(b);
-        return rankDelta || supplierName(a).localeCompare(supplierName(b));
-      }),
-    [offerProducts],
-  );
+  const offers = useMemo(() => {
+    const expectedOfferIds = getExpectedOfferProductIds(canonicalProductId);
+
+    return [...offerProducts].sort((a, b) => {
+      const rankDelta = offerRank(a) - offerRank(b);
+      return (
+        rankDelta ||
+        getOfferSortIndex(a, expectedOfferIds) -
+          getOfferSortIndex(b, expectedOfferIds) ||
+        supplierName(a).localeCompare(supplierName(b))
+      );
+    });
+  }, [canonicalProductId, offerProducts]);
 
   const handleBuyOffer = useCallback(
     async (offer: BuyerProduct) => {
