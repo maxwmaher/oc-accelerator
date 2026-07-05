@@ -134,6 +134,9 @@ async function assign(label, endpoint, payload) {
 async function assignProductToBuyerWithPriceSchedule(productID, buyerID, priceScheduleID) {
   await assign('product priceSchedule to supplier buyer', '/products/assignments', { ProductID: productID, BuyerID: buyerID, PriceScheduleID: priceScheduleID });
 }
+async function assignProductToMarketplaceBuyerWithPriceSchedule(productID, priceScheduleID) {
+  await assign('supplier offer product to marketplace buyer', '/products/assignments', { ProductID: productID, BuyerID: 'bristan-demo-marketplace-buyer', PriceScheduleID: priceScheduleID });
+}
 function user(id, username, email) { return { ID: id, Username: username, FirstName: 'Bristan', LastName: 'Demo', Email: email, Active: true, xp: { Demo: 'BristanMarketplace' } }; }
 function buyerUser(id, username, email) { return { ...user(id, username, email), Password: DEMO_PASSWORD }; }
 function categoryPayload(category) { return { ...category, Active: true, xp: { Demo: 'BristanMarketplace', BristanOwnedCategory: true } }; }
@@ -208,6 +211,7 @@ async function seed() {
       const offer = offerProduct(supplier, p, index);
       await saveEntity('offer priceSchedule', '/priceschedules', priceSchedule(offer.DefaultPriceScheduleID, `${supplier.name} offer - ${p.name}`, productPrice(p), [[1, 1 - supplier.discount]]));
       await saveEntity('supplier offer product', '/products', offer);
+      await assignProductToMarketplaceBuyerWithPriceSchedule(offer.ID, offer.DefaultPriceScheduleID);
       await assign('marketplace offer category product', '/catalogs/bristan-demo-marketplace-catalog/categories/productassignments', { CategoryID: p.categoryID, ProductID: offer.ID });
     }
   }
