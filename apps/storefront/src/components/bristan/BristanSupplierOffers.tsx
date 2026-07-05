@@ -11,10 +11,10 @@ import {
   useToast,
   VStack,
 } from "@chakra-ui/react";
-import { useOcResourceList, useShopper } from "@ordercloud/react-sdk";
-import { BuyerProduct, OrderCloudError } from "ordercloud-javascript-sdk";
+import { useShopper } from "@ordercloud/react-sdk";
+import { BuyerProduct, Me, OrderCloudError } from "ordercloud-javascript-sdk";
 import pluralize from "pluralize";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import formatPrice from "../../utils/formatPrice";
 import { BRISTAN_DEMO_CATALOG_IDS } from "./bristanDemoRoutes";
@@ -35,14 +35,59 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
   const toast = useToast();
   const { addCartLineItem } = useShopper();
   const [addingOfferId, setAddingOfferId] = useState<string>();
-  const { data, isLoading } = useOcResourceList<BuyerProduct>("Me.Products", {
-    catalogId: BRISTAN_DEMO_CATALOG_IDS.marketplace,
-    pageSize: "500",
-  });
+  const [offerProducts, setOfferProducts] = useState<BuyerProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    const fetchOfferProducts = async () => {
+      setIsLoading(true);
+      try {
+        const pageSize = 100;
+        const firstPage = await Me.ListProducts<BuyerProduct>({
+          catalogID: BRISTAN_DEMO_CATALOG_IDS.marketplace,
+          page: 1,
+          pageSize,
+        });
+        const totalPages = firstPage.Meta?.TotalPages ?? 1;
+        const additionalPages = Array.from(
+          { length: Math.min(2, Math.max(totalPages - 1, 0)) },
+          (_, index) => index + 2,
+        );
+        const additionalResults = await Promise.all(
+          additionalPages.map((page) =>
+            Me.ListProducts<BuyerProduct>({
+              catalogID: BRISTAN_DEMO_CATALOG_IDS.marketplace,
+              page,
+              pageSize,
+            }),
+          ),
+        );
+
+        if (isCurrent) {
+          setOfferProducts([
+            ...(firstPage.Items ?? []),
+            ...additionalResults.flatMap((result) => result.Items ?? []),
+          ]);
+        }
+      } finally {
+        if (isCurrent) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchOfferProducts();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   const offers = useMemo(
     () =>
-      [...(data?.Items ?? [])]
+      [...offerProducts]
         .filter(
           (offer) =>
             offer.xp?.SupplierOffer === true &&
@@ -52,7 +97,7 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
           const rankDelta = offerRank(a) - offerRank(b);
           return rankDelta || supplierName(a).localeCompare(supplierName(b));
         }),
-    [canonicalProductId, data?.Items],
+    [canonicalProductId, offerProducts],
   );
 
   const handleBuyOffer = useCallback(
