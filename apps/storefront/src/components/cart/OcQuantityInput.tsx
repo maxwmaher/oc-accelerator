@@ -53,10 +53,18 @@ const OcQuantityInput: FunctionComponent<OcQuantityInputProps> = ({
     _valAsString: string,
     valAsNumber: number
   ) => {
-    if (typeof valAsNumber !== "number") {
+    if (Number.isNaN(valAsNumber)) {
       return;
     }
-    onChange(valAsNumber);
+
+    const minQuantity = ps?.MinQuantity || 1;
+    const maxQuantity = ps?.MaxQuantity || undefined;
+    const nextQuantity = Math.max(
+      minQuantity,
+      maxQuantity ? Math.min(valAsNumber, maxQuantity) : valAsNumber
+    );
+
+    onChange(nextQuantity);
   };
 
   return ps ? (
