@@ -17,13 +17,14 @@ import {
   VStack,
   useDisclosure,
 } from "@chakra-ui/react";
-import { BuyerProduct } from "ordercloud-javascript-sdk";
+import { BuyerProduct, ListPageWithFacets, Me } from "ordercloud-javascript-sdk";
 import { parse } from "querystring";
 import React, {
   FunctionComponent,
   useCallback,
   useEffect,
   useMemo,
+  useState,
 } from "react";
 import {
   useLocation,
@@ -95,19 +96,93 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
     {
       search: searchTerm,
       page: currentPage.toString(),
-      pageSize: shouldHideMarketplaceOffers ? "500" : undefined,
+      pageSize: shouldHideMarketplaceOffers ? "100" : undefined,
       catalogId,
       categoryId,
       ...filters,
     },
   );
+  const [marketplaceData, setMarketplaceData] =
+    useState<ListPageWithFacets<BuyerProduct>>();
+  const [isLoadingMarketplaceData, setIsLoadingMarketplaceData] =
+    useState(false);
+
+  useEffect(() => {
+    if (!shouldHideMarketplaceOffers) {
+      setMarketplaceData(undefined);
+      setIsLoadingMarketplaceData(false);
+      return;
+    }
+
+    let isCurrent = true;
+    const fetchMarketplaceProducts = async () => {
+      setIsLoadingMarketplaceData(true);
+      try {
+        const pageSize = 100;
+        const firstPage = await Me.ListProducts<BuyerProduct>({
+          search: searchTerm,
+          page: currentPage,
+          pageSize,
+          catalogID: catalogId,
+          categoryID: categoryId,
+          filters,
+        });
+        const totalPages = firstPage.Meta?.TotalPages ?? currentPage;
+        const additionalPages = Array.from(
+          { length: Math.min(2, Math.max(totalPages - currentPage, 0)) },
+          (_, index) => currentPage + index + 1,
+        );
+        const additionalResults = await Promise.all(
+          additionalPages.map((page) =>
+            Me.ListProducts<BuyerProduct>({
+              search: searchTerm,
+              page,
+              pageSize,
+              catalogID: catalogId,
+              categoryID: categoryId,
+              filters,
+            }),
+          ),
+        );
+
+        if (isCurrent) {
+          setMarketplaceData({
+            ...firstPage,
+            Items: [
+              ...(firstPage.Items ?? []),
+              ...additionalResults.flatMap((result) => result.Items ?? []),
+            ],
+          });
+        }
+      } finally {
+        if (isCurrent) {
+          setIsLoadingMarketplaceData(false);
+        }
+      }
+    };
+
+    fetchMarketplaceProducts();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    catalogId,
+    categoryId,
+    currentPage,
+    filters,
+    searchTerm,
+    shouldHideMarketplaceOffers,
+  ]);
+
+  const productData = shouldHideMarketplaceOffers ? marketplaceData : data;
   const visibleProducts = useMemo(
     () =>
-      (data?.Items ?? []).filter(
+      (productData?.Items ?? []).filter(
         (product) =>
           !shouldHideMarketplaceOffers || product.xp?.SupplierOffer !== true,
       ),
-    [data?.Items, shouldHideMarketplaceOffers],
+    [productData?.Items, shouldHideMarketplaceOffers],
   );
 
   const handleRoutingChange = useCallback(
@@ -152,7 +227,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
     return parse(location.search.slice(1)) as ServiceListOptions;
   }, [location.search]);
 
-  if (isLoading) {
+  if (isLoading || isLoadingMarketplaceData) {
     return (
       <Center h="50vh">
         <Spinner size="xl" />
@@ -173,7 +248,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
               handleRoutingChange={handleRoutingChange}
             />
             <FacetList
-              facets={data?.Meta?.Facets}
+              facets={productData?.Meta?.Facets}
               onChange={handleRoutingChange}
             />
           </DrawerBody>
@@ -197,7 +272,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
               handleRoutingChange={handleRoutingChange}
             />
             <FacetList
-              facets={data?.Meta?.Facets}
+              facets={productData?.Meta?.Facets}
               onChange={handleRoutingChange}
             />
           </CardBody>
@@ -228,11 +303,11 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
         )}
       </Grid>
 
-      {data?.Meta?.TotalPages && data?.Meta?.TotalPages > 1 && (
+      {productData?.Meta?.TotalPages && productData?.Meta?.TotalPages > 1 && (
         <Center>
           <Pagination
             page={currentPage}
-            totalPages={data?.Meta?.TotalPages}
+            totalPages={productData?.Meta?.TotalPages}
             onChange={handleRoutingChange("page")}
           />
         </Center>
