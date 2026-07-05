@@ -140,12 +140,8 @@ export const getBristanDemoProductsRoute = (username?: string) => {
   return catalogId ? `/shop/${catalogId}/products` : undefined;
 };
 
-export const getBristanDemoShopAllRoute = (username?: string) => {
-  const targetRoute = getBristanDemoTargetRoute(username);
-  const productsRoute = getBristanDemoProductsRoute(username);
-
-  return targetRoute?.endsWith("/categories") ? targetRoute : productsRoute;
-};
+export const getBristanDemoShopAllRoute = (username?: string) =>
+  getBristanDemoProductsRoute(username);
 
 export const getCorrectedBristanDemoCatalogPath = (
   pathname: string,
@@ -165,13 +161,6 @@ export const getCorrectedBristanDemoCatalogPath = (
     !isBristanDemoCatalogId(requestedCatalogId)
   ) {
     return undefined;
-  }
-
-  if (
-    routeType === "products" &&
-    correctCatalogId === BRISTAN_DEMO_CATALOG_IDS.spares
-  ) {
-    return `/shop/${correctCatalogId}/categories`;
   }
 
   return `/shop/${correctCatalogId}/${routeType}${remainder ? `/${remainder}` : ""}`;
