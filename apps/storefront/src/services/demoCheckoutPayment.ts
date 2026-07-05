@@ -73,8 +73,10 @@ const acceptDemoPayment = async (
   );
 
   if (!response.ok) {
+    const errorText = await response.text();
     throw new Error(
-      "We could not authorize your selected payment method. Please review your payment details and try again."
+      errorText ||
+        "We could not authorize your selected payment method. Please review your payment details and try again."
     );
   }
 
