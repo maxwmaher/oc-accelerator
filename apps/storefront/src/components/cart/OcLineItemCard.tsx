@@ -14,6 +14,7 @@ import {
   ModalOverlay,
   Text,
   Textarea,
+  Badge,
   VStack,
 } from "@chakra-ui/react";
 import { LineItem } from "ordercloud-javascript-sdk";
@@ -103,6 +104,7 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
                 boxSize="full"
                 objectFit="cover"
                 src={lineItem?.Product?.xp?.Images[0].Url}
+                alt={lineItem.Product?.Name || "Order item image"}
                 zIndex={1}
                 onError={(e) => {
                   e.currentTarget.src = ""; // Prevent the broken image from rendering
@@ -146,13 +148,37 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
             </Text>
           </HStack>
           {lineItem.xp?.MarketplaceSupplierOffer && (
-            <VStack alignItems="flex-start" gap={0} mt={-2}>
+            <VStack alignItems="flex-start" gap={1} mt={-2}>
               <Text fontSize="xs" color="chakra-subtle-text">
                 <Text fontWeight="600" display="inline">
                   Merchant:
                 </Text>{" "}
-                {lineItem.xp?.SupplierName || "Approved merchant"}
+                {lineItem.xp?.SupplierName || lineItem.xp?.MarketplaceSupplierOffer?.SupplierName || "Approved merchant"}
               </Text>
+              {(lineItem.xp?.Availability || lineItem.xp?.MarketplaceSupplierOffer?.Availability) && (
+                <Text fontSize="xs" color="chakra-subtle-text">
+                  <Text fontWeight="600" display="inline">
+                    Availability:
+                  </Text>{" "}
+                  {lineItem.xp?.Availability || lineItem.xp?.MarketplaceSupplierOffer?.Availability}
+                </Text>
+              )}
+              {(lineItem.xp?.LeadTime || lineItem.xp?.MarketplaceSupplierOffer?.LeadTime) && (
+                <Text fontSize="xs" color="chakra-subtle-text">
+                  <Text fontWeight="600" display="inline">
+                    Lead time:
+                  </Text>{" "}
+                  {lineItem.xp?.LeadTime || lineItem.xp?.MarketplaceSupplierOffer?.LeadTime}
+                </Text>
+              )}
+              {(lineItem.xp?.OfferPrice || lineItem.xp?.MarketplaceSupplierOffer?.Price) && (
+                <Text fontSize="xs" color="chakra-subtle-text">
+                  <Text fontWeight="600" display="inline">
+                    Selected offer price:
+                  </Text>{" "}
+                  {formatPrice(lineItem.xp?.OfferPrice || lineItem.xp?.MarketplaceSupplierOffer?.Price)}
+                </Text>
+              )}
               {lineItem.xp?.OfferProductID && (
                 <Text fontSize="xs" color="chakra-subtle-text">
                   <Text fontWeight="600" display="inline">
@@ -163,6 +189,8 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
               )}
             </VStack>
           )}
+          {lineItem.xp?.TradeAccount && <Badge colorScheme="purple">Trade account</Badge>}
+          {Number(lineItem.Quantity) >= 10 && <Text fontSize="xs" color="chakra-subtle-text">Bulk trade quantity</Text>}
           {lineItem?.Specs?.map((spec) => (
             <React.Fragment key={spec.SpecID}>
               <Text mt={-3} fontSize="xs" color="chakra-subtle-text">
