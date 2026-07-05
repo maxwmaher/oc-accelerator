@@ -147,7 +147,7 @@ async function seed() {
   const artifact = JSON.parse(await fs.readFile(process.env.BRISTAN_SCRAPE_OUTPUT || OUTPUT, 'utf8'));
   const products = artifact.groups.flatMap((g) => g.products);
   const accessories = products.filter((p) => ACCESSORY_CATEGORY_IDS.has(p.categoryID));
-  const offerCanonicals = products.filter((p) => !ACCESSORY_CATEGORY_IDS.has(p.categoryID)).slice(0, 6);
+  const offerCanonicals = products;
   console.log(`Bristan marketplace demo seed: ${products.length} canonical products, ${accessories.length} accessories, ${offerCanonicals.length * SUPPLIERS.length} supplier offers.`);
   if (dryRun) { console.log('Dry-run: no OrderCloud writes. Set OC_CLIENT_ID and OC_CLIENT_SECRET, then remove --dry-run to seed.'); console.log(`Bristan marketplace seed report: ${JSON.stringify(report)}`); return; }
   await ocInit();

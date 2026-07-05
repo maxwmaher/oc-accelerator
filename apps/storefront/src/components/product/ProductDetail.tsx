@@ -35,7 +35,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
 import { useCurrentUser } from "../../hooks/currentUser";
-import { isBristanDemoSupplierBuyerBulkContext } from "../bristan/bristanDemoRoutes";
+import BristanSupplierOffers from "../bristan/BristanSupplierOffers";
+import {
+  isBristanDemoMarketplaceBuyerContext,
+  isBristanDemoSupplierBuyerBulkContext,
+} from "../bristan/bristanDemoRoutes";
 import OcQuantityInput from "../cart/OcQuantityInput";
 import ProductImageGallery from "./product-detail/ProductImageGallery";
 import {
@@ -89,6 +93,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     user?.Username,
     catalogId,
   );
+  const isMarketplaceBuyerContext = isBristanDemoMarketplaceBuyerContext(
+    user?.Username,
+    catalogId,
+  );
+  const isSupplierOfferProduct = product?.xp?.SupplierOffer === true;
+  const showMarketplaceSupplierOffers =
+    isMarketplaceBuyerContext && product && !isSupplierOfferProduct;
   const basePriceBreak = priceBreaks[0];
   const isBelowMinimumQuantity = quantity < minimumQuantity;
   const { addCartLineItem } = useShopper();
@@ -231,8 +242,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               </Text>
               <Text color="chakra-subtle-text" fontSize="sm" mt={1}>
                 Your Bristan supplier buyer account includes account-specific
-                bulk price breaks. Trade pricing improves at higher
-                quantities.
+                bulk price breaks. Trade pricing improves at higher quantities.
               </Text>
               {priceBreaks.length > 0 && (
                 <TableContainer mt={4}>
@@ -267,29 +277,37 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               )}
             </Box>
           )}
-          {isBelowMinimumQuantity && (
-            <Alert status="warning" borderRadius="md" maxW="2xl">
-              <AlertIcon />
-              Minimum order quantity is {minimumQuantity} units for this
-              product.
-            </Alert>
+          {showMarketplaceSupplierOffers ? (
+            <BristanSupplierOffers canonicalProductId={product.ID} />
+          ) : (
+            <>
+              {isBelowMinimumQuantity && (
+                <Alert status="warning" borderRadius="md" maxW="2xl">
+                  <AlertIcon />
+                  Minimum order quantity is {minimumQuantity} units for this
+                  product.
+                </Alert>
+              )}
+              <HStack alignItems="center" gap={4} my={3}>
+                <Button
+                  colorScheme="primary"
+                  type="button"
+                  onClick={handleAddToCart}
+                  isDisabled={
+                    addingToCart || outOfStock || isBelowMinimumQuantity
+                  }
+                >
+                  {outOfStock ? "Out of stock" : "Add To Cart"}
+                </Button>
+                <OcQuantityInput
+                  controlId="addToCart"
+                  priceSchedule={product.PriceSchedule}
+                  quantity={quantity}
+                  onChange={setQuantity}
+                />
+              </HStack>
+            </>
           )}
-          <HStack alignItems="center" gap={4} my={3}>
-            <Button
-              colorScheme="primary"
-              type="button"
-              onClick={handleAddToCart}
-              isDisabled={addingToCart || outOfStock || isBelowMinimumQuantity}
-            >
-              {outOfStock ? "Out of stock" : "Add To Cart"}
-            </Button>
-            <OcQuantityInput
-              controlId="addToCart"
-              priceSchedule={product.PriceSchedule}
-              quantity={quantity}
-              onChange={setQuantity}
-            />
-          </HStack>
           {!outOfStock && IS_MULTI_LOCATION_INVENTORY && (
             <>
               <Heading size="sm" color="chakra-subtle-text">
