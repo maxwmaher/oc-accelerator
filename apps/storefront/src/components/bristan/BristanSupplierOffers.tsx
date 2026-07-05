@@ -17,7 +17,6 @@ import pluralize from "pluralize";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import formatPrice from "../../utils/formatPrice";
-import { BRISTAN_DEMO_CATALOG_IDS } from "./bristanDemoRoutes";
 
 interface BristanSupplierOffersProps {
   canonicalProductId: string;
@@ -27,6 +26,13 @@ const supplierName = (offer: BuyerProduct) =>
   offer.xp?.SupplierName || offer.xp?.SupplierID || "Approved supplier";
 
 const offerRank = (offer: BuyerProduct) => Number(offer.xp?.OfferRank ?? 999);
+
+const BRISTAN_DEMO_SUPPLIER_OFFER_KEYS = ["north", "south"] as const;
+
+const getExpectedOfferProductIds = (canonicalProductId: string) =>
+  BRISTAN_DEMO_SUPPLIER_OFFER_KEYS.map(
+    (supplierKey) => `bristan-demo-offer-${supplierKey}-${canonicalProductId}`,
+  );
 
 const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
   canonicalProductId,
@@ -44,32 +50,33 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
     const fetchOfferProducts = async () => {
       setIsLoading(true);
       try {
-        const pageSize = 100;
-        const firstPage = await Me.ListProducts<BuyerProduct>({
-          catalogID: BRISTAN_DEMO_CATALOG_IDS.marketplace,
-          page: 1,
-          pageSize,
-        });
-        const totalPages = firstPage.Meta?.TotalPages ?? 1;
-        const additionalPages = Array.from(
-          { length: Math.min(2, Math.max(totalPages - 1, 0)) },
-          (_, index) => index + 2,
-        );
-        const additionalResults = await Promise.all(
-          additionalPages.map((page) =>
-            Me.ListProducts<BuyerProduct>({
-              catalogID: BRISTAN_DEMO_CATALOG_IDS.marketplace,
-              page,
-              pageSize,
-            }),
+        const offerResults = await Promise.all(
+          getExpectedOfferProductIds(canonicalProductId).map(
+            async (offerProductId) => {
+              try {
+                return await Me.GetProduct<BuyerProduct>(offerProductId);
+              } catch (error) {
+                console.warn(
+                  "Bristan supplier offer product was not available:",
+                  offerProductId,
+                  error,
+                );
+                return undefined;
+              }
+            },
           ),
         );
 
         if (isCurrent) {
-          setOfferProducts([
-            ...(firstPage.Items ?? []),
-            ...additionalResults.flatMap((result) => result.Items ?? []),
-          ]);
+          setOfferProducts(
+            offerResults
+              .filter(
+                (offer) =>
+                  offer?.xp?.SupplierOffer === true &&
+                  offer?.xp?.CanonicalProductID === canonicalProductId,
+              )
+              .map((offer) => offer as BuyerProduct),
+          );
         }
       } finally {
         if (isCurrent) {
@@ -83,21 +90,15 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [canonicalProductId]);
 
   const offers = useMemo(
     () =>
-      [...offerProducts]
-        .filter(
-          (offer) =>
-            offer.xp?.SupplierOffer === true &&
-            offer.xp?.CanonicalProductID === canonicalProductId,
-        )
-        .sort((a, b) => {
-          const rankDelta = offerRank(a) - offerRank(b);
-          return rankDelta || supplierName(a).localeCompare(supplierName(b));
-        }),
-    [canonicalProductId, offerProducts],
+      [...offerProducts].sort((a, b) => {
+        const rankDelta = offerRank(a) - offerRank(b);
+        return rankDelta || supplierName(a).localeCompare(supplierName(b));
+      }),
+    [offerProducts],
   );
 
   const handleBuyOffer = useCallback(
