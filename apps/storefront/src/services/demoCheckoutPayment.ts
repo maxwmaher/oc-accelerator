@@ -74,8 +74,20 @@ const acceptDemoPayment = async (
 
   if (!response.ok) {
     const errorText = await response.text();
+    let errorMessage = errorText;
+
+    try {
+      const errorJson = JSON.parse(errorText) as {
+        Message?: string;
+        message?: string;
+      };
+      errorMessage = errorJson.Message || errorJson.message || errorText;
+    } catch {
+      // Use the raw response text when the Functions endpoint returns a non-JSON error.
+    }
+
     throw new Error(
-      errorText ||
+      errorMessage ||
         "We could not authorize your selected payment method. Please review your payment details and try again."
     );
   }
@@ -120,7 +132,14 @@ const upsertDemoPayment = async (payment: Payment<DemoPaymentXp>) => {
 
   if (existingPayment?.ID) {
     if (existingPayment.Type === payment.Type) {
-      return Cart.PatchPayment<Payment<DemoPaymentXp>>(existingPayment.ID, payment);
+      const {
+        ID: _id,
+        Type: _type,
+        SpendingAccountID: _spendingAccountID,
+        CreditCardID: _creditCardID,
+        ...mutablePayment
+      } = payment;
+      return Cart.PatchPayment<Payment<DemoPaymentXp>>(existingPayment.ID, mutablePayment);
     }
 
     await Cart.DeletePayment(existingPayment.ID);
@@ -208,6 +227,7 @@ export const prepareDemoAccountOnFilePayment = async (
 ) => {
   const amount = getOrderTotal(orderWorksheet);
   const payment = await upsertDemoPayment({
+    ID: ACCOUNT_PAYMENT_ID,
     Type: "PurchaseOrder",
     Amount: amount,
     Accepted: false,

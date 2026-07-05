@@ -64,6 +64,11 @@ namespace Accelerator.Functions
                 worksheet = await oc.IntegrationEvents.GetWorksheetAsync(OrderDirection.All, orderID);
                 payment = await oc.Payments.GetAsync(OrderDirection.All, orderID, paymentID);
             }
+            catch (OrderCloudException ex)
+            {
+                logger.LogWarning(ex, "Demo payment lookup failed in OrderCloud. OrderID: {OrderID}; PaymentID: {PaymentID}", orderID, paymentID);
+                return new NotFoundObjectResult(new DemoPaymentErrorResponse("PaymentNotFound", "Payment was not found for the supplied order."));
+            }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Demo payment lookup failed. OrderID: {OrderID}; PaymentID: {PaymentID}", orderID, paymentID);
@@ -129,6 +134,18 @@ namespace Accelerator.Functions
                     : await paymentCommand.AcceptPurchaseOrderPaymentAsync(orderID, paymentID);
 
                 return new OkObjectResult(new DemoPaymentAcceptResponse(acceptedPayment, false));
+            }
+            catch (OrderCloudException ex)
+            {
+                logger.LogWarning(
+                    ex,
+                    "OrderCloud rejected demo payment acceptance. OrderID: {OrderID}; PaymentID: {PaymentID}; PaymentType: {PaymentType}; BuyerID: {BuyerID}; BuyerUsername: {BuyerUsername}",
+                    orderID,
+                    paymentID,
+                    payment.Type,
+                    buyerID,
+                    buyerUsername);
+                return new BadRequestObjectResult(new DemoPaymentErrorResponse("OrderCloudPaymentRejected", "OrderCloud rejected the demo payment update. Please verify the payment details and try again."));
             }
             catch (Exception ex)
             {
