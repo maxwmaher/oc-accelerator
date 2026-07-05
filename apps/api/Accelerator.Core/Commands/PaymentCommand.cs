@@ -131,15 +131,15 @@ namespace Accelerator.Commands
                 return payment;
             }
 
-            var patchPayload = new Dictionary<string, object>
+            var patchPayload = new PartialPayment
             {
-                ["Accepted"] = true,
-                ["xp"] = new Dictionary<string, object>
+                Accepted = true,
+                xp = new
                 {
-                    ["DemoPayment"] = true,
-                    ["PaymentMethodLabel"] = "Pay by account on file",
-                    ["AccountReference"] = DemoAccountReference,
-                    ["PurchaseOrderNumber"] = DemoAccountReference,
+                    DemoPayment = true,
+                    PaymentMethodLabel = "Pay by account on file",
+                    AccountReference = DemoAccountReference,
+                    PurchaseOrderNumber = DemoAccountReference,
                 },
             };
 
@@ -147,8 +147,8 @@ namespace Accelerator.Commands
                 "Patching Bristan demo account-on-file payment. OrderID: {OrderID}; PaymentID: {PaymentID}; PatchPayloadKeys: {PatchPayloadKeys}; PatchXpKeys: {PatchXpKeys}",
                 orderID,
                 paymentID,
-                string.Join(",", patchPayload.Keys),
-                string.Join(",", ((Dictionary<string, object>)patchPayload["xp"]).Keys));
+                "Accepted,xp",
+                "DemoPayment,PaymentMethodLabel,AccountReference,PurchaseOrderNumber");
 
             return await oc.Payments.PatchAsync<Payment>(
                 OrderDirection.All,
