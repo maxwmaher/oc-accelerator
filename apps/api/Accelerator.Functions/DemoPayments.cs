@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Reflection;
 using OrderCloud.SDK;
 
 namespace Accelerator.Functions
@@ -145,7 +146,10 @@ namespace Accelerator.Functions
                     payment.Type,
                     buyerID,
                     buyerUsername);
-                return new BadRequestObjectResult(new DemoPaymentErrorResponse("OrderCloudPaymentRejected", "OrderCloud rejected the demo payment update. Please verify the payment details and try again."));
+                return new BadRequestObjectResult(new DemoPaymentErrorResponse(
+                    "OrderCloudPaymentRejected",
+                    "OrderCloud rejected the demo payment update. Please verify the payment details and try again.",
+                    ExtractOrderCloudErrorDetails(ex)));
             }
             catch (Exception ex)
             {
@@ -160,6 +164,28 @@ namespace Accelerator.Functions
                 return new BadRequestObjectResult(new DemoPaymentErrorResponse("DemoPaymentAcceptFailed", "Demo payment could not be accepted. Please verify the payment details and try again."));
             }
         }
+
+        private static object ExtractOrderCloudErrorDetails(OrderCloudException ex)
+        {
+            var details = new Dictionary<string, object>
+            {
+                ["message"] = ex.Message,
+            };
+
+            foreach (var propertyName in new[] { "Status", "StatusCode", "Errors", "ErrorCode", "RequestID" })
+            {
+                var value = ex.GetType()
+                    .GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase)
+                    ?.GetValue(ex);
+
+                if (value != null)
+                {
+                    details[propertyName] = value;
+                }
+            }
+
+            return details;
+        }
     }
 
     public class DemoPaymentAcceptRequest
@@ -172,5 +198,5 @@ namespace Accelerator.Functions
 
     public record DemoPaymentAcceptResponse(Payment Payment, bool AlreadyAccepted);
 
-    public record DemoPaymentErrorResponse(string Code, string Message);
+    public record DemoPaymentErrorResponse(string Code, string Message, object Details = null);
 }

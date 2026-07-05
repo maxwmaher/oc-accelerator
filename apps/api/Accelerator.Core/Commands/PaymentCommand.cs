@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OrderCloud.Catalyst;
 using OrderCloud.SDK;
 
 namespace Accelerator.Commands
 {
-    public class PaymentCommand(ICreditCardProcessor creditCardProcessor, ICreditCardSaver creditCardSaver, IOrderCloudClient oc)
+    public class PaymentCommand(ICreditCardProcessor creditCardProcessor, ICreditCardSaver creditCardSaver, IOrderCloudClient oc, ILogger<PaymentCommand> logger)
     {
         private const string DemoAccountReference = "BRISTAN-ACCOUNT-ON-FILE";
 
@@ -96,15 +97,19 @@ namespace Accelerator.Commands
             var payment = await oc.Payments.GetAsync(OrderDirection.All, orderID, paymentID);
 
             Require.That(
+                payment != null,
+                new ErrorCode("Payment.NotFound", "Payment was not found for the supplied order."),
+                new { orderID, paymentID });
+
+            Require.That(
                 payment.Type == PaymentType.PurchaseOrder,
                 new ErrorCode(
                     "Payment.NotPurchaseOrder",
                     "Only PurchaseOrder demo payments can be accepted as account-on-file payments."),
                 payment);
 
-            Require.That(
-                payment.xp?.DemoPayment == true
-                    || payment.ID.Equals(DemoAccountReference, StringComparison.OrdinalIgnoreCase)
+            var isExpectedDemoAccountOnFilePayment = payment.ID.Equals(DemoAccountReference, StringComparison.OrdinalIgnoreCase)
+                && (payment.xp?.DemoPayment == true
                     || string.Equals(
                         GetDynamicString(payment.xp, "AccountReference"),
                         DemoAccountReference,
@@ -112,7 +117,10 @@ namespace Accelerator.Commands
                     || string.Equals(
                         GetDynamicString(payment.xp, "PurchaseOrderNumber"),
                         DemoAccountReference,
-                        StringComparison.OrdinalIgnoreCase),
+                        StringComparison.OrdinalIgnoreCase));
+
+            Require.That(
+                isExpectedDemoAccountOnFilePayment,
                 new ErrorCode(
                     "Payment.NotDemoAccountOnFile",
                     "Only the Bristan demo account-on-file payment can be accepted by this endpoint."),
@@ -123,22 +131,30 @@ namespace Accelerator.Commands
                 return payment;
             }
 
+            var patchPayload = new Dictionary<string, object>
+            {
+                ["Accepted"] = true,
+                ["xp"] = new Dictionary<string, object>
+                {
+                    ["DemoPayment"] = true,
+                    ["PaymentMethodLabel"] = "Pay by account on file",
+                    ["AccountReference"] = DemoAccountReference,
+                    ["PurchaseOrderNumber"] = DemoAccountReference,
+                },
+            };
+
+            logger.LogInformation(
+                "Patching Bristan demo account-on-file payment. OrderID: {OrderID}; PaymentID: {PaymentID}; PatchPayloadKeys: {PatchPayloadKeys}; PatchXpKeys: {PatchXpKeys}",
+                orderID,
+                paymentID,
+                string.Join(",", patchPayload.Keys),
+                string.Join(",", ((Dictionary<string, object>)patchPayload["xp"]).Keys));
+
             return await oc.Payments.PatchAsync<Payment>(
                 OrderDirection.All,
                 worksheet.Order.ID,
                 payment.ID,
-                new
-                {
-                    Accepted = true,
-                    Amount = worksheet.Order.Total,
-                    xp = new
-                    {
-                        DemoPayment = true,
-                        PaymentMethodLabel = "Pay by account on file",
-                        AccountReference = DemoAccountReference,
-                        PurchaseOrderNumber = DemoAccountReference,
-                    }
-                });
+                patchPayload);
         }
 
         private static string? GetDynamicString(object? source, string propertyName)
