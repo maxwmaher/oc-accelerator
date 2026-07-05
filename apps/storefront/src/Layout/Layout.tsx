@@ -56,10 +56,10 @@ const Layout: FC = () => {
           as="footer"
           py={3}
           zIndex="12"
-          bg="gray.400"
+          bg="blue.900"
         >
           <Text fontWeight="normal" fontSize="sm" color="whiteAlpha.800">
-            © Sitcore Inc. 2024
+            © Bristan demo marketplace
           </Text>
         </HStack>
       </VStack>

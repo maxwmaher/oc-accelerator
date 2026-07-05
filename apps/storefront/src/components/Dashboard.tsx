@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Container,
   Heading,
@@ -9,146 +10,151 @@ import {
 } from "@chakra-ui/react";
 import { FC } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import defaultHeroImage from "../assets/default_images/default_hero_image.jpg";
-import {
-  DASHBOARD_HERO_CTA_LINK,
-  DASHBOARD_HERO_CTA_TEXT,
-  DASHBOARD_HERO_IMAGE,
-  DASHBOARD_HERO_TAGLINE,
-  DASHBOARD_SECONDARY_CTA_LINK,
-  DASHBOARD_SECONDARY_CTA_TEXT,
-  DASHBOARD_SECONDARY_DESCRIPTION,
-  DASHBOARD_SECONDARY_HEADING,
-  DASHBOARD_SECONDARY_IMAGE,
-  DASHBOARD_TERTIARY_CTA_LINK,
-  DASHBOARD_TERTIARY_CTA_TEXT,
-  DASHBOARD_TERTIARY_DESCRIPTION,
-  DASHBOARD_TERTIARY_HEADING,
-  DASHBOARD_TERTIARY_IMAGE
-} from "../constants";
+import bristanLogo from "../assets/bristan/bristan-logo.png";
+import hero1 from "../assets/bristan/hero1.jpg";
+import hero2 from "../assets/bristan/hero2.jpg";
+import hero3 from "../assets/bristan/hero3.jpg";
 
-import defaultImage1 from "../assets/default_images/default_image_1.jpg";
-import defaultImage2 from "../assets/default_images/default_image_2.jpg";
-import defaultImage3 from "../assets/default_images/default_image_3.jpg";
-import defaultImage4 from "../assets/default_images/default_image_4.jpg";
-import defaultImage5 from "../assets/default_images/default_image_5.jpg";
-import defaultImage6 from "../assets/default_images/default_image_6.jpg";
-import defaultImage7 from "../assets/default_images/default_image_7.jpg";
-import defaultImage8 from "../assets/default_images/default_image_8.jpg";
-
-const defaultImages = [
-  defaultImage1,
-  defaultImage2,
-  defaultImage3,
-  defaultImage4,
-  defaultImage5,
-  defaultImage6,
-  defaultImage7,
-  defaultImage8,
+const featureCards = [
+  {
+    image: hero1,
+    title: "Spare parts self-service",
+    body: "Help installers and builders identify the right Bristan accessories, spares, and product codes without calling support.",
+  },
+  {
+    image: hero2,
+    title: "Trade buying and bulk pricing",
+    body: "Support supplier buyer accounts with account-specific catalogs, minimum quantities, and quantity price breaks.",
+  },
+  {
+    image: hero3,
+    title: "Approved supplier marketplace",
+    body: "Show Bristan-owned canonical product data with supplier-specific offers, availability, lead times, and supplier selection carried into the cart.",
+  },
 ];
 
 const Dashboard: FC = () => {
-  const getDefaultImage = () => {
-    const randomIndex = Math.floor(Math.random() * defaultImages.length);
-    return defaultImages[randomIndex];
-  };
-
   return (
-    <Container maxW="full">
-      <SimpleGrid gridTemplateColumns={{ lg: "1fr 2fr" }}>
-        <Stack
-          direction="column"
-          justifyContent="center"
-          alignItems="flex-start"
-          gap={6}
-          px={{ base: 12, lg: "24" }}
-          minH={{ base: "40vh", lg: "unset%" }}
-        >
-          <Heading maxW={{ lg: "sm" }} size="4xl" as="h1">
-            {DASHBOARD_HERO_TAGLINE}
-          </Heading>
-          {DASHBOARD_HERO_CTA_LINK && (
-            <Button size="sm" mt={8} onClick={DASHBOARD_HERO_CTA_LINK}>
-              {DASHBOARD_HERO_CTA_TEXT}
-            </Button>
-          )}
+    <Box bg="gray.50">
+      <Box
+        bg="linear-gradient(135deg, #0c2d57 0%, #124574 48%, #edf7fb 48%, #edf7fb 100%)"
+        color="white"
+      >
+        <Container maxW="container.2xl" px={{ base: 5, md: 10 }} py={{ base: 10, lg: 16 }}>
+          <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 10, lg: 14 }} alignItems="center">
+            <Stack spacing={7} align="flex-start" maxW="2xl">
+              <Box bg="white" borderRadius="full" px={5} py={3} boxShadow="lg">
+                <Image src={bristanLogo} alt="Bristan" h={{ base: 8, md: 10 }} objectFit="contain" />
+              </Box>
+              <Stack spacing={4}>
+                <Text color="cyan.100" fontWeight="bold" letterSpacing="0.12em" textTransform="uppercase">
+                  Connected commerce demo marketplace
+                </Text>
+                <Heading as="h1" fontSize={{ base: "4xl", md: "5xl", xl: "6xl" }} lineHeight="1.02">
+                  Find the right Bristan product faster
+                </Heading>
+                <Text fontSize={{ base: "lg", md: "xl" }} color="whiteAlpha.900" maxW="xl">
+                  Explore Bristan-governed product data, spare-parts self-service, trade buying, and approved supplier marketplace journeys in one connected demo.
+                </Text>
+              </Stack>
+              <Stack direction={{ base: "column", sm: "row" }} spacing={4} w={{ base: "full", sm: "auto" }}>
+                <Button as={RouterLink} to="/products" size="lg" colorScheme="cyan" color="blue.900">
+                  Shop all products
+                </Button>
+                <Button
+                  as={RouterLink}
+                  to="/shop/bristan-demo-marketplace-catalog/categories"
+                  size="lg"
+                  variant="outline"
+                  borderColor="whiteAlpha.800"
+                  color="white"
+                  _hover={{ bg: "whiteAlpha.200" }}
+                >
+                  Browse categories
+                </Button>
+              </Stack>
+            </Stack>
+
+            <Box position="relative" minH={{ base: "360px", md: "520px" }}>
+              <Image
+                src={hero1}
+                alt="Bristan bathroom products"
+                position="absolute"
+                inset={{ base: "0 0 auto 0", md: "0 auto auto 10%" }}
+                w={{ base: "72%", md: "64%" }}
+                h={{ base: "245px", md: "360px" }}
+                objectFit="cover"
+                borderRadius="3xl"
+                boxShadow="2xl"
+              />
+              <Image
+                src={hero2}
+                alt="Bristan kitchen and washroom fittings"
+                position="absolute"
+                right={{ base: 0, md: 4 }}
+                top={{ base: 24, md: 20 }}
+                w={{ base: "58%", md: "52%" }}
+                h={{ base: "220px", md: "320px" }}
+                objectFit="cover"
+                borderRadius="3xl"
+                boxShadow="2xl"
+                border="8px solid"
+                borderColor="white"
+              />
+              <Image
+                src={hero3}
+                alt="Bristan shower and brassware range"
+                position="absolute"
+                left={{ base: 8, md: 0 }}
+                bottom="0"
+                w={{ base: "62%", md: "48%" }}
+                h={{ base: "190px", md: "255px" }}
+                objectFit="cover"
+                borderRadius="3xl"
+                boxShadow="2xl"
+                border="8px solid"
+                borderColor="white"
+              />
+            </Box>
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      <Container maxW="container.2xl" px={{ base: 5, md: 10 }} py={{ base: 10, lg: 16 }}>
+        <Stack spacing={8}>
+          <Stack spacing={3} maxW="3xl">
+            <Text color="blue.600" fontWeight="bold" letterSpacing="0.12em" textTransform="uppercase">
+              Demo journeys
+            </Text>
+            <Heading color="gray.800" fontSize={{ base: "3xl", md: "4xl" }}>
+              One Bristan experience for consumers, trade buyers, and approved suppliers
+            </Heading>
+          </Stack>
+          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+            {featureCards.map((feature) => (
+              <Stack
+                key={feature.title}
+                bg="white"
+                borderRadius="2xl"
+                overflow="hidden"
+                boxShadow="lg"
+                border="1px solid"
+                borderColor="gray.100"
+                spacing={0}
+              >
+                <Image src={feature.image} alt={feature.title} h="220px" w="full" objectFit="cover" />
+                <Stack spacing={3} p={6}>
+                  <Heading as="h2" size="md" color="gray.800">
+                    {feature.title}
+                  </Heading>
+                  <Text color="gray.600">{feature.body}</Text>
+                </Stack>
+              </Stack>
+            ))}
+          </SimpleGrid>
         </Stack>
-        <Image
-          h="75dvh"
-          w="full"
-          objectFit="cover"
-          objectPosition="center center"
-          src={DASHBOARD_HERO_IMAGE || defaultHeroImage}
-          alt="homepage hero"
-        />
-      </SimpleGrid>
-      <SimpleGrid gridTemplateColumns={{ lg: "1fr 1fr" }}>
-        <Image
-          h="75dvh"
-          w="full"
-          objectFit="cover"
-          objectPosition="center center"
-          src={DASHBOARD_SECONDARY_IMAGE || getDefaultImage()}
-          alt="homepage hero"
-        />
-        <Stack
-          direction="column"
-          justifyContent="center"
-          alignItems="flex-start"
-          gap={6}
-          px={{ base: 12, lg: 12 }}
-          minH={{ base: "40vh", lg: "unset%" }}
-          maxW="prose"
-        >
-          <Heading>{DASHBOARD_SECONDARY_HEADING}</Heading>
-          <Text>{DASHBOARD_SECONDARY_DESCRIPTION}</Text>
-          {DASHBOARD_SECONDARY_CTA_LINK && (
-            <Button
-              as={RouterLink}
-              to={DASHBOARD_SECONDARY_CTA_LINK}
-              mt={6}
-              variant="outline"
-              colorScheme="secondary"
-            >
-              {DASHBOARD_SECONDARY_CTA_TEXT}
-            </Button>
-          )}
-        </Stack>
-      </SimpleGrid>
-      <SimpleGrid gridTemplateColumns={{ lg: "1fr 1fr" }}>
-        <Stack
-          direction="column"
-          justifyContent="center"
-          alignItems="flex-start"
-          gap={6}
-          px={{ base: 12, lg: 24 }}
-          minH={{ base: "40vh", lg: "unset" }}
-          maxW="prose"
-        >
-          <Heading>{DASHBOARD_TERTIARY_HEADING}</Heading>
-          <Text>{DASHBOARD_TERTIARY_DESCRIPTION}</Text>
-          {DASHBOARD_TERTIARY_CTA_LINK && (
-            <Button
-              as={RouterLink}
-              to={DASHBOARD_TERTIARY_CTA_LINK}
-              mt={6}
-              variant="outline"
-              colorScheme="secondary"
-            >
-              {DASHBOARD_TERTIARY_CTA_TEXT}
-            </Button>
-          )}
-        </Stack>
-        <Image
-          h="75dvh"
-          w="full"
-          objectFit="cover"
-          objectPosition="center center"
-          src={DASHBOARD_TERTIARY_IMAGE || getDefaultImage()}
-          alt="homepage hero"
-        />
-      </SimpleGrid>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 
