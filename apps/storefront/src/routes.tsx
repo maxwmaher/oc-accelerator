@@ -7,6 +7,7 @@ import CategoryList from "./components/category/CategoryList";
 import ProductDetailWrapper from "./components/product/ProductDetailWrapper";
 import ProductList from "./components/product/ProductList";
 import BristanDemoJourneys from "./components/bristan/BristanDemoJourneys";
+import MyOrders from "./components/orders/MyOrders";
 
 const routes: RouteObject[] = [
   {
@@ -20,6 +21,10 @@ const routes: RouteObject[] = [
       {
         path: "/cart",
         element: <ShoppingCart />,
+      },
+      {
+        path: "/orders",
+        element: <MyOrders />,
       },
       {
         path: "/bristan-demo",
