@@ -17,7 +17,11 @@ import {
   VStack,
   useDisclosure,
 } from "@chakra-ui/react";
-import { BuyerProduct, ListPageWithFacets, Me } from "ordercloud-javascript-sdk";
+import {
+  BuyerProduct,
+  ListPageWithFacets,
+  Me,
+} from "ordercloud-javascript-sdk";
 import { parse } from "querystring";
 import React, {
   FunctionComponent,
@@ -41,6 +45,7 @@ import ProductCard from "./ProductCard";
 import { useOcResourceListWithFacets } from "@ordercloud/react-sdk";
 import {
   getBristanDemoTargetRoute,
+  getCorrectedBristanDemoCatalogPath,
   isBristanDemoMarketplaceBuyerContext,
 } from "../bristan/bristanDemoRoutes";
 import { useCurrentUser } from "../../hooks/currentUser";
@@ -60,12 +65,22 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { data: user } = useCurrentUser();
   const bristanDemoTargetRoute = getBristanDemoTargetRoute(user?.Username);
+  const correctedPath = getCorrectedBristanDemoCatalogPath(
+    location.pathname,
+    user?.Username,
+  );
 
   useEffect(() => {
     if (bristanDemoTargetRoute && location.pathname === "/products") {
       navigate(bristanDemoTargetRoute, { replace: true });
     }
   }, [bristanDemoTargetRoute, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (correctedPath) {
+      navigate(correctedPath, { replace: true });
+    }
+  }, [correctedPath, navigate]);
 
   const searchTerm = useMemo(() => {
     return searchParams.get("search") || undefined;
@@ -101,6 +116,8 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
       categoryId,
       ...filters,
     },
+    undefined,
+    { disabled: Boolean(correctedPath) },
   );
   const [marketplaceData, setMarketplaceData] =
     useState<ListPageWithFacets<BuyerProduct>>();
@@ -108,7 +125,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
     useState(false);
 
   useEffect(() => {
-    if (!shouldHideMarketplaceOffers) {
+    if (correctedPath || !shouldHideMarketplaceOffers) {
       setMarketplaceData(undefined);
       setIsLoadingMarketplaceData(false);
       return;
@@ -169,6 +186,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
   }, [
     catalogId,
     categoryId,
+    correctedPath,
     currentPage,
     filters,
     searchTerm,
@@ -227,7 +245,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
     return parse(location.search.slice(1)) as ServiceListOptions;
   }, [location.search]);
 
-  if (isLoading || isLoadingMarketplaceData) {
+  if (correctedPath || isLoading || isLoadingMarketplaceData) {
     return (
       <Center h="50vh">
         <Spinner size="xl" />
