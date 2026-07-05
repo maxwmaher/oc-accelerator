@@ -38,7 +38,10 @@ import FilterSearchMenu, {
 import FacetList from "./facets/FacetList";
 import ProductCard from "./ProductCard";
 import { useOcResourceListWithFacets } from "@ordercloud/react-sdk";
-import { getBristanDemoTargetRoute } from "../bristan/bristanDemoRoutes";
+import {
+  getBristanDemoTargetRoute,
+  isBristanDemoMarketplaceBuyerContext,
+} from "../bristan/bristanDemoRoutes";
 import { useCurrentUser } from "../../hooks/currentUser";
 
 export interface ProductListProps {
@@ -91,6 +94,19 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
       categoryId,
       ...filters,
     },
+  );
+
+  const shouldHideMarketplaceOffers = isBristanDemoMarketplaceBuyerContext(
+    user?.Username,
+    catalogId,
+  );
+  const visibleProducts = useMemo(
+    () =>
+      (data?.Items ?? []).filter(
+        (product) =>
+          !shouldHideMarketplaceOffers || product.xp?.SupplierOffer !== true,
+      ),
+    [data?.Items, shouldHideMarketplaceOffers],
   );
 
   const handleRoutingChange = useCallback(
@@ -196,13 +212,13 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
           gridTemplateColumns="repeat(auto-fill, minmax(270px, 1fr))"
           spacing={4}
         >
-          {data?.Items?.map((p) => (
+          {visibleProducts.map((p) => (
             <React.Fragment key={p.ID}>
               {renderItem ? renderItem(p) : <ProductCard product={p} />}
             </React.Fragment>
           ))}
         </SimpleGrid>
-        {data?.Items?.length === 0 && (
+        {visibleProducts.length === 0 && (
           <Center h="20vh">
             <Heading as="h2" size="md">
               No products found
