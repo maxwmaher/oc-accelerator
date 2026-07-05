@@ -108,6 +108,24 @@ async function saveEntity(label, endpoint, payload) {
   console.log(`PUT ${label} ${payload.ID}`);
   await ocPut(`${endpoint}/${encodeURIComponent(payload.ID)}`, payload);
 }
+
+async function saveBuyerUser(buyerID, payload) {
+  const endpoint = `/buyers/${buyerID}/users`;
+  console.log(`GET buyer user ${payload.ID}`);
+  try {
+    await ocGet(`${endpoint}/${encodeURIComponent(payload.ID)}`);
+    report.updated++;
+    const { Password, ...payloadWithoutPassword } = payload;
+    console.log(`PUT buyer user ${payload.ID} without password`);
+    await ocPut(`${endpoint}/${encodeURIComponent(payload.ID)}`, payloadWithoutPassword);
+  } catch (err) {
+    if (!isOrderCloudNotFound(err)) throw err;
+    report.created++;
+    console.log(`PUT buyer user ${payload.ID} with password`);
+    await ocPut(`${endpoint}/${encodeURIComponent(payload.ID)}`, payload);
+  }
+}
+
 async function assign(label, endpoint, payload) {
   console.log(`ASSIGN ${label}: ${JSON.stringify(payload)}`);
   try { await ocPost(endpoint, payload); report.assigned++; }
@@ -162,8 +180,8 @@ async function seed() {
   await saveEntity('buyer', '/buyers', { ID: 'bristan-demo-marketplace-buyer', Name: 'Bristan Demo Marketplace Buyer', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'MarketplaceBuyer' } });
   await saveEntity('catalog', '/catalogs', { ID: 'bristan-demo-spares-catalog', Name: 'Bristan Demo Spare Parts Catalog', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'SpareParts' } });
   await saveEntity('catalog', '/catalogs', { ID: 'bristan-demo-marketplace-catalog', Name: 'Bristan Demo Marketplace Catalog', Active: true, xp: { Demo: 'BristanMarketplace', Journey: 'MarketplaceBuyer' } });
-  await saveEntity('buyer user', '/buyers/bristan-demo-spares-buyer/users', buyerUser('bristan-demo-spares-user', 'bristan-demo-spares-user', 'bristan-demo-spares@example.com'));
-  await saveEntity('buyer user', '/buyers/bristan-demo-marketplace-buyer/users', buyerUser('bristan-demo-marketplace-user', 'bristan-demo-marketplace-user', 'bristan-demo-marketplace@example.com'));
+  await saveBuyerUser('bristan-demo-spares-buyer', buyerUser('bristan-demo-spares-user', 'bristan-demo-spares-user', 'bristan-demo-spares@example.com'));
+  await saveBuyerUser('bristan-demo-marketplace-buyer', buyerUser('bristan-demo-marketplace-user', 'bristan-demo-marketplace-user', 'bristan-demo-marketplace@example.com'));
   await assign('catalog to spares buyer', '/catalogs/assignments', { CatalogID: 'bristan-demo-spares-catalog', BuyerID: 'bristan-demo-spares-buyer', ViewAllCategories: true, ViewAllProducts: true });
   await assign('catalog to marketplace buyer', '/catalogs/assignments', { CatalogID: 'bristan-demo-marketplace-catalog', BuyerID: 'bristan-demo-marketplace-buyer', ViewAllCategories: true, ViewAllProducts: true });
 
@@ -176,7 +194,7 @@ async function seed() {
     await saveEntity('supplier', '/suppliers', { ID: supplier.id, Name: supplier.name, Active: true, xp: { Demo: 'BristanMarketplace' } });
     await saveEntity('buyer', '/buyers', { ID: supplier.buyerID, Name: `${supplier.name} Bulk Buyer`, Active: true, xp: { Demo: 'BristanMarketplace', SupplierID: supplier.id, Journey: 'SupplierBuyingFromBristan' } });
     await saveEntity('catalog', '/catalogs', { ID: supplier.catalogID, Name: `${supplier.name} Bulk Bristan Catalog`, Active: true, xp: { Demo: 'BristanMarketplace', SupplierID: supplier.id } });
-    await saveEntity('buyer user', `/buyers/${supplier.buyerID}/users`, buyerUser(`${supplier.buyerID}-user`, `${supplier.buyerID}-user`, `${supplier.buyerID}@example.com`));
+    await saveBuyerUser(supplier.buyerID, buyerUser(`${supplier.buyerID}-user`, `${supplier.buyerID}-user`, `${supplier.buyerID}@example.com`));
     await saveEntity('supplier user', `/suppliers/${supplier.id}/users`, user(`${supplier.id}-seller-user`, `${supplier.id}-seller-user`, `${supplier.id}@example.com`));
     await assign('catalog to supplier buyer', '/catalogs/assignments', { CatalogID: supplier.catalogID, BuyerID: supplier.buyerID, ViewAllCategories: true, ViewAllProducts: true });
     for (const c of CATEGORIES) await saveEntity('supplier buyer category', `/catalogs/${supplier.catalogID}/categories`, categoryPayload(c));

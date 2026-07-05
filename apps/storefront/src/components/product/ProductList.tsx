@@ -85,20 +85,21 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
     return filtersObj;
   }, [searchParams]);
 
+  const shouldHideMarketplaceOffers = isBristanDemoMarketplaceBuyerContext(
+    user?.Username,
+    catalogId,
+  );
+
   const { data, isLoading } = useOcResourceListWithFacets<BuyerProduct>(
     "Me.Products",
     {
       search: searchTerm,
       page: currentPage.toString(),
+      pageSize: shouldHideMarketplaceOffers ? "500" : undefined,
       catalogId,
       categoryId,
       ...filters,
     },
-  );
-
-  const shouldHideMarketplaceOffers = isBristanDemoMarketplaceBuyerContext(
-    user?.Username,
-    catalogId,
   );
   const visibleProducts = useMemo(
     () =>
