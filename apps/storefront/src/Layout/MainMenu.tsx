@@ -29,7 +29,8 @@ import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "../Layout/MegaMenu";
 import {
   getBristanDemoCatalogId,
-  getBristanDemoProductsRoute,
+  getBristanDemoCategoriesRoute,
+  getBristanDemoShopAllRoute,
   getBristanDemoTargetRoute,
   shouldRedirectBristanDemoRoute,
 } from "../components/bristan/bristanDemoRoutes";
@@ -59,7 +60,10 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
 
   const bristanDemoCatalogId = getBristanDemoCatalogId(user?.Username);
   const activeCatalogId = bristanDemoCatalogId ?? catalogs[0]?.ID;
-  const bristanDemoProductsRoute = getBristanDemoProductsRoute(user?.Username);
+  const bristanDemoCategoriesRoute = getBristanDemoCategoriesRoute(
+    user?.Username,
+  );
+  const bristanDemoShopAllRoute = getBristanDemoShopAllRoute(user?.Username);
 
   const { data: categoryData } = useOcResourceList<Category>(
     "Me.Categories",
@@ -101,9 +105,9 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   }, [orderWorksheet?.LineItems]);
 
   const renderCatalogMenu = () => {
-    if (bristanDemoProductsRoute) {
+    if (bristanDemoShopAllRoute) {
       return (
-        <Button as={RouterLink} to={bristanDemoProductsRoute} variant="ghost">
+        <Button as={RouterLink} to={bristanDemoShopAllRoute} variant="ghost">
           Shop All Products
         </Button>
       );
@@ -170,7 +174,12 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
         <HStack h="100%" justify="flex-start" alignItems="center">
           <RouterLink to="/" aria-label="Bristan demo home">
             <HStack spacing={3}>
-              <Image src={bristanLogo} alt="Bristan" h="9" objectFit="contain" />
+              <Image
+                src={bristanLogo}
+                alt="Bristan"
+                h="9"
+                objectFit="contain"
+              />
               <Text
                 display={{ base: "none", md: "block" }}
                 color="blue.900"
@@ -184,7 +193,17 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
             </HStack>
           </RouterLink>
           <HStack as="nav" flexGrow="1" ml={3}>
-            {categories.length > 0 && (
+            {categories.length > 0 && bristanDemoCategoriesRoute && (
+              <Button
+                as={RouterLink}
+                to={bristanDemoCategoriesRoute}
+                size="sm"
+                variant="ghost"
+              >
+                Categories
+              </Button>
+            )}
+            {categories.length > 0 && !bristanDemoCategoriesRoute && (
               <Button
                 isActive={megaMenuDisclosure.isOpen}
                 size="sm"

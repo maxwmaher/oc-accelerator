@@ -17,9 +17,8 @@ import hero3 from "../assets/bristan/hero3.jpg";
 import { useCurrentUser } from "../hooks/currentUser";
 import {
   BRISTAN_DEMO_CATALOG_IDS,
-  getBristanDemoCatalogId,
-  getBristanDemoProductsRoute,
-  getBristanDemoTargetRoute,
+  getBristanDemoCategoriesRoute,
+  getBristanDemoShopAllRoute,
 } from "./bristan/bristanDemoRoutes";
 
 const featureCards = [
@@ -45,20 +44,14 @@ const Dashboard: FC = () => {
 
   const { browseCategoriesRoute, shopAllProductsRoute } = useMemo(() => {
     const username = user?.Username;
-    const bristanDemoCatalogId = getBristanDemoCatalogId(username);
-    const bristanDemoTargetRoute = getBristanDemoTargetRoute(username);
-    const bristanDemoProductsRoute = getBristanDemoProductsRoute(username);
-
-    const safeDemoProductRoute =
-      bristanDemoTargetRoute?.endsWith("/categories")
-        ? bristanDemoTargetRoute
-        : bristanDemoProductsRoute;
+    const bristanDemoCategoriesRoute = getBristanDemoCategoriesRoute(username);
+    const bristanDemoShopAllRoute = getBristanDemoShopAllRoute(username);
 
     return {
-      browseCategoriesRoute: bristanDemoCatalogId
-        ? `/shop/${bristanDemoCatalogId}/categories`
-        : `/shop/${BRISTAN_DEMO_CATALOG_IDS.marketplace}/categories`,
-      shopAllProductsRoute: safeDemoProductRoute ?? "/products",
+      browseCategoriesRoute:
+        bristanDemoCategoriesRoute ??
+        `/shop/${BRISTAN_DEMO_CATALOG_IDS.marketplace}/categories`,
+      shopAllProductsRoute: bristanDemoShopAllRoute ?? "/products",
     };
   }, [user?.Username]);
 
@@ -68,25 +61,63 @@ const Dashboard: FC = () => {
         bg="linear-gradient(135deg, #0c2d57 0%, #124574 48%, #edf7fb 48%, #edf7fb 100%)"
         color="white"
       >
-        <Container maxW="container.2xl" px={{ base: 5, md: 10 }} py={{ base: 10, lg: 16 }}>
-          <SimpleGrid columns={{ base: 1, lg: 2 }} gap={{ base: 10, lg: 14 }} alignItems="center">
+        <Container
+          maxW="container.2xl"
+          px={{ base: 5, md: 10 }}
+          py={{ base: 10, lg: 16 }}
+        >
+          <SimpleGrid
+            columns={{ base: 1, lg: 2 }}
+            gap={{ base: 10, lg: 14 }}
+            alignItems="center"
+          >
             <Stack spacing={7} align="flex-start" maxW="2xl">
               <Box bg="white" borderRadius="full" px={5} py={3} boxShadow="lg">
-                <Image src={bristanLogo} alt="Bristan" h={{ base: 8, md: 10 }} objectFit="contain" />
+                <Image
+                  src={bristanLogo}
+                  alt="Bristan"
+                  h={{ base: 8, md: 10 }}
+                  objectFit="contain"
+                />
               </Box>
               <Stack spacing={4}>
-                <Text color="cyan.100" fontWeight="bold" letterSpacing="0.12em" textTransform="uppercase">
+                <Text
+                  color="cyan.100"
+                  fontWeight="bold"
+                  letterSpacing="0.12em"
+                  textTransform="uppercase"
+                >
                   Connected commerce demo marketplace
                 </Text>
-                <Heading as="h1" fontSize={{ base: "4xl", md: "5xl", xl: "6xl" }} lineHeight="1.02">
+                <Heading
+                  as="h1"
+                  fontSize={{ base: "4xl", md: "5xl", xl: "6xl" }}
+                  lineHeight="1.02"
+                >
                   Find the right Bristan product faster
                 </Heading>
-                <Text fontSize={{ base: "lg", md: "xl" }} color="whiteAlpha.900" maxW="xl">
-                  Explore Bristan-governed product data, spare-parts self-service, trade buying, and approved merchant marketplace journeys in one connected demo.
+                <Text
+                  fontSize={{ base: "lg", md: "xl" }}
+                  color="whiteAlpha.900"
+                  maxW="xl"
+                >
+                  Explore Bristan-governed product data, spare-parts
+                  self-service, trade buying, and approved merchant marketplace
+                  journeys in one connected demo.
                 </Text>
               </Stack>
-              <Stack direction={{ base: "column", sm: "row" }} spacing={4} w={{ base: "full", sm: "auto" }}>
-                <Button as={RouterLink} to={shopAllProductsRoute} size="lg" colorScheme="cyan" color="blue.900">
+              <Stack
+                direction={{ base: "column", sm: "row" }}
+                spacing={4}
+                w={{ base: "full", sm: "auto" }}
+              >
+                <Button
+                  as={RouterLink}
+                  to={shopAllProductsRoute}
+                  size="lg"
+                  colorScheme="cyan"
+                  color="blue.900"
+                >
                   Shop all products
                 </Button>
                 <Button
@@ -148,14 +179,24 @@ const Dashboard: FC = () => {
         </Container>
       </Box>
 
-      <Container maxW="container.2xl" px={{ base: 5, md: 10 }} py={{ base: 10, lg: 16 }}>
+      <Container
+        maxW="container.2xl"
+        px={{ base: 5, md: 10 }}
+        py={{ base: 10, lg: 16 }}
+      >
         <Stack spacing={8}>
           <Stack spacing={3} maxW="3xl">
-            <Text color="blue.600" fontWeight="bold" letterSpacing="0.12em" textTransform="uppercase">
+            <Text
+              color="blue.600"
+              fontWeight="bold"
+              letterSpacing="0.12em"
+              textTransform="uppercase"
+            >
               Demo journeys
             </Text>
             <Heading color="gray.800" fontSize={{ base: "3xl", md: "4xl" }}>
-              One Bristan experience for consumers, trade buyers, and approved merchants
+              One Bristan experience for consumers, trade buyers, and approved
+              merchants
             </Heading>
           </Stack>
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
@@ -170,7 +211,13 @@ const Dashboard: FC = () => {
                 borderColor="gray.100"
                 spacing={0}
               >
-                <Image src={feature.image} alt={feature.title} h="220px" w="full" objectFit="cover" />
+                <Image
+                  src={feature.image}
+                  alt={feature.title}
+                  h="220px"
+                  w="full"
+                  objectFit="cover"
+                />
                 <Stack spacing={3} p={6}>
                   <Heading as="h2" size="md" color="gray.800">
                     {feature.title}

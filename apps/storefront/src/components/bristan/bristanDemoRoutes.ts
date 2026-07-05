@@ -87,17 +87,17 @@ export const getBristanDemoUserByUsername = (username?: string) =>
 export const isBristanSupplierBuyerUsername = (username?: string) =>
   Boolean(
     username &&
-    BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES.includes(
-      username as (typeof BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES)[number],
-    ),
+      BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES.includes(
+        username as (typeof BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES)[number],
+      ),
   );
 
 export const isBristanSupplierBuyerCatalogId = (catalogId?: string) =>
   Boolean(
     catalogId &&
-    BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS.includes(
-      catalogId as (typeof BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS)[number],
-    ),
+      BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS.includes(
+        catalogId as (typeof BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS)[number],
+      ),
   );
 
 export const isBristanDemoSupplierBuyerBulkContext = (
@@ -122,9 +122,59 @@ export const getBristanDemoTargetRoute = (username?: string) =>
 export const getBristanDemoCatalogId = (username?: string) =>
   username ? BRISTAN_DEMO_USER_CATALOG_IDS[username] : undefined;
 
+export const isBristanDemoCatalogId = (catalogId?: string) =>
+  Boolean(
+    catalogId &&
+      Object.values(BRISTAN_DEMO_CATALOG_IDS).includes(
+        catalogId as (typeof BRISTAN_DEMO_CATALOG_IDS)[keyof typeof BRISTAN_DEMO_CATALOG_IDS],
+      ),
+  );
+
+export const getBristanDemoCategoriesRoute = (username?: string) => {
+  const catalogId = getBristanDemoCatalogId(username);
+  return catalogId ? `/shop/${catalogId}/categories` : undefined;
+};
+
 export const getBristanDemoProductsRoute = (username?: string) => {
   const catalogId = getBristanDemoCatalogId(username);
   return catalogId ? `/shop/${catalogId}/products` : undefined;
+};
+
+export const getBristanDemoShopAllRoute = (username?: string) => {
+  const targetRoute = getBristanDemoTargetRoute(username);
+  const productsRoute = getBristanDemoProductsRoute(username);
+
+  return targetRoute?.endsWith("/categories") ? targetRoute : productsRoute;
+};
+
+export const getCorrectedBristanDemoCatalogPath = (
+  pathname: string,
+  username?: string,
+) => {
+  const correctCatalogId = getBristanDemoCatalogId(username);
+  if (!correctCatalogId) return undefined;
+
+  const match = pathname.match(
+    /^\/shop\/([^/]+)\/(categories|products)(?:\/(.*))?$/,
+  );
+  if (!match) return undefined;
+
+  const [, requestedCatalogId, routeType, remainder] = match;
+  if (
+    requestedCatalogId === correctCatalogId ||
+    !isBristanDemoCatalogId(requestedCatalogId)
+  ) {
+    return undefined;
+  }
+
+  if (
+    routeType === "products" &&
+    correctCatalogId === BRISTAN_DEMO_CATALOG_IDS.spares
+  ) {
+    return `/shop/${correctCatalogId}/categories`;
+  }
+
+  return `/shop/${correctCatalogId}/${routeType}${remainder ? `/${remainder}` : ""}`;
 };
 
 export const shouldRedirectBristanDemoRoute = (
@@ -133,6 +183,6 @@ export const shouldRedirectBristanDemoRoute = (
 ) =>
   Boolean(
     getBristanDemoTargetRoute(username) &&
-    (pathname === "/products" ||
-      pathname.startsWith(BRISTAN_DEMO_LEGACY_ROUTE_PREFIX)),
+      (pathname === "/products" ||
+        pathname.startsWith(BRISTAN_DEMO_LEGACY_ROUTE_PREFIX)),
   );

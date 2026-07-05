@@ -1,9 +1,11 @@
 import { Center, Heading, SimpleGrid, Spinner } from "@chakra-ui/react";
 import { Category } from "ordercloud-javascript-sdk";
-import React, { FunctionComponent, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import React, { FunctionComponent, useEffect, useMemo } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import CategoryCard from "./CategoryCard";
 import { useOcResourceList } from "@ordercloud/react-sdk";
+import { getCorrectedBristanDemoCatalogPath } from "../bristan/bristanDemoRoutes";
+import { useCurrentUser } from "../../hooks/currentUser";
 
 export interface CategoryListProps {
   renderItem?: (category: Category) => JSX.Element;
@@ -14,14 +16,28 @@ const CategoryList: FunctionComponent<CategoryListProps> = ({ renderItem }) => {
     catalogId: string;
     categoryId?: string;
   }>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { data: user } = useCurrentUser();
+  const correctedPath = getCorrectedBristanDemoCatalogPath(
+    location.pathname,
+    user?.Username,
+  );
+
+  useEffect(() => {
+    if (correctedPath) {
+      navigate(correctedPath, { replace: true });
+    }
+  }, [correctedPath, navigate]);
+
   const { data, isLoading } = useOcResourceList<Category>(
     "Me.Categories",
     { catalogId, ParentID: categoryId },
     {},
     {
       staleTime: 300000,
-      disabled: !catalogId,
-    }
+      disabled: !catalogId || Boolean(correctedPath),
+    },
   );
 
   const categories = useMemo(() => data?.Items, [data]);
