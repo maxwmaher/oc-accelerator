@@ -278,7 +278,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             </Box>
           )}
           {showMarketplaceSupplierOffers ? (
-            <BristanSupplierOffers canonicalProductId={product.ID} />
+            <BristanSupplierOffers
+              canonicalProductId={product.ID}
+              supplierOffers={product.xp?.SupplierOffers}
+            />
           ) : (
             <>
               {isBelowMinimumQuantity && (

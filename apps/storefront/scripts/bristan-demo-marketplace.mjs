@@ -169,6 +169,45 @@ function offerProduct(supplier, product, index) {
     xp: { CanonicalProductID: product.id, SupplierOffer: true, BristanOwnedProduct: true, SupplierID: supplier.id, SupplierName: supplier.name, Availability: supplier.availability, LeadTime: supplier.leadTime, Images: product.images || [], ImageUrl: product.imageUrl || null, SKU: product.sku || null, OfferRank: index + 1 },
   };
 }
+function supplierOfferSummary(supplier, product, index) {
+  const offerProductID = `bristan-demo-offer-${supplier.key}-${product.id}`;
+  return {
+    SupplierKey: supplier.key,
+    SupplierID: supplier.id,
+    SupplierName: supplier.name,
+    OfferProductID: offerProductID,
+    OfferPriceScheduleID: `${offerProductID}-ps`,
+    Price: money(productPrice(product) * (1 - supplier.discount)),
+    Availability: supplier.availability,
+    LeadTime: supplier.leadTime,
+    OfferRank: index + 1,
+  };
+}
+async function updateCanonicalSupplierOffers(product, index) {
+  console.log(`GET canonical product ${product.id}`);
+  let existing;
+  try {
+    existing = await ocGet(`/products/${encodeURIComponent(product.id)}`);
+  } catch (err) {
+    if (!isOrderCloudNotFound(err)) throw err;
+    report.skipped++;
+    console.log(`SKIP missing canonical product ${product.id}`);
+    return;
+  }
+
+  const supplierOffers = SUPPLIERS.map((supplier) => supplierOfferSummary(supplier, product, index));
+  const payload = {
+    ...existing,
+    xp: {
+      ...(existing.xp || {}),
+      SupplierOffers: supplierOffers,
+    },
+  };
+  console.log(`PUT canonical product supplier offers ${product.id}`);
+  await ocPut(`/products/${encodeURIComponent(product.id)}`, payload);
+  report.updated++;
+}
+
 async function seed() {
   await loadAppSettingsEnv();
   dryRun = dryRun || !process.env.OC_CLIENT_SECRET;
@@ -193,6 +232,7 @@ async function seed() {
   for (const p of accessories) await assign('spares category product', '/catalogs/bristan-demo-spares-catalog/categories/productassignments', { CategoryID: p.categoryID, ProductID: p.id });
   for (const c of CATEGORIES) await saveEntity('marketplace category', '/catalogs/bristan-demo-marketplace-catalog/categories', categoryPayload(c));
   for (const p of products) await assign('marketplace canonical category product', '/catalogs/bristan-demo-marketplace-catalog/categories/productassignments', { CategoryID: p.categoryID, ProductID: p.id });
+  for (const [index, p] of offerCanonicals.entries()) await updateCanonicalSupplierOffers(p, index);
 
   for (const supplier of SUPPLIERS) {
     await saveEntity('supplier', '/suppliers', { ID: supplier.id, Name: supplier.name, Active: true, xp: { Demo: 'BristanMarketplace' } });
