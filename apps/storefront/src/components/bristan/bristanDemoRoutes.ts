@@ -79,20 +79,34 @@ export const BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS = [
   BRISTAN_DEMO_CATALOG_IDS.supplierSouth,
 ] as const;
 
+
+export const getBristanDemoUserByUsername = (username?: string) =>
+  username
+    ? BRISTAN_DEMO_ACCOUNTS.find((account) => account.username === username)
+    : undefined;
+
+export const isBristanSupplierBuyerUsername = (username?: string) =>
+  Boolean(
+    username &&
+      BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES.includes(
+        username as (typeof BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES)[number],
+      ),
+  );
+
+export const isBristanSupplierBuyerCatalogId = (catalogId?: string) =>
+  Boolean(
+    catalogId &&
+      BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS.includes(
+        catalogId as (typeof BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS)[number],
+      ),
+  );
+
 export const isBristanDemoSupplierBuyerBulkContext = (
   username?: string,
   catalogId?: string,
 ) =>
-  Boolean(
-    (username &&
-      BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES.includes(
-        username as (typeof BRISTAN_DEMO_SUPPLIER_BUYER_USERNAMES)[number],
-      )) ||
-    (catalogId &&
-      BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS.includes(
-        catalogId as (typeof BRISTAN_DEMO_SUPPLIER_BUYER_CATALOG_IDS)[number],
-      )),
-  );
+  isBristanSupplierBuyerUsername(username) ||
+  isBristanSupplierBuyerCatalogId(catalogId);
 
 const BRISTAN_DEMO_LEGACY_ROUTE_PREFIX = "/shop/buyer";
 

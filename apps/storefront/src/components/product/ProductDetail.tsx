@@ -78,7 +78,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     [product?.Inventory?.QuantityAvailable],
   );
   const minimumQuantity = product?.PriceSchedule?.MinQuantity ?? 1;
-  const priceBreaks = product?.PriceSchedule?.PriceBreaks ?? [];
+  const priceBreaks = useMemo(
+    () =>
+      [...(product?.PriceSchedule?.PriceBreaks ?? [])].sort(
+        (a, b) => a.Quantity - b.Quantity,
+      ),
+    [product?.PriceSchedule?.PriceBreaks],
+  );
   const isSupplierBuyerBulkContext = isBristanDemoSupplierBuyerBulkContext(
     user?.Username,
     catalogId,
@@ -225,8 +231,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               </Text>
               <Text color="chakra-subtle-text" fontSize="sm" mt={1}>
                 Your Bristan supplier buyer account includes account-specific
-                bulk price breaks. Increase quantity to unlock lower unit
-                prices.
+                bulk price breaks. Trade pricing improves at higher
+                quantities.
               </Text>
               {priceBreaks.length > 0 && (
                 <TableContainer mt={4}>
