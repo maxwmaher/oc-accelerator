@@ -31,7 +31,8 @@ const offerRank = (offer: BuyerProduct) => Number(offer.xp?.OfferRank ?? 999);
 const BRISTAN_DEMO_SUPPLIER_OFFER_KEYS = ["north", "south"] as const;
 const BRISTAN_DEMO_MARKETPLACE_CATALOG_ID = BRISTAN_DEMO_CATALOG_IDS.marketplace;
 const BRISTAN_SUPPLIER_OFFERS_PAGE_SIZE = 100;
-const BRISTAN_SUPPLIER_OFFERS_PAGE_CAP = 5;
+const BRISTAN_SUPPLIER_OFFERS_PAGE_CAP = 10;
+const BRISTAN_DEMO_SUPPLIER_OFFER_ID_PREFIX = "bristan-demo-offer";
 
 const getExpectedOfferProductIds = (canonicalProductId: string) =>
   BRISTAN_DEMO_SUPPLIER_OFFER_KEYS.map(
@@ -43,17 +44,29 @@ const getOfferSortIndex = (offer: BuyerProduct, expectedOfferIds: string[]) => {
   return expectedIndex === -1 ? Number.MAX_SAFE_INTEGER : expectedIndex;
 };
 
+const isBristanDemoSupplierOfferProductId = (productId: string) =>
+  productId.startsWith(`${BRISTAN_DEMO_SUPPLIER_OFFER_ID_PREFIX}-`);
+
 const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
   canonicalProductId,
 }) => {
   const navigate = useNavigate();
   const toast = useToast();
   const { addCartLineItem } = useShopper();
+  const isSupplierOfferProduct = isBristanDemoSupplierOfferProductId(
+    canonicalProductId,
+  );
   const [addingOfferId, setAddingOfferId] = useState<string>();
   const [offerProducts, setOfferProducts] = useState<BuyerProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    if (isSupplierOfferProduct) {
+      setOfferProducts([]);
+      setIsLoading(false);
+      return;
+    }
+
     let isCurrent = true;
 
     const fetchOfferProducts = async () => {
@@ -90,14 +103,30 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
         ];
 
         if (isCurrent) {
-          setOfferProducts(
-            catalogProducts.filter(
-              (offer) =>
-                Boolean(offer.ID && expectedOfferIdSet.has(offer.ID)) &&
-                offer.xp?.SupplierOffer === true &&
-                offer.xp?.CanonicalProductID === canonicalProductId,
-            ),
+          const matchingOfferProducts = catalogProducts.filter((offer) =>
+            Boolean(offer.ID && expectedOfferIdSet.has(offer.ID)),
           );
+
+          if (matchingOfferProducts.length === 0 && import.meta.env.DEV) {
+            console.info("No Bristan supplier offers found in catalog list:", {
+              canonicalProductId,
+              expectedOfferIds,
+              catalogProductsFetched: catalogProducts.length,
+              first20FetchedProductIds: catalogProducts
+                .slice(0, 20)
+                .map((product) => product.ID),
+              fetchedBristanDemoOfferProductIds: catalogProducts
+                .map((product) => product.ID)
+                .filter((productId): productId is string =>
+                  Boolean(
+                    productId &&
+                      productId.includes(BRISTAN_DEMO_SUPPLIER_OFFER_ID_PREFIX),
+                  ),
+                ),
+            });
+          }
+
+          setOfferProducts(matchingOfferProducts);
         }
       } catch (error) {
         console.warn("Unable to load Bristan supplier offers:", error);
@@ -116,7 +145,7 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
     return () => {
       isCurrent = false;
     };
-  }, [canonicalProductId]);
+  }, [canonicalProductId, isSupplierOfferProduct]);
 
   const offers = useMemo(() => {
     const expectedOfferIds = getExpectedOfferProductIds(canonicalProductId);
@@ -178,6 +207,10 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
     },
     [addCartLineItem, navigate, toast],
   );
+
+  if (isSupplierOfferProduct) {
+    return null;
+  }
 
   return (
     <Box w="full" maxW="2xl" mt={2}>
