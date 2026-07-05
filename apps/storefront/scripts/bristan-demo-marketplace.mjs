@@ -28,6 +28,12 @@ const report = { created: 0, updated: 0, assigned: 0, skipped: 0 };
 let ocContext = null;
 
 function clean(text) { return text?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || null; }
+function safeOrderCloudName(value, maxLength = 100) {
+  const fallback = 'Bristan Demo';
+  const normalized = (value ? String(value) : fallback).replace(/\s+/g, ' ').trim() || fallback;
+  if (normalized.length <= maxLength) return normalized;
+  return normalized.slice(0, maxLength).trim().replace(/[\s,.;:!?-]+$/g, '') || fallback.slice(0, maxLength).trim();
+}
 function money(value) { return Math.max(0.01, Math.round(Number(value || 0) * 100) / 100); }
 function productPrice(product) { return money(product.rrp || 10); }
 function orderCloudBaseApiUrl() { return process.env.OC_API_URL || process.env.ORDERCLOUD_API_URL || process.env.VITE_APP_ORDERCLOUD_BASE_API_URL || DEFAULT_API; }
@@ -114,12 +120,12 @@ function user(id, username, email) { return { ID: id, Username: username, FirstN
 function buyerUser(id, username, email) { return { ...user(id, username, email), Password: DEMO_PASSWORD }; }
 function categoryPayload(category) { return { ...category, Active: true, xp: { Demo: 'BristanMarketplace', BristanOwnedCategory: true } }; }
 function priceSchedule(id, name, base, multipliers = [1]) {
-  return { ID: id, Name: name, ApplyTax: false, ApplyShipping: false, MinQuantity: 1, MaxQuantity: 10000, RestrictedQuantity: false, PriceBreaks: multipliers.map(([Quantity, factor]) => ({ Quantity, Price: money(base * factor) })), xp: { Demo: 'BristanMarketplace' } };
+  return { ID: id, Name: safeOrderCloudName(name), ApplyTax: false, ApplyShipping: false, MinQuantity: 1, MaxQuantity: 10000, RestrictedQuantity: false, PriceBreaks: multipliers.map(([Quantity, factor]) => ({ Quantity, Price: money(base * factor) })), xp: { Demo: 'BristanMarketplace' } };
 }
 function supplierBulkPriceSchedule(id, name, base, supplierDiscount) {
   return {
     ID: id,
-    Name: name,
+    Name: safeOrderCloudName(name),
     ApplyTax: false,
     ApplyShipping: false,
     MinQuantity: 10,
