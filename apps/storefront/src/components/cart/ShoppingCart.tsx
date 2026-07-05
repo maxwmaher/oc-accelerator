@@ -1,10 +1,13 @@
 import {
+  Badge,
+  Box,
   Button,
   Center,
   Container,
   Grid,
   GridItem,
   Heading,
+  HStack,
   Spinner,
   Tab,
   TabList,
@@ -25,11 +28,42 @@ import CartShippingPanel from "./cart-panels/CartShippingPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
 import { useCurrentUser } from "../../hooks/currentUser";
+import {
+  getBristanDemoShopAllRoute,
+  getBristanDemoUserByUsername,
+  isBristanDemoMarketplaceBuyerContext,
+  isBristanDemoSupplierBuyerBulkContext,
+} from "../bristan/bristanDemoRoutes";
 
 export const TABS = {
   INFORMATION: 0,
   SHIPPING: 1,
   PAYMENT: 2,
+  CONFIRMATION: 3,
+};
+
+const getCheckoutJourney = (username?: string) => {
+  if (isBristanDemoMarketplaceBuyerContext(username)) {
+    return {
+      badge: "Approved Merchant Marketplace",
+      subtitle: "Confirm your selected merchant offer and delivery details.",
+      note: "Your selected merchant offer will be captured with the order.",
+    };
+  }
+
+  if (isBristanDemoSupplierBuyerBulkContext(username)) {
+    return {
+      badge: "Trade Merchant Account",
+      subtitle: "Complete your Bristan trade account order.",
+      note: "Trade account pricing, minimum quantities, and account terms are applied to this order.",
+    };
+  }
+
+  return {
+    badge: "Spare Parts Self-Service",
+    subtitle: "Complete your spare parts order.",
+    note: "Spare parts and accessories are submitted directly for processing.",
+  };
 };
 
 export const ShoppingCart = (): JSX.Element => {
@@ -37,6 +71,10 @@ export const ShoppingCart = (): JSX.Element => {
   const [tabIndex, setTabIndex] = useState(TABS.INFORMATION);
 
   const { data: user } = useCurrentUser();
+  const demoUser = getBristanDemoUserByUsername(user?.Username);
+  const checkoutJourney = getCheckoutJourney(user?.Username);
+  const continueShoppingRoute =
+    getBristanDemoShopAllRoute(user?.Username) || demoUser?.targetRoute || "/products";
 
   const {
     orderWorksheet,
@@ -90,7 +128,7 @@ export const ShoppingCart = (): JSX.Element => {
 
   const handleNextTab = () => {
     setTabIndex((prevIndex) =>
-      Math.min(prevIndex + 1, Object.keys(TABS).length - 1)
+      Math.min(prevIndex + 1, TABS.PAYMENT)
     );
   };
 
@@ -159,18 +197,59 @@ export const ShoppingCart = (): JSX.Element => {
                     ml="auto"
                     p={{ base: 6, lg: 12 }}
                   >
-                    <Heading mb={6}>Checkout</Heading>
+                    <Box
+                      bgGradient="linear(to-r, blue.900, blue.700)"
+                      color="white"
+                      borderRadius="2xl"
+                      p={{ base: 5, md: 7 }}
+                      mb={6}
+                      boxShadow="lg"
+                    >
+                      <Badge colorScheme="blue" bg="whiteAlpha.300" color="white" mb={3}>
+                        {checkoutJourney.badge}
+                      </Badge>
+                      <Heading as="h1" size="xl">Checkout</Heading>
+                      <Text color="whiteAlpha.900" mt={2}>
+                        {checkoutJourney.subtitle}
+                      </Text>
+                    </Box>
+
+                    <Box
+                      borderWidth="1px"
+                      borderColor="blue.100"
+                      bg="blue.50"
+                      borderRadius="xl"
+                      p={4}
+                      mb={6}
+                    >
+                      <Text color="blue.900" fontSize="sm" fontWeight="medium">
+                        {checkoutJourney.note}
+                      </Text>
+                    </Box>
 
                     <Tabs
                       size="sm"
                       index={tabIndex}
                       onChange={handleTabChange}
-                      variant="soft-rounded"
+                      variant="unstyled"
                     >
-                      <TabList>
-                        <Tab>Information</Tab>
-                        <Tab>Shipping</Tab>
-                        <Tab>Payment</Tab>
+                      <TabList as={HStack} spacing={2} mb={6} flexWrap="wrap">
+                        {["Information", "Shipping", "Payment", "Confirmation"].map((label, index) => (
+                          <Tab
+                            key={label}
+                            isDisabled={index === TABS.CONFIRMATION}
+                            borderWidth="1px"
+                            borderColor={tabIndex >= index ? "blue.600" : "gray.200"}
+                            bg={tabIndex === index ? "blue.600" : tabIndex > index ? "blue.50" : "white"}
+                            color={tabIndex === index ? "white" : tabIndex > index ? "blue.700" : "gray.600"}
+                            borderRadius="full"
+                            fontWeight="semibold"
+                            _selected={{ bg: "blue.600", color: "white" }}
+                            _disabled={{ opacity: 0.7, cursor: "not-allowed" }}
+                          >
+                            {tabIndex > index ? "✓ " : ""}{label}
+                          </Tab>
+                        ))}
                       </TabList>
 
                       <TabPanels>
@@ -197,6 +276,7 @@ export const ShoppingCart = (): JSX.Element => {
                             submitOrder={submitOrder}
                             submitting={submitting}
                             username={user?.Username}
+                            handlePrevTab={handlePrevTab}
                           />
                         </TabPanel>
                       </TabPanels>
@@ -204,7 +284,7 @@ export const ShoppingCart = (): JSX.Element => {
                   </Container>
                 </GridItem>
 
-                <GridItem bgColor="blackAlpha.100" h="full">
+                <GridItem bgColor="gray.50" h="full">
                   <Container
                     maxW="container.sm"
                     mx="0"
@@ -218,6 +298,8 @@ export const ShoppingCart = (): JSX.Element => {
                         deleteOrder={deleteOrder}
                         onSubmitOrder={submitOrder}
                         tabIndex={tabIndex}
+                        username={user?.Username}
+                        continueShoppingRoute={continueShoppingRoute}
                       />
                     )}
                   </Container>
@@ -228,7 +310,7 @@ export const ShoppingCart = (): JSX.Element => {
             <Center flex="1">
               <VStack mt={-28}>
                 <Heading>Cart is empty</Heading>
-                <Button as={RouterLink} size="sm" to="/products">
+                <Button as={RouterLink} size="sm" to={continueShoppingRoute}>
                   Continue shopping
                 </Button>
               </VStack>

@@ -36,12 +36,14 @@ interface OcLineItemCardProps {
   lineItem: LineItem;
   editable?: boolean;
   onChange?: (newLi: LineItem) => void;
+  isTradeBuyer?: boolean;
 }
 
 const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
   lineItem,
   editable,
   onChange,
+  isTradeBuyer,
 }) => {
   const [quantity, setQuantity] = useState(lineItem.Quantity);
   const { patchCartLineItem, deleteCartLineItem } = useShopper();
@@ -87,8 +89,12 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
         id="lineItemRow"
         flexWrap={{ base: "wrap", lg: "nowrap" }}
         p={{ base: 3, md: "unset" }}
-        gap={9}
+        gap={5}
         w="full"
+        alignItems="flex-start"
+        borderBottom="1px solid"
+        borderColor="gray.100"
+        py={3}
       >
         <VStack alignItems="flex-start" gap={0}>
           <Center
@@ -126,7 +132,7 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
               size="xs"
               fontSize=".75rem"
               variant="link"
-              colorScheme="accent"
+              colorScheme="gray"
               onClick={() => deleteCartLineItem(lineItem.ID!)}
             >
               Remove
@@ -151,7 +157,7 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
             <VStack alignItems="flex-start" gap={1} mt={-2}>
               <Text fontSize="xs" color="chakra-subtle-text">
                 <Text fontWeight="600" display="inline">
-                  Merchant:
+                  Selected merchant:
                 </Text>{" "}
                 {lineItem.xp?.SupplierName || lineItem.xp?.MarketplaceSupplierOffer?.SupplierName || "Approved merchant"}
               </Text>
@@ -190,7 +196,9 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
             </VStack>
           )}
           {lineItem.xp?.TradeAccount && <Badge colorScheme="purple">Trade account</Badge>}
-          {Number(lineItem.Quantity) >= 10 && <Text fontSize="xs" color="chakra-subtle-text">Bulk trade quantity</Text>}
+          {isTradeBuyer && Number(lineItem.Quantity) >= 10 && (
+            <Badge colorScheme="blue" variant="subtle">Bulk trade quantity</Badge>
+          )}
           {lineItem?.Specs?.map((spec) => (
             <React.Fragment key={spec.SpecID}>
               <Text mt={-3} fontSize="xs" color="chakra-subtle-text">

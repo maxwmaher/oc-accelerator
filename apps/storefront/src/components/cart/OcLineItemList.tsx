@@ -8,6 +8,7 @@ interface OcLineItemListProps {
   editable?: boolean;
   lineItems?: LineItem[];
   onChange: (newLineItem: LineItem) => void;
+  isTradeBuyer?: boolean;
 }
 
 const OcLineItemList: FunctionComponent<OcLineItemListProps> = ({
@@ -15,16 +16,16 @@ const OcLineItemList: FunctionComponent<OcLineItemListProps> = ({
   editable,
   lineItems,
   onChange,
+  isTradeBuyer,
 }) => {
   return lineItems && lineItems.length ? (
-    <VStack gap={6} alignItems="flex-start" w="full">
+    <VStack gap={4} alignItems="flex-start" w="full">
       <Card
         variant="outline"
         w="full"
-        mt={-4}
-        rounded="none"
-        bgColor="blackAlpha.100"
-        borderColor="transparent"
+        rounded="xl"
+        bgColor="white"
+        borderColor="gray.200"
       >
         <CardBody display="flex" flexDirection="column" gap={2}>
           {lineItems.map((li, idx) => (
@@ -33,6 +34,7 @@ const OcLineItemList: FunctionComponent<OcLineItemListProps> = ({
               lineItem={li}
               editable={editable}
               onChange={onChange}
+              isTradeBuyer={isTradeBuyer}
             />
           ))}
         </CardBody>

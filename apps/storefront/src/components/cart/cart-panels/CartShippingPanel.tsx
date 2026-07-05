@@ -2,6 +2,7 @@ import {
   Button,
   Card,
   CardBody,
+  HStack,
   Radio,
   RadioGroup,
   Spinner,
@@ -24,6 +25,7 @@ interface CartShippingPanelProps {
 
 const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
   handleNextTab,
+  handlePrevTab,
 }) => {
   const { orderWorksheet, calculateOrder, selectShipMethods } = useShopper();
   const [shipMethodID, setShipMethodID] = useState<string>();
@@ -88,7 +90,8 @@ const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
 
   return (
     <VStack alignItems="flex-start">
-      <Card variant="flat" shadow="none" bgColor="whiteAlpha.800" w="full">
+      <Text color="gray.600" fontSize="sm">Choose a shipping service. Costs and transit windows come from the current shipping estimate.</Text>
+      <Card variant="outline" shadow="sm" bgColor="white" w="full" borderRadius="xl">
         <CardBody display="flex" flexDirection="column" gap="3">
           <RadioGroup
             sx={{
@@ -106,7 +109,16 @@ const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
             {orderWorksheet?.ShipEstimateResponse?.ShipEstimates?.at(
               0
             )?.ShipMethods?.map((method: ShipMethod) => (
-              <Radio key={method.ID} value={method.ID} w="full" gap="3">
+              <Radio
+                key={method.ID}
+                value={method.ID}
+                w="full"
+                gap="3"
+                borderWidth="1px"
+                borderColor={shipMethodID === method.ID ? "blue.500" : "gray.200"}
+                borderRadius="lg"
+                p={4}
+              >
                 <VStack align="flex-start" gap="0" flexGrow="1">
                   <Text fontSize="lg" fontWeight="semibold">
                     {method.Name}
@@ -130,14 +142,12 @@ const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
           </RadioGroup>
         </CardBody>
       </Card>
-      <Button
-        alignSelf="flex-end"
-        mt={6}
-        onClick={handleSelectShipMethod}
-        isDisabled={!shipMethodID || loading}
-      >
-        {loading ? <Spinner size="sm" /> : "Continue to payment"}
-      </Button>
+      <HStack alignSelf="flex-end" mt={6}>
+        <Button variant="ghost" onClick={handlePrevTab}>Back to information</Button>
+        <Button onClick={handleSelectShipMethod} isDisabled={!shipMethodID || loading} colorScheme="blue">
+          {loading ? <Spinner size="sm" /> : "Continue to payment"}
+        </Button>
+      </HStack>
     </VStack>
   );
 };
