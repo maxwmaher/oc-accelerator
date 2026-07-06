@@ -69,6 +69,17 @@ async function assign(label, endpoint, payload) {
   try { await post(endpoint, payload); report.assigned++; }
   catch (err) { if (isExistingAssignmentError(err)) { report.skipped++; console.log(`SKIP existing ${label}`); return; } throw err; }
 }
+async function ensureCatalogCategory(catalogID, category) {
+  console.log(`ENSURE category ${category.ID} in catalog ${catalogID}`);
+  await saveEntity('catalog category', `/catalogs/${catalogID}/categories`, { ...category, Active: true, xp: { Demo: 'BristanMarketplace', BristanOwnedCategory: true } });
+}
+async function assignProductToCatalogCategory(catalogID, categoryID, product, labelPrefix) {
+  await assign(`${labelPrefix} product ${product.ID} to catalog/category ${catalogID}/${categoryID}`, `/catalogs/${catalogID}/categories/productassignments`, { CategoryID: categoryID, ProductID: product.ID });
+}
+async function assignProductToBuyer(buyerID, product) {
+  const priceScheduleID = `${product.ID}-ps`;
+  await assign(`product ${product.ID} to buyer ${buyerID} with price schedule ${priceScheduleID}`, '/products/assignments', { ProductID: product.ID, BuyerID: buyerID, PriceScheduleID: priceScheduleID });
+}
 function priceSchedule(product) {
   return { ID: `${product.ID}-ps`, Name: product.Name.slice(0, 100), ApplyTax: false, ApplyShipping: false, MinQuantity: 1, MaxQuantity: 10000, RestrictedQuantity: false, PriceBreaks: [{ Quantity: 1, Price: money(product.Price) }], xp: { Demo: 'BristanMarketplace', BristanChildProductFamily: true } };
 }
@@ -99,9 +110,14 @@ async function seed() {
     await saveEntity('child product', '/products', product);
   }
   for (const { buyerID, catalogID } of BUYER_CONTEXTS) {
-    for (const category of CATEGORIES) await saveEntity('catalog category', `/catalogs/${catalogID}/categories`, { ...category, Active: true, xp: { Demo: 'BristanMarketplace', BristanOwnedCategory: true } });
-    for (const product of products) await assign(`product ${product.ID} to buyer ${buyerID}`, '/products/assignments', { ProductID: product.ID, BuyerID: buyerID, PriceScheduleID: `${product.ID}-ps` });
-    await assign(`parent product ${PARENT_ID} to catalog ${catalogID} category ${CATEGORY_ID}`,  `/catalogs/${catalogID}/categories/productassignments`, { CategoryID: CATEGORY_ID, ProductID: PARENT_ID });
+    for (const category of CATEGORIES) await ensureCatalogCategory(catalogID, category);
+
+    await assignProductToCatalogCategory(catalogID, CATEGORY_ID, parent, 'parent');
+    for (const product of products.slice(1)) {
+      await assignProductToCatalogCategory(catalogID, CATEGORY_ID, product, 'child');
+    }
+
+    for (const product of products) await assignProductToBuyer(buyerID, product);
   }
   console.log(`Bristan Appeal child products seed report: ${JSON.stringify(report)}`);
 }
