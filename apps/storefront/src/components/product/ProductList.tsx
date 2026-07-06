@@ -199,7 +199,9 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
       (productData?.Items ?? []).filter(
         (product) =>
           !product.ParentID &&
-          (!shouldHideMarketplaceOffers || product.xp?.SupplierOffer !== true),
+          (!shouldHideMarketplaceOffers ||
+            (product.xp?.SupplierOffer !== true &&
+              product.xp?.HiddenMarketplaceOffer !== true)),
       ),
     [productData?.Items, shouldHideMarketplaceOffers],
   );

@@ -283,6 +283,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           {showMarketplaceSupplierOffers ? (
             <BristanSupplierOffers
               canonicalProductId={product.ID}
+              canonicalProductName={product.Name}
+              canonicalProductImage={product.xp?.Images?.[0]?.Url}
               supplierOffers={product.xp?.SupplierOffers}
             />
           ) : (

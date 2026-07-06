@@ -29,6 +29,8 @@ export interface BristanSupplierOfferSummary {
 
 interface BristanSupplierOffersProps {
   canonicalProductId: string;
+  canonicalProductName?: string;
+  canonicalProductImage?: string;
   supplierOffers?: BristanSupplierOfferSummary[];
 }
 
@@ -45,6 +47,8 @@ const isBristanDemoSupplierOfferProductId = (productId: string) =>
 
 const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
   canonicalProductId,
+  canonicalProductName,
+  canonicalProductImage,
   supplierOffers = [],
 }) => {
   const navigate = useNavigate();
@@ -73,7 +77,7 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
       try {
         setAddingOfferId(offerProductId);
         await addCartLineItem({
-          ProductID: canonicalProductId,
+          ProductID: offerProductId,
           Quantity: quantity,
           xp: {
             MarketplaceSupplierOffer: true,
@@ -85,6 +89,9 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
             SupplierOfferPrice: offer.Price,
             Availability: offer.Availability,
             LeadTime: offer.LeadTime,
+            CanonicalProductID: canonicalProductId,
+            CanonicalProductName: canonicalProductName,
+            CanonicalProductImage: canonicalProductImage,
           },
         });
         toast({
@@ -119,7 +126,7 @@ const BristanSupplierOffers: React.FC<BristanSupplierOffersProps> = ({
         setAddingOfferId(undefined);
       }
     },
-    [addCartLineItem, canonicalProductId, navigate, toast],
+    [addCartLineItem, canonicalProductId, canonicalProductImage, canonicalProductName, navigate, toast],
   );
 
   if (isSupplierOfferProduct) {
