@@ -6,7 +6,9 @@ import {
   Button,
   Card,
   CardBody,
+  Collapse,
   Container,
+  Divider,
   Heading,
   HStack,
   Link,
@@ -23,6 +25,7 @@ import {
   UnorderedList,
   ListItem,
   VStack,
+  useDisclosure,
   useToast,
 } from "@chakra-ui/react";
 import { BuyerProduct, Me, OrderCloudError } from "ordercloud-javascript-sdk";
@@ -30,6 +33,7 @@ import pluralize from "pluralize";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useShopper } from "@ordercloud/react-sdk";
+import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 import formatPrice from "../../utils/formatPrice";
 import OcQuantityInput from "../cart/OcQuantityInput";
 import ProductImageGallery from "../product/product-detail/ProductImageGallery";
@@ -71,6 +75,7 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
   const { catalogId } = useParams<{ catalogId: string }>();
   const toast = useToast();
   const navigate = useNavigate();
+  const { isOpen: isSparesOpen, onToggle: onToggleSpares } = useDisclosure();
   const { addCartLineItem } = useShopper();
   const [children, setChildren] = useState<BuyerProduct[]>([]);
   const [isLoadingChildren, setIsLoadingChildren] = useState(true);
@@ -170,7 +175,7 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
 
   return (
     <Container maxW="container.4xl">
-      <SimpleGrid gridTemplateColumns={{ lg: "1.2fr 1.8fr" }} gap={12} w="full">
+      <SimpleGrid gridTemplateColumns={{ lg: "1.2fr 1.8fr" }} gap={{ base: 8, lg: 12 }} w="full">
         <ProductImageGallery images={product.xp?.Images || []} />
         <VStack alignItems="flex-start" gap={4}>
           <Badge colorScheme="primary">{product.xp?.BrandRange || "Bristan"}</Badge>
@@ -180,6 +185,64 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
           </Text>
           <Text fontSize="3xl" fontWeight="medium">{formatPrice(displayPrice)}</Text>
           <Text maxW="prose">{product.xp?.Description || product.Description}</Text>
+
+          {isLoadingChildren ? (
+            <HStack
+              borderWidth="1px"
+              borderRadius="lg"
+              p={4}
+              w="full"
+              maxW="2xl"
+            >
+              <Spinner size="sm" />
+              <Text>Loading purchase options…</Text>
+            </HStack>
+          ) : childLoadError ? (
+            <Alert status="warning" borderRadius="md" maxW="2xl">
+              <AlertIcon />
+              {childLoadError}
+            </Alert>
+          ) : completeChild ? (
+            <Card
+              borderWidth="1px"
+              borderColor="primary.200"
+              bg="primary.50"
+              w="full"
+              maxW="2xl"
+            >
+              <CardBody>
+                <VStack align="stretch" gap={4}>
+                  <HStack justify="space-between" align="flex-start" gap={4}>
+                    <Box>
+                      <Heading size="md">Buy complete tap</Heading>
+                      <Text color="chakra-subtle-text" fontSize="sm" mt={1}>
+                        Includes clicker waste
+                      </Text>
+                    </Box>
+                    <Text fontSize="2xl" fontWeight="semibold" whiteSpace="nowrap">
+                      {formatPrice(completeChild.PriceSchedule?.PriceBreaks?.[0]?.Price)}
+                    </Text>
+                  </HStack>
+                  <HStack flexWrap="wrap" gap={3}>
+                    <OcQuantityInput
+                      controlId={`qty-${completeChild.ID}`}
+                      priceSchedule={completeChild.PriceSchedule}
+                      quantity={quantities[completeChild.ID!] ?? 1}
+                      onChange={(value) => setQuantities((current) => ({ ...current, [completeChild.ID!]: value }))}
+                    />
+                    <Button
+                      colorScheme="primary"
+                      onClick={() => addChildToCart(completeChild)}
+                      isLoading={addingProductId === completeChild.ID}
+                    >
+                      Add to cart
+                    </Button>
+                  </HStack>
+                </VStack>
+              </CardBody>
+            </Card>
+          ) : null}
+
           {product.xp?.Features?.length > 0 && (
             <UnorderedList spacing={1} pl={4}>
               {product.xp.Features.map((feature: string) => (
@@ -187,62 +250,45 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
               ))}
             </UnorderedList>
           )}
-          <Alert status="info" borderRadius="md">
-            <AlertIcon />
-            Select the complete tap or a spare part below. This parent product is not directly orderable.
-          </Alert>
+          <Text color="chakra-subtle-text" fontSize="sm">
+            Order the complete tap or browse compatible spare parts.
+          </Text>
         </VStack>
       </SimpleGrid>
 
-      <Box mt={10}>
-        {isLoadingChildren ? (
-          <HStack><Spinner /><Text>Loading purchase options…</Text></HStack>
-        ) : childLoadError ? (
-          <Alert status="warning" borderRadius="md"><AlertIcon />{childLoadError}</Alert>
-        ) : (
-          <VStack align="stretch" gap={8}>
-            {completeChild && (
-              <Card borderWidth="1px" borderColor="primary.200">
-                <CardBody>
-                  <SimpleGrid columns={{ base: 1, md: 3 }} gap={4} alignItems="center">
-                    <Box>
-                      <Heading size="md">Buy complete tap</Heading>
-                      <Text color="chakra-subtle-text" fontSize="sm">
-                        {completeChild.xp?.PartNumber}
-                      </Text>
-                    </Box>
-                    <Text fontSize="2xl" fontWeight="semibold">
-                      {formatPrice(completeChild.PriceSchedule?.PriceBreaks?.[0]?.Price)}
-                    </Text>
-                    <HStack justify={{ md: "flex-end" }}>
-                      <OcQuantityInput
-                        controlId={`qty-${completeChild.ID}`}
-                        priceSchedule={completeChild.PriceSchedule}
-                        quantity={quantities[completeChild.ID!] ?? 1}
-                        onChange={(value) => setQuantities((current) => ({ ...current, [completeChild.ID!]: value }))}
-                      />
-                      <Button
-                        colorScheme="primary"
-                        onClick={() => addChildToCart(completeChild)}
-                        isLoading={addingProductId === completeChild.ID}
-                      >
-                        Add to cart
-                      </Button>
-                    </HStack>
-                  </SimpleGrid>
-                </CardBody>
-              </Card>
-            )}
-
-            <Box>
-              <Heading size="lg" mb={2}>Spare parts</Heading>
+      {!isLoadingChildren && !childLoadError && spareParts.length > 0 && (
+        <Box mt={{ base: 8, lg: 10 }}>
+          <Divider mb={4} />
+          <Button
+            variant="ghost"
+            w="full"
+            justifyContent="space-between"
+            alignItems="center"
+            px={0}
+            py={6}
+            h="auto"
+            onClick={onToggleSpares}
+            rightIcon={isSparesOpen ? <FiChevronUp /> : <FiChevronDown />}
+          >
+            <VStack align="flex-start" gap={1} textAlign="left">
+              <HStack>
+                <Heading size="md">Compatible spare parts</Heading>
+                <Badge colorScheme="gray">{spareParts.length} available</Badge>
+              </HStack>
+              <Text color="chakra-subtle-text" fontSize="sm" fontWeight="normal">
+                View and order replacement parts for this tap.
+              </Text>
+            </VStack>
+          </Button>
+          <Collapse in={isSparesOpen} animateOpacity>
+            <Box pt={4}>
               <Text color="chakra-subtle-text" mb={1}>{product.xp?.SparesNote}</Text>
               <Text color="chakra-subtle-text" mb={4}>{product.xp?.ExpectedSparesDelivery}</Text>
               {product.xp?.SparesDiagramUrl && (
                 <Link color="primary.600" href={product.xp.SparesDiagramUrl} isExternal>View diagram</Link>
               )}
-              <TableContainer display={{ base: "none", md: "block" }}>
-                <Table variant="simple">
+              <TableContainer display={{ base: "none", md: "block" }} mt={4}>
+                <Table variant="simple" size="sm">
                   <Thead>
                     <Tr>
                       <Th>Diagram #</Th>
@@ -250,15 +296,15 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
                       <Th>Part number</Th>
                       <Th isNumeric>Price</Th>
                       <Th>Quantity</Th>
-                      <Th>Add to cart</Th>
+                      <Th textAlign="right">Add to cart</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
                     {spareParts.map((part) => (
                       <Tr key={part.ID}>
-                        <Td>{part.xp?.DiagramNumber}</Td>
+                        <Td fontWeight="semibold">{part.xp?.DiagramNumber}</Td>
                         <Td>{part.Name}</Td>
-                        <Td>{part.xp?.PartNumber}</Td>
+                        <Td color="chakra-subtle-text">{part.xp?.PartNumber}</Td>
                         <Td isNumeric>{formatPrice(part.PriceSchedule?.PriceBreaks?.[0]?.Price)}</Td>
                         <Td>
                           <OcQuantityInput
@@ -268,7 +314,7 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
                             onChange={(value) => setQuantities((current) => ({ ...current, [part.ID!]: value }))}
                           />
                         </Td>
-                        <Td>
+                        <Td textAlign="right">
                           <Button size="sm" onClick={() => addChildToCart(part)} isLoading={addingProductId === part.ID}>Add to cart</Button>
                         </Td>
                       </Tr>
@@ -280,11 +326,11 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
                 {spareParts.map((part) => (
                   <Card key={part.ID}>
                     <CardBody>
-                      <VStack align="stretch">
+                      <VStack align="stretch" gap={3}>
                         <HStack justify="space-between"><Badge>Diagram {part.xp?.DiagramNumber}</Badge><Text fontWeight="semibold">{formatPrice(part.PriceSchedule?.PriceBreaks?.[0]?.Price)}</Text></HStack>
                         <Heading size="sm">{part.Name}</Heading>
                         <Text fontSize="sm" color="chakra-subtle-text">Part number: {part.xp?.PartNumber}</Text>
-                        <HStack>
+                        <HStack flexWrap="wrap">
                           <OcQuantityInput controlId={`qty-${part.ID}`} priceSchedule={part.PriceSchedule} quantity={quantities[part.ID!] ?? 1} onChange={(value) => setQuantities((current) => ({ ...current, [part.ID!]: value }))} />
                           <Button size="sm" onClick={() => addChildToCart(part)} isLoading={addingProductId === part.ID}>Add to cart</Button>
                         </HStack>
@@ -294,9 +340,9 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
                 ))}
               </VStack>
             </Box>
-          </VStack>
-        )}
-      </Box>
+          </Collapse>
+        </Box>
+      )}
     </Container>
   );
 };
