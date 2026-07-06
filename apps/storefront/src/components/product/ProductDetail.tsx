@@ -36,6 +36,7 @@ import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
 import { useCurrentUser } from "../../hooks/currentUser";
 import BristanSupplierOffers from "../bristan/BristanSupplierOffers";
+import BristanChildProductFamily from "../bristan/BristanChildProductFamily";
 import {
   isBristanDemoMarketplaceBuyerContext,
   isBristanDemoSupplierBuyerBulkContext,
@@ -200,7 +201,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       <Spinner size="xl" thickness="10px" />
     </Center>
   ) : product ? (
-    renderProductDetail ? (
+    product.IsParent || product.xp?.BristanChildProductFamily ? (
+      <BristanChildProductFamily product={product} />
+    ) : renderProductDetail ? (
       renderProductDetail(product)
     ) : (
       <SimpleGrid
