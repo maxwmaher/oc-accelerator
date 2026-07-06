@@ -15,6 +15,7 @@ import {
   ShipMethod
 } from "ordercloud-javascript-sdk";
 import React, { useState } from "react";
+import formatPrice from "../../../utils/formatPrice";
 
 interface CartShippingPanelProps {
   shippingAddress: Address;
@@ -123,7 +124,7 @@ const CartShippingPanel: React.FC<CartShippingPanelProps> = ({
                   color="gray.600"
                   fontSize="lg"
                 >
-                  ${method?.Cost?.toFixed(2)}
+                  {formatPrice(method?.Cost)}
                 </Text>
               </Radio>
             ))}
