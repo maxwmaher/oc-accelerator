@@ -87,6 +87,7 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
   const [childLoadError, setChildLoadError] = useState<string>();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [addingProductId, setAddingProductId] = useState<string>();
+  const [shouldScrollToSpares, setShouldScrollToSpares] = useState(false);
 
   useEffect(() => {
     let isCurrent = true;
@@ -140,13 +141,24 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
 
   const handleViewSpareParts = useCallback(() => {
     onOpenSpares();
-    window.requestAnimationFrame(() => {
-      sparePartsSectionRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
+    setShouldScrollToSpares(true);
   }, [onOpenSpares]);
+
+  useEffect(() => {
+    if (!isSparesOpen || !shouldScrollToSpares) return;
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        sparePartsSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        setShouldScrollToSpares(false);
+      }, 0);
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [isSparesOpen, shouldScrollToSpares]);
 
   const addChildToCart = useCallback(
     async (child: BuyerProduct) => {
@@ -253,7 +265,15 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
                       Add to cart
                     </Button>
                     {spareParts.length > 0 && (
-                      <Button variant="outline" onClick={handleViewSpareParts}>
+                      <Button
+                        variant="outline"
+                        colorScheme="blue"
+                        borderColor="blue.500"
+                        color="blue.700"
+                        bg="blue.50"
+                        _hover={{ bg: "blue.100", borderColor: "blue.600" }}
+                        onClick={handleViewSpareParts}
+                      >
                         View spare parts
                       </Button>
                     )}
