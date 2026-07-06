@@ -147,6 +147,39 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
               {lineItem.Product?.ID}
             </Text>
           </HStack>
+          {lineItem.xp?.ChildProductRole && (
+            <VStack alignItems="flex-start" gap={1} mt={-2}>
+              {lineItem.xp.ChildProductRole === "SparePart" && (
+                <Text fontSize="xs" color="chakra-subtle-text">
+                  Spare part for Appeal Eco Start Basin Mixer
+                </Text>
+              )}
+              {lineItem.xp?.ParentProductCode && (
+                <Text fontSize="xs" color="chakra-subtle-text">
+                  <Text fontWeight="600" display="inline">
+                    Parent product code:
+                  </Text>{" "}
+                  {lineItem.xp.ParentProductCode}
+                </Text>
+              )}
+              {lineItem.xp?.PartNumber && (
+                <Text fontSize="xs" color="chakra-subtle-text">
+                  <Text fontWeight="600" display="inline">
+                    Part number:
+                  </Text>{" "}
+                  {lineItem.xp.PartNumber}
+                </Text>
+              )}
+              {lineItem.xp?.DiagramNumber && (
+                <Text fontSize="xs" color="chakra-subtle-text">
+                  <Text fontWeight="600" display="inline">
+                    Diagram number:
+                  </Text>{" "}
+                  {lineItem.xp.DiagramNumber}
+                </Text>
+              )}
+            </VStack>
+          )}
           {lineItem.xp?.MarketplaceSupplierOffer && (
             <VStack alignItems="flex-start" gap={1} mt={-2}>
               <Text fontSize="xs" color="chakra-subtle-text">
