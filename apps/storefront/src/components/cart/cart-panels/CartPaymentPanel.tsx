@@ -30,7 +30,7 @@ const defaultCardForm: DemoCreditCardForm = {
   cardNumber: "4111 1111 1111 1111",
   expiration: "12/30",
   cvv: "123",
-  billingZip: "10001",
+  billingZip: "B77 5PN",
 };
 
 type CartPaymentPanelProps = {
@@ -183,9 +183,8 @@ export const CartPaymentPanel = ({
             </FormControl>
           </HStack>
           <FormControl>
-            <FormLabel>Billing ZIP</FormLabel>
+            <FormLabel>Billing postcode</FormLabel>
             <Input
-              inputMode="numeric"
               value={cardForm.billingZip}
               onChange={(event) => updateCardField("billingZip", event.target.value)}
             />

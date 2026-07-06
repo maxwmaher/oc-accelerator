@@ -6,20 +6,69 @@ import {
   Heading,
   HStack,
   Input,
-  Select,
   Stack,
   VStack,
 } from "@chakra-ui/react";
 import { Address } from "ordercloud-javascript-sdk";
 import { Dispatch, SetStateAction, useState } from "react";
 import { DebouncedInput } from "../../shared/DebouncedInput";
-import { US_STATES } from "../../../constants";
 
 type CartInformationPanelProps = {
   shippingAddress: Address;
   setShippingAddress: Dispatch<SetStateAction<Address>>;
-  handleSaveShippingAddress: () => void;
+  handleSaveShippingAddress: (address: Address) => void;
 };
+
+const UK_DEMO_ADDRESSES: Address[] = [
+  {
+    FirstName: "Bristan",
+    LastName: "Demo",
+    CompanyName: "Bristan Group",
+    Street1: "1 Brassware Way",
+    Street2: "Unit 4",
+    City: "Tamworth",
+    State: "Staffordshire",
+    Zip: "B77 5PN",
+    Country: "GB",
+    Phone: "+44 1827 010 100",
+  },
+  {
+    FirstName: "Trade",
+    LastName: "Buyer",
+    CompanyName: "North Supplies Ltd",
+    Street1: "24 Merchant Park",
+    Street2: "",
+    City: "Manchester",
+    State: "Greater Manchester",
+    Zip: "M1 4BT",
+    Country: "GB",
+    Phone: "+44 161 496 0100",
+  },
+  {
+    FirstName: "Marketplace",
+    LastName: "Buyer",
+    CompanyName: "Approved Merchant Demo",
+    Street1: "8 Canal Street",
+    Street2: "Floor 2",
+    City: "Birmingham",
+    State: "West Midlands",
+    Zip: "B1 1AA",
+    Country: "GB",
+    Phone: "+44 121 496 0100",
+  },
+  {
+    FirstName: "Spare",
+    LastName: "Parts",
+    CompanyName: "Installer Demo",
+    Street1: "15 Plumbers Yard",
+    Street2: "",
+    City: "Leeds",
+    State: "West Yorkshire",
+    Zip: "LS1 4AP",
+    Country: "GB",
+    Phone: "+44 113 496 0100",
+  },
+];
 
 export const CartInformationPanel = ({
   shippingAddress,
@@ -28,37 +77,27 @@ export const CartInformationPanel = ({
 }: CartInformationPanelProps) => {
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
 
-  const formatPhoneNumber = (value: string) => {
-    const cleaned = value.replace(/\D/g, ""); // Remove all non-digit characters
-    const trimmed = cleaned.slice(0, 10); // Limit to 10 digits
-    const match = trimmed.match(/^(\d{0,3})(\d{0,3})(\d{0,4})$/); // Format for display
-
-    if (!match) return trimmed;
-
-    const [, area, prefix, line] = match;
-
-    if (!area) return "";
-    if (!prefix) return `(${area}`;
-    if (!line) return `(${area}) ${prefix}`;
-
-    return `(${area}) ${prefix}-${line}`;
-  };
-
   const handlePhoneChange = (value: string | number) => {
-    const rawValue = value.toString().replace(/\D/g, "").slice(0, 10);
     setShippingAddress({
       ...shippingAddress,
-      Phone: rawValue,
+      Phone: value.toString(),
     });
     setFormErrors((prev) => ({
       ...prev,
-      Phone: rawValue.length !== 10,
+      Phone: !value.toString().trim(),
     }));
+  };
+
+  const useDemoAddress = () => {
+    const demoAddress =
+      UK_DEMO_ADDRESSES[Math.floor(Math.random() * UK_DEMO_ADDRESSES.length)];
+    setShippingAddress({ ...demoAddress });
+    setFormErrors({});
   };
 
   const validateFields = () => {
     const newErrors: Record<string, boolean> = {};
-    const requiredFields = ["Street1", "City", "State", "Zip"] as const;
+    const requiredFields = ["Street1", "City", "Zip", "Phone"] as const;
 
     requiredFields.forEach((field) => {
       if (!shippingAddress?.[field]) {
@@ -71,29 +110,32 @@ export const CartInformationPanel = ({
   };
 
   const handleFormSubmit = () => {
+    const ukShippingAddress = { ...shippingAddress, Country: "GB" };
+    setShippingAddress(ukShippingAddress);
     if (validateFields()) {
-      handleSaveShippingAddress();
+      handleSaveShippingAddress(ukShippingAddress);
     }
   };
 
   return (
     <VStack alignItems="stretch" as="form">
-      <Stack direction={["column", "row"]} spacing={6}>
-        <DebouncedInput
-          name="Phone"
-          placeholder="Enter phone number"
-          value={formatPhoneNumber(shippingAddress?.Phone || "")}
-          onChange={handlePhoneChange}
-        />
-      </Stack>
-
       <Heading size="md" my={6}>
         Shipping address
       </Heading>
 
+      <Stack direction={["column", "row"]} spacing={6} align="center">
+        <Button type="button" onClick={useDemoAddress}>
+          Use demo address
+        </Button>
+        <FormLabel m={0} color="gray.600" fontSize="sm">
+          Use a demo-safe UK address for walkthroughs. Shipping options and
+          costs are calculated after the address is confirmed.
+        </FormLabel>
+      </Stack>
+
       <Stack direction={["column", "row"]} spacing={6}>
         <FormControl isInvalid={formErrors.FirstName}>
-          <FormLabel>First Name</FormLabel>
+          <FormLabel>First name</FormLabel>
           <Input
             name="FirstName"
             placeholder="Enter first name"
@@ -106,12 +148,12 @@ export const CartInformationPanel = ({
             }
           />
           {formErrors.FirstName && (
-            <FormErrorMessage>First Name is required.</FormErrorMessage>
+            <FormErrorMessage>First name is required.</FormErrorMessage>
           )}
         </FormControl>
 
         <FormControl isInvalid={formErrors.LastName}>
-          <FormLabel>Last Name</FormLabel>
+          <FormLabel>Last name</FormLabel>
           <Input
             name="LastName"
             placeholder="Enter last name"
@@ -124,13 +166,13 @@ export const CartInformationPanel = ({
             }
           />
           {formErrors.LastName && (
-            <FormErrorMessage>Last Name is required.</FormErrorMessage>
+            <FormErrorMessage>Last name is required.</FormErrorMessage>
           )}
         </FormControl>
       </Stack>
 
       <FormControl>
-        <FormLabel>Company (optional)</FormLabel>
+        <FormLabel>Company, optional</FormLabel>
         <Input
           name="CompanyName"
           placeholder="Enter company name"
@@ -146,10 +188,10 @@ export const CartInformationPanel = ({
 
       <HStack gap="6">
         <FormControl isRequired isInvalid={formErrors.Street1}>
-          <FormLabel>Street 1</FormLabel>
+          <FormLabel>Address line 1</FormLabel>
           <Input
             name="Street1"
-            placeholder="Enter street"
+            placeholder="Enter address line 1"
             value={shippingAddress?.Street1 || ""}
             onChange={(e) =>
               setShippingAddress({
@@ -159,15 +201,15 @@ export const CartInformationPanel = ({
             }
           />
           {formErrors.Street1 && (
-            <FormErrorMessage>Street 1 is required.</FormErrorMessage>
+            <FormErrorMessage>Address line 1 is required.</FormErrorMessage>
           )}
         </FormControl>
 
         <FormControl flexBasis="75%">
-          <FormLabel>Street 2</FormLabel>
+          <FormLabel>Address line 2, optional</FormLabel>
           <Input
             name="Street2"
-            placeholder="Enter address"
+            placeholder="Enter address line 2"
             value={shippingAddress?.Street2 || ""}
             onChange={(e) =>
               setShippingAddress({
@@ -181,10 +223,10 @@ export const CartInformationPanel = ({
 
       <Stack direction={["column", "row"]} spacing={6}>
         <FormControl isRequired isInvalid={formErrors.City}>
-          <FormLabel>City</FormLabel>
+          <FormLabel>Town / City</FormLabel>
           <Input
             name="City"
-            placeholder="Enter city"
+            placeholder="Enter town or city"
             value={shippingAddress?.City || ""}
             onChange={(e) =>
               setShippingAddress({
@@ -194,15 +236,15 @@ export const CartInformationPanel = ({
             }
           />
           {formErrors.City && (
-            <FormErrorMessage>City is required.</FormErrorMessage>
+            <FormErrorMessage>Town / City is required.</FormErrorMessage>
           )}
         </FormControl>
 
-        <FormControl isRequired isInvalid={formErrors.State}>
-          <FormLabel>State</FormLabel>
-          <Select
+        <FormControl isInvalid={formErrors.State}>
+          <FormLabel>County, optional</FormLabel>
+          <Input
             name="State"
-            placeholder="Select state"
+            placeholder="Enter county"
             value={shippingAddress?.State || ""}
             onChange={(e) =>
               setShippingAddress({
@@ -210,22 +252,13 @@ export const CartInformationPanel = ({
                 State: e.target.value,
               })
             }
-          >
-            {US_STATES.map((state) => (
-              <option key={state} value={state}>
-                {state}
-              </option>
-            ))}
-          </Select>
-          {formErrors.State && (
-            <FormErrorMessage>State is required.</FormErrorMessage>
-          )}
+          />
         </FormControl>
 
         <FormControl flexBasis="50%" isRequired isInvalid={formErrors.Zip}>
-          <FormLabel>Zip</FormLabel>
+          <FormLabel>Postcode</FormLabel>
           <Input
-            placeholder="Enter zip"
+            placeholder="Enter postcode"
             value={shippingAddress?.Zip || ""}
             onChange={(e) =>
               setShippingAddress({
@@ -235,7 +268,26 @@ export const CartInformationPanel = ({
             }
           />
           {formErrors.Zip && (
-            <FormErrorMessage>Zip is required.</FormErrorMessage>
+            <FormErrorMessage>Postcode is required.</FormErrorMessage>
+          )}
+        </FormControl>
+      </Stack>
+
+      <Stack direction={["column", "row"]} spacing={6}>
+        <FormControl isRequired>
+          <FormLabel>Country</FormLabel>
+          <Input value="United Kingdom" isReadOnly />
+        </FormControl>
+        <FormControl isRequired isInvalid={formErrors.Phone}>
+          <FormLabel>Phone number</FormLabel>
+          <DebouncedInput
+            name="Phone"
+            placeholder="Enter phone number"
+            value={shippingAddress?.Phone || ""}
+            onChange={handlePhoneChange}
+          />
+          {formErrors.Phone && (
+            <FormErrorMessage>Phone number is required.</FormErrorMessage>
           )}
         </FormControl>
       </Stack>

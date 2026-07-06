@@ -14,9 +14,9 @@ const AddressCard = ({ address, addressCard, fontSize = '16px' }: AddressCardPro
         as="address"
         fontStyle="normal"
       >
-        <Text fontSize={fontSize}>John Smith</Text>
-        <Text fontSize={fontSize}>123 Sunrise Pointe</Text>
-        <Text fontSize={fontSize}>Pleasant Hill, MN 55604</Text>
+        <Text fontSize={fontSize}>Bristan Demo</Text>
+        <Text fontSize={fontSize}>1 Brassware Way</Text>
+        <Text fontSize={fontSize}>Tamworth, Staffordshire B77 5PN</Text>
       </Box>
     )
   }

@@ -99,7 +99,7 @@ const getPaymentDetails = (
 
 const formatOrderDate = (date?: string) => {
   if (!date) return undefined;
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(date));

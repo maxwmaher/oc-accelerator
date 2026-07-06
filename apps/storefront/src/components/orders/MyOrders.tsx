@@ -47,7 +47,7 @@ const submittedStatuses = new Set([
 
 const formatDate = (date?: string) => {
   if (!date) return "Not submitted yet";
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-GB", {
     month: "short",
     day: "numeric",
     year: "numeric",

@@ -168,8 +168,8 @@ export const validateDemoCreditCard = (card: DemoCreditCardForm): string[] => {
     errors.push("Enter an expiration date as MM/YY.");
   }
   if (!/^\d{3,4}$/.test(card.cvv.trim())) errors.push("Enter a valid CVV.");
-  if (!/^\d{5}(-\d{4})?$/.test(card.billingZip.trim())) {
-    errors.push("Enter a valid billing ZIP.");
+  if (!card.billingZip.trim()) {
+    errors.push("Enter a billing postcode.");
   }
 
   return errors;

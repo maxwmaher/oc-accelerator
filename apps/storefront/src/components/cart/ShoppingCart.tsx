@@ -55,7 +55,7 @@ export const ShoppingCart = (): JSX.Element => {
     City: "",
     State: "",
     Zip: "",
-    Country: "US",
+    Country: "GB",
     Phone: "",
   });
 
@@ -102,11 +102,11 @@ export const ShoppingCart = (): JSX.Element => {
     setTabIndex(index);
   };
 
-  const handleSaveShippingAddress = async () => {
+  const handleSaveShippingAddress = async (address: Address) => {
     if (!orderWorksheet?.Order?.ID) return;
 
     try {
-      await setShippingAddress(shippingAddress);
+      setShippingAddress(address);
       await estimateShipping();
     } catch (err) {
       console.error("Failed to save shipping address:", err);
