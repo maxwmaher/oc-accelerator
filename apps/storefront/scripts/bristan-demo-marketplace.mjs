@@ -166,7 +166,7 @@ function offerProduct(supplier, product, index) {
   return {
     ID: id, Name: `${product.name} - ${supplier.name}`, Description: clean(product.shortDescription || product.longDescription || product.name), Active: true, QuantityMultiplier: 1, ShipWeight: 1, ShipHeight: 1, ShipWidth: 1, ShipLength: 1,
     DefaultPriceScheduleID: `${id}-ps`,
-    xp: { CanonicalProductID: product.id, SupplierOffer: true, BristanOwnedProduct: true, SupplierID: supplier.id, SupplierName: supplier.name, Availability: supplier.availability, LeadTime: supplier.leadTime, Images: product.images || [], ImageUrl: product.imageUrl || null, SKU: product.sku || null, OfferRank: index + 1 },
+    xp: { CanonicalProductID: product.id, CanonicalProductName: product.name, SupplierOffer: true, HiddenMarketplaceOffer: true, BristanOwnedProduct: true, SupplierID: supplier.id, SupplierName: supplier.name, Availability: supplier.availability, LeadTime: supplier.leadTime, Images: product.images || [], ImageUrl: product.imageUrl || null, SKU: product.sku || null, OfferRank: index + 1 },
   };
 }
 function supplierOfferSummary(supplier, product, index) {
@@ -252,8 +252,8 @@ async function seed() {
       const offer = offerProduct(supplier, p, index);
       await saveEntity('offer priceSchedule', '/priceschedules', priceSchedule(offer.DefaultPriceScheduleID, `${supplier.name} offer - ${p.name}`, productPrice(p), [[1, 1 - supplier.discount]]));
       await saveEntity('supplier offer product', '/products', offer);
-      await assignProductToMarketplaceBuyerWithPriceSchedule(offer.ID, offer.DefaultPriceScheduleID);
       await assign('marketplace offer category product', '/catalogs/bristan-demo-marketplace-catalog/categories/productassignments', { CategoryID: p.categoryID, ProductID: offer.ID });
+      await assignProductToMarketplaceBuyerWithPriceSchedule(offer.ID, offer.DefaultPriceScheduleID);
     }
   }
   console.log(`Bristan marketplace seed report: ${JSON.stringify(report)}`);
