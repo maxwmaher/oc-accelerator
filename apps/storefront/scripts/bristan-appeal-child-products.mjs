@@ -72,6 +72,12 @@ async function assign(label, endpoint, payload) {
 function priceSchedule(product) {
   return { ID: `${product.ID}-ps`, Name: product.Name.slice(0, 100), ApplyTax: false, ApplyShipping: false, MinQuantity: 1, MaxQuantity: 10000, RestrictedQuantity: false, PriceBreaks: [{ Quantity: 1, Price: money(product.Price) }], xp: { Demo: 'BristanMarketplace', BristanChildProductFamily: true } };
 }
+function parentPriceSchedule() {
+  return priceSchedule({ ID: PARENT_ID, Name: 'Appeal Eco Start Basin Mixer with Clicker Waste', Price: 163.75 });
+}
+function childPriceSchedules() {
+  return children.map((child) => priceSchedule(child));
+}
 function parentProduct() {
   return { ID: PARENT_ID, Name: 'Appeal Eco Start Basin Mixer with Clicker Waste', Description: DESCRIPTION, Active: true, QuantityMultiplier: 1, ShipWeight: 1, ShipHeight: 1, ShipWidth: 1, ShipLength: 1, DefaultPriceScheduleID: `${PARENT_ID}-ps`, IsParent: true, ParentID: null, xp: { Demo: 'BristanMarketplace', BristanChildProductFamily: true, FamilyType: 'FaucetWithSpareParts', ProductCode: 'APL ES BAS BLK', SourceUrl: SOURCE_URL, BrandRange: 'Appeal', DisplayPrice: 163.75, Currency: 'GBP', Description: DESCRIPTION, Features: ['Eco Start', 'Precise Glide', 'Secure Fix', 'Lifetime guarantee'], SparesNote: 'Spare parts are specific to the latest revision. If unsure on parts or revision, contact the Customer Service Team.', ExpectedSparesDelivery: 'Orders received before 1pm are normally dispatched same day and delivered within 2 working days.', Images: [{ Url: IMAGE_URL, ThumbnailUrl: IMAGE_URL }] } };
 }
@@ -81,16 +87,21 @@ function childProduct(child) {
 async function seed() {
   await ocInit();
   const parent = parentProduct();
+  const products = [parent, ...children.map((child) => childProduct(child))];
+  const priceSchedules = [parentPriceSchedule(), ...childPriceSchedules()];
+
+  for (const schedule of priceSchedules) {
+    await saveEntity('price schedule', '/priceschedules', schedule);
+  }
+
   await saveEntity('parent product', '/products', parent);
-  await saveEntity('parent priceSchedule', '/priceschedules', priceSchedule({ ID: PARENT_ID, Name: parent.Name, Price: 163.75 }));
-  for (const child of children) {
-    await saveEntity('child product', '/products', childProduct(child));
-    await saveEntity('child priceSchedule', '/priceschedules', priceSchedule(child));
+  for (const product of products.slice(1)) {
+    await saveEntity('child product', '/products', product);
   }
   for (const { buyerID, catalogID } of BUYER_CONTEXTS) {
     for (const category of CATEGORIES) await saveEntity('catalog category', `/catalogs/${catalogID}/categories`, { ...category, Active: true, xp: { Demo: 'BristanMarketplace', BristanOwnedCategory: true } });
-    for (const product of [parent, ...children]) await assign('product price schedule to buyer', '/products/assignments', { ProductID: product.ID, BuyerID: buyerID, PriceScheduleID: `${product.ID}-ps` });
-    await assign('parent category product', `/catalogs/${catalogID}/categories/productassignments`, { CategoryID: CATEGORY_ID, ProductID: PARENT_ID });
+    for (const product of products) await assign(`product ${product.ID} to buyer ${buyerID}`, '/products/assignments', { ProductID: product.ID, BuyerID: buyerID, PriceScheduleID: `${product.ID}-ps` });
+    await assign(`parent product ${PARENT_ID} to catalog ${catalogID} category ${CATEGORY_ID}`,  `/catalogs/${catalogID}/categories/productassignments`, { CategoryID: CATEGORY_ID, ProductID: PARENT_ID });
   }
   console.log(`Bristan Appeal child products seed report: ${JSON.stringify(report)}`);
 }
