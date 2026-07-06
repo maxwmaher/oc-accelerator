@@ -147,8 +147,11 @@ const MyOrders = () => {
 
       for (const lineItem of lineItems) {
         try {
+          const reorderProductId = lineItem.xp?.MarketplaceSupplierOffer
+            ? lineItem.xp?.OfferProductID || lineItem.ProductID
+            : lineItem.ProductID;
           await addCartLineItem({
-            ProductID: lineItem.ProductID,
+            ProductID: reorderProductId,
             Quantity: lineItem.Quantity || 1,
             xp: lineItem.xp,
           });
@@ -272,7 +275,7 @@ const MyOrders = () => {
                             <Tr key={lineItem.ID}>
                               <Td>
                                 <Text fontWeight="semibold">
-                                  {lineItem.Product?.Name || lineItem.ProductID}
+                                  {lineItem.xp?.CanonicalProductName || lineItem.Product?.Name || lineItem.ProductID}
                                 </Text>
                                 {lineItem.xp?.MarketplaceSupplierOffer && (
                                   <Text fontSize="xs" color="chakra-subtle-text">
@@ -283,7 +286,7 @@ const MyOrders = () => {
                                   </Text>
                                 )}
                               </Td>
-                              <Td>{lineItem.ProductID}</Td>
+                              <Td>{lineItem.xp?.CanonicalProductID || lineItem.ProductID}</Td>
                               <Td isNumeric>{lineItem.Quantity}</Td>
                               <Td isNumeric>{formatPrice(lineItem.UnitPrice)}</Td>
                               <Td isNumeric>{formatPrice(lineItem.LineTotal)}</Td>

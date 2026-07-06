@@ -50,6 +50,12 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
   const debouncedQuantity: number = useDebounce(quantity, 300);
 
   const product = useMemo(() => lineItem.Product, [lineItem]);
+  const displayProductId =
+    lineItem.xp?.CanonicalProductID || lineItem.Product?.xp?.CanonicalProductID || lineItem.Product?.ID;
+  const displayProductName =
+    lineItem.xp?.CanonicalProductName || lineItem.Product?.Name;
+  const displayProductImage =
+    lineItem.xp?.CanonicalProductImage || lineItem.Product?.xp?.Images?.[0]?.Url;
   const [isDeliveryInstructionsModalOpen, setIsDeliveryInstructionsModalOpen] =
     useState(false);
 
@@ -98,13 +104,13 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
             boxSize="80px"
             rounded="md"
           >
-            {lineItem?.Product?.xp?.Images ? (
+            {displayProductImage ? (
               <Image
                 rounded="md"
                 boxSize="full"
                 objectFit="cover"
-                src={lineItem?.Product?.xp?.Images[0].Url}
-                alt={lineItem.Product?.Name || "Order item image"}
+                src={displayProductImage}
+                alt={displayProductName || "Order item image"}
                 zIndex={1}
                 onError={(e) => {
                   e.currentTarget.src = ""; // Prevent the broken image from rendering
@@ -134,9 +140,9 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
           )}
         </VStack>
         <VStack alignItems="flex-start" gap={3} flexGrow="1">
-          <Link as={RouterLink} to={`/products/${lineItem?.Product?.ID}`}>
+          <Link as={RouterLink} to={`/products/${displayProductId}`}>
             <Text fontSize="sm" lineHeight="1.3" display="inline-block">
-              {lineItem.Product?.Name}
+              {displayProductName}
             </Text>
           </Link>
           <HStack alignItems="center" color="chakra-subtle-text" mt={-2}>
@@ -144,7 +150,7 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
               <Text fontWeight="600" display="inline">
                 Item number:{" "}
               </Text>
-              {lineItem.Product?.ID}
+              {displayProductId}
             </Text>
           </HStack>
           {lineItem.xp?.ChildProductRole && (
@@ -204,12 +210,12 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
                   {lineItem.xp?.LeadTime || lineItem.xp?.MarketplaceSupplierOffer?.LeadTime}
                 </Text>
               )}
-              {(lineItem.xp?.OfferPrice || lineItem.xp?.MarketplaceSupplierOffer?.Price) && (
+              {(lineItem.xp?.SupplierOfferPrice || lineItem.xp?.OfferPrice || lineItem.xp?.MarketplaceSupplierOffer?.Price) && (
                 <Text fontSize="xs" color="chakra-subtle-text">
                   <Text fontWeight="600" display="inline">
                     Selected offer price:
                   </Text>{" "}
-                  {formatPrice(lineItem.xp?.OfferPrice || lineItem.xp?.MarketplaceSupplierOffer?.Price)}
+                  {formatPrice(lineItem.xp?.SupplierOfferPrice || lineItem.xp?.OfferPrice || lineItem.xp?.MarketplaceSupplierOffer?.Price)}
                 </Text>
               )}
               {lineItem.xp?.OfferProductID && (
