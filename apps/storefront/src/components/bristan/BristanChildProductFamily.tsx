@@ -30,7 +30,7 @@ import {
 } from "@chakra-ui/react";
 import { BuyerProduct, Me, OrderCloudError } from "ordercloud-javascript-sdk";
 import pluralize from "pluralize";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useShopper } from "@ordercloud/react-sdk";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
@@ -75,7 +75,12 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
   const { catalogId } = useParams<{ catalogId: string }>();
   const toast = useToast();
   const navigate = useNavigate();
-  const { isOpen: isSparesOpen, onToggle: onToggleSpares } = useDisclosure();
+  const sparePartsSectionRef = useRef<HTMLDivElement>(null);
+  const {
+    isOpen: isSparesOpen,
+    onOpen: onOpenSpares,
+    onToggle: onToggleSpares,
+  } = useDisclosure();
   const { addCartLineItem } = useShopper();
   const [children, setChildren] = useState<BuyerProduct[]>([]);
   const [isLoadingChildren, setIsLoadingChildren] = useState(true);
@@ -132,6 +137,16 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
     () => children.filter((child) => child.xp?.ChildProductRole === "SparePart"),
     [children],
   );
+
+  const handleViewSpareParts = useCallback(() => {
+    onOpenSpares();
+    window.requestAnimationFrame(() => {
+      sparePartsSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [onOpenSpares]);
 
   const addChildToCart = useCallback(
     async (child: BuyerProduct) => {
@@ -237,7 +252,17 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
                     >
                       Add to cart
                     </Button>
+                    {spareParts.length > 0 && (
+                      <Button variant="outline" onClick={handleViewSpareParts}>
+                        View spare parts
+                      </Button>
+                    )}
                   </HStack>
+                  {spareParts.length > 0 && (
+                    <Text color="chakra-subtle-text" fontSize="sm">
+                      Need a replacement part? Jump straight to compatible spares.
+                    </Text>
+                  )}
                 </VStack>
               </CardBody>
             </Card>
@@ -257,22 +282,24 @@ const BristanChildProductFamily: React.FC<BristanChildProductFamilyProps> = ({
       </SimpleGrid>
 
       {!isLoadingChildren && !childLoadError && spareParts.length > 0 && (
-        <Box mt={{ base: 8, lg: 10 }}>
+        <Box ref={sparePartsSectionRef} mt={{ base: 8, lg: 10 }} scrollMarginTop="6rem">
           <Divider mb={4} />
           <Button
-            variant="ghost"
+            variant="outline"
+            borderColor="primary.200"
+            bg="chakra-body-bg"
             w="full"
             justifyContent="space-between"
             alignItems="center"
-            px={0}
-            py={6}
+            px={4}
+            py={5}
             h="auto"
             onClick={onToggleSpares}
             rightIcon={isSparesOpen ? <FiChevronUp /> : <FiChevronDown />}
           >
             <VStack align="flex-start" gap={1} textAlign="left">
               <HStack>
-                <Heading size="md">Compatible spare parts</Heading>
+                <Heading size="lg">Compatible spare parts</Heading>
                 <Badge colorScheme="gray">{spareParts.length} available</Badge>
               </HStack>
               <Text color="chakra-subtle-text" fontSize="sm" fontWeight="normal">
