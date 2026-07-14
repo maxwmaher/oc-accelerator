@@ -7,19 +7,32 @@ The Accelerator creates OrderCloud API Clients configured for Storefront, Admin,
 
 ### Configure OrderCloud
 1. Navigate to the API console for your marketplace
-2. Create an API Client for your Azure Function Application
-    ```json
+2. Create an API Client for your Azure Function Application. See the [Create an API client reference](https://api-docs.sitecore.com/ordercloud/api-clients/apiclients.create).
+    ```http
+    POST /v1/apiclients
+
     {
         "AppName": "Azure Functions App",
         "Active": true,
-        "ClientSecret": "GENERATE_A_LONG_NONGUESSABBLE_SECRET",
         "AccessTokenDuration": 600,
         "RefreshTokenDuration": 3200,
         "AllowSeller": true
     }
     ```
-3. Create an admin user (no password required)
-    ```json
+3. Create an API Client Secret for the API Client you just created. See the [Create an API client secret reference](https://api-docs.sitecore.com/ordercloud/api-clients/apiclients.createsecret).
+    ```http
+    POST /v1/apiclients/{apiClientID}/secrets
+
+    {
+        "Name": "Azure Functions App Secret"
+    }
+    ```
+    - The `ClientSecret` value is only returned when the API Client Secret is created and cannot be retrieved later. Copy it immediately; you will use it as `ocFunctionsClientSecret` in `appSettings.json`.
+    - You may optionally set an `Expiration`. See [API Client Secrets](https://ordercloud.io/knowledge-base/api-client-secrets) for details about expiration and secret rotation.
+4. Create an admin user (no password required). See the [Create an admin user reference](https://api-docs.sitecore.com/ordercloud/admin-users/adminusers.create).
+    ```http
+    POST /v1/adminusers
+
     {
         "ID": "admin",
         "Username": "admin",
@@ -29,8 +42,10 @@ The Accelerator creates OrderCloud API Clients configured for Storefront, Admin,
         "Active": true
     }
     ```
-3. Create a security profile
-    ```json
+5. Create a security profile. See the [Create a security profile reference](https://api-docs.sitecore.com/ordercloud/security-profiles/securityprofiles.create).
+    ```http
+    POST /v1/securityprofiles
+
     {
         "ID": "azure-functions-app",
         "Name": "Azure Functions App",
@@ -45,14 +60,23 @@ The Accelerator creates OrderCloud API Clients configured for Storefront, Admin,
         ]
     }
     ```
-4. Assign the security profile to the admin user
-    ```json
+6. Assign the security profile to the admin user. See the [Create or update a security profile assignment reference](https://api-docs.sitecore.com/ordercloud/security-profiles/securityprofiles.saveassignment).
+    ```http
+    POST /v1/securityprofiles/assignments
+
     {
         "SecurityProfileID": "azure-functions-app",
         "UserID": "admin"
     }
     ```
-5. Set `DefaultContextUser` for the API Client to the admin user
+7. Set `DefaultContextUserName` for the API Client to the admin user's username, replacing `{apiClientID}` with the API Client ID from step 2. See the [Partially update an API client reference](https://api-docs.sitecore.com/ordercloud/api-clients/apiclients.patch).
+    ```http
+    PATCH /v1/apiclients/{apiClientID}
+
+    {
+        "DefaultContextUserName": "admin"
+    }
+    ```
 
 ### Configure app settings
 
@@ -61,7 +85,7 @@ The Accelerator creates OrderCloud API Clients configured for Storefront, Admin,
 3. Copy the contents of `appSettings.example.json` file into the `appSettings.json` file you just created
 4. Populate the following values in `appSettings.json`
     - `ocFunctionsClientId` - the ID of your API Client for your Azure Functions application
-    - `ocFunctionsClientSecret` - the secret of your API Client for your Azure Functions application
+    - `ocFunctionsClientSecret` - the generated `ClientSecret` value from the API Client Secret resource for your Azure Functions application
     - `ocApiUrl` - the URL of your OrderCloud API (varies by region/environment)
        - can be found in Portal > Settings > OrderCloud API Instance > API Server
     - `ocHashKey` - a long non-guessable string (max 50 characters) that will be used when creating a Webhook and the OrderCheckout Integration Event. This value should be kept secret, and is used to verify requests to your application come from OrderCloud. Read more about verifying requests [here](https://ordercloud.io/knowledge-base/using-webhooks#verifying-the-webhook-request).
