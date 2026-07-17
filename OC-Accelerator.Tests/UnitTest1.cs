@@ -16,18 +16,20 @@ namespace OC_Accelerator.Tests
         {
             var azPlanOpts = new AzurePlanOptions();
             var storageKinds = azPlanOpts.GetAzureStorageKindValues("Standard_LRS");
-            foreach (var expectedStorageKind in new List<string> { "BlobStorage", "Storage", "StorageV2" })
+            foreach (var expectedStorageKind in new List<string> { "BlobStorage", "StorageV2" })
             {
                 Assert.Contains(expectedStorageKind, storageKinds);
             }
+            Assert.False(storageKinds.Contains("Storage"));
             Assert.False(storageKinds.Contains("FileStorage"));
             Assert.False(storageKinds.Contains("BlockBlobStorage"));
 
             storageKinds = azPlanOpts.GetAzureStorageKindValues("Standard_GZRS");
-            foreach (var expectedStorageKind in new List<string> { "Storage", "StorageV2" })
+            foreach (var expectedStorageKind in new List<string> { "StorageV2" })
             {
                 Assert.Contains(expectedStorageKind, storageKinds);
             }
+            Assert.False(storageKinds.Contains("Storage"));
             Assert.False(storageKinds.Contains("FileStorage"));
             Assert.False(storageKinds.Contains("BlockBlobStorage"));
             Assert.False(storageKinds.Contains("BlobStorage"));
