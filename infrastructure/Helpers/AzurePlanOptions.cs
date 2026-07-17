@@ -36,7 +36,7 @@ namespace OC_Accelerator.Helpers
         public List<string> GetAzureStorageKindValues(string storageSku)
         {
             // https://learn.microsoft.com/en-us/rest/api/storagerp/srp_sku_types
-            var list = new List<string> { "Storage", "StorageV2" };
+            var list = new List<string> { "StorageV2" };
             if (new List<string> { "Standard_LRS", "Standard_GRS", "Standard_RAGRS" }.Contains(storageSku))
                 list.Add("BlobStorage");
             else if (storageSku == "Premium_LRS")
