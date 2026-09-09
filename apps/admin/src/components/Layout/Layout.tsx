@@ -134,6 +134,9 @@ const Layout: FC = () => {
           p="3"
         >
           <VStack>
+            <NavButton to="/pelckmans" variant="solid" colorScheme="primary" justifyContent="start">
+              Bundles &amp; Offers
+            </NavButton>
             {resources
               .filter((r) => !!r.label)
               .map((r, idx) => {

@@ -45,7 +45,7 @@ const AppProvider: FC = () => {
       baseApiUrl={BASE_API_URL}
       clientId={CLIENT_ID}
       scope={[]}
-      customScope={[]}
+      customScope={['PelckmansOfferEditor', 'PelckmansOfferApprover']}
       allowAnonymous={false}
       defaultErrorHandler={defaultErrorHandler}
       xpSchemas={schemaObject}

@@ -1,12 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <RootNamespace>Accelerator</RootNamespace>
-        <LangVersion>latest</LangVersion>
-    </PropertyGroup>
+<PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Accelerator</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+</PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Azure.Storage.Blobs" Version="12.25.0" />
         <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.0" />
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.0" />
         <PackageReference Include="ordercloud-dotnet-catalyst" Version="2.8.0" />
