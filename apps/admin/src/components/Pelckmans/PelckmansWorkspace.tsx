@@ -33,7 +33,7 @@ import {
 } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api, CatalogItem, Component, Document, OfferType } from './api'
+import { api, ApiError, CatalogItem, Component, Document, Offer, OfferType } from './api'
 
 const templates: {
   type: OfferType
@@ -63,12 +63,28 @@ const eur = (n: number) =>
     currency: 'EUR',
   }).format(n)
 
+const offerSummary = (offer: Offer, audienceLabel?: string) => {
+  if (offer.type !== 'SegmentDiscount' || !offer.rule) {
+    return templates.find((template) => template.type === offer.type)?.description
+  }
+
+  const selector = offer.rule.selectorType.toLowerCase()
+  const fallback = selector === 'author' || selector === 'genre'
+    ? `the selected ${selector}`
+    : 'the selected books'
+  const audience = audienceLabel || fallback
+
+  return `Buy ${offer.rule.minimumQuantity}+ books from ${audience} and save ${offer.rule.discountPercent}%.`
+}
+
 export default function PelckmansWorkspace({
   mode,
 }: {
   mode?: 'new' | 'detail' | 'review'
 }) {
   const [docs, setDocs] = useState<Document[]>([])
+  const [detailDoc, setDetailDoc] = useState<Document>()
+  const [detailUnavailable, setDetailUnavailable] = useState(false)
   const [caps, setCaps] = useState<{
     username: string
     editor: boolean
@@ -80,14 +96,29 @@ export default function PelckmansWorkspace({
   const { offerId } = useParams()
 
   useEffect(() => {
-    Promise.all([api.capabilities(), api.list()])
-      .then(([c, d]) => {
+    setBusy(true)
+    setError('')
+    setDetailUnavailable(false)
+    const requestedDocument = offerId ? api.get(offerId) : api.list()
+
+    Promise.all([api.capabilities(), requestedDocument])
+      .then(([c, result]) => {
         setCaps(c)
-        setDocs(d)
+        if (offerId) {
+          setDetailDoc(result as Document)
+        } else {
+          setDocs(result as Document[])
+        }
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => {
+        if (offerId && e instanceof ApiError && (e.status === 403 || e.status === 404)) {
+          setDetailUnavailable(true)
+        } else {
+          setError((e as Error).message)
+        }
+      })
       .finally(() => setBusy(false))
-  }, [])
+  }, [offerId])
 
   if (busy) {
     return (
@@ -113,23 +144,21 @@ export default function PelckmansWorkspace({
   }
 
   if (offerId) {
-    const d = docs.find((x) => x.offer.id === offerId)
-
-    return d ? (
+    return detailDoc ? (
       <OfferDetail
-        initial={d}
+        initial={detailDoc}
         editor={!!caps?.editor}
         approver={!!caps?.approver}
         username={caps?.username || ''}
       />
-    ) : (
+    ) : detailUnavailable ? (
       <Container py="10">
         <Alert status="warning">
           <AlertIcon />
           Offer not found or not available.
         </Alert>
       </Container>
-    )
+    ) : null
   }
 
   const review = docs.filter(
@@ -326,6 +355,23 @@ function OfferDetail({
   const [draftComponents,setDraftComponents]=useState(initial.offer.components)
   const [verification,setVerification]=useState<Awaited<ReturnType<typeof api.verify>>>()
   const [working,setWorking]=useState(false)
+  const [audienceLabel,setAudienceLabel]=useState<string>()
+
+  useEffect(() => {
+    const rule = initial.offer.rule
+    if (!rule || (rule.selectorType !== 'author' && rule.selectorType !== 'genre')) return
+
+    let active = true
+    api.catalog().then((catalog) => {
+      const facets = rule.selectorType === 'author' ? catalog.authors : catalog.genres
+      const label = facets.find((facet) => facet.id === rule.selectorId)?.name
+      if (active && label) setAudienceLabel(label)
+    }).catch(() => {
+      // The offer remains usable with friendly fallback wording when facets are unavailable.
+    })
+
+    return () => { active = false }
+  }, [initial.offer.rule])
 
   const act = async (a: string) => {
     if(working)return
@@ -383,11 +429,7 @@ function OfferDetail({
           </Heading>
 
           <Text mt="2">
-            {
-              templates.find(
-                (t) => t.type === o.type
-              )?.description
-            }
+            {offerSummary(o, audienceLabel)}
           </Text>
 
           {o.publicationError && (
@@ -515,7 +557,7 @@ function OfferDetail({
         </Card>
       )}
 
-      {verification&&<Card mt="5"><CardBody><Badge colorScheme={verification.discrepancies.length?'red':'green'}>Native OrderCloud verification</Badge>{verification.lines.map((x,i)=><Text key={`${x.productId}-${i}`}>{x.quantity} × {x.title} at {eur(x.unitPrice)} = {eur(x.lineTotal)}{x.discount?` · discount ${eur(x.discount)}`:''}</Text>)}<Heading size="sm">Actual total: {eur(verification.total)} · discount {eur(verification.discount)}</Heading><Text>Applied promotions: {verification.appliedPromotions.join(', ')||'none'}</Text>{verification.discrepancies.map(x=><Alert status="error" key={x}><AlertIcon/>{x}</Alert>)}<Box as="details" mt="3"><Box as="summary">Technical identifiers</Box><Text fontFamily="mono">Order {verification.orderId}</Text>{Object.entries(verification.resourceIds).map(([k,v])=><Text key={k} fontFamily="mono">{k}: {v}</Text>)}</Box></CardBody></Card>}
+      {verification&&<Card mt="5"><CardBody><Badge colorScheme={verification.discrepancies.length?'red':'green'}>Native OrderCloud verification</Badge>{verification.lines.map((x,i)=><Text key={`${x.productId}-${i}`}>{x.quantity} × {x.title} at {eur(x.unitPrice)} = {eur(x.lineTotal)}{x.discount?` · discount ${eur(x.discount)}`:''}</Text>)}<Heading size="sm">Actual total: {eur(verification.total)} · discount {eur(verification.discount)}</Heading><Text>Applied promotions: {[...new Set(verification.appliedPromotions)].join(', ')||'none'}</Text>{verification.discrepancies.map(x=><Alert status="error" key={x}><AlertIcon/>{x}</Alert>)}<Box as="details" mt="3"><Box as="summary">Technical identifiers</Box><Text fontFamily="mono">Order {verification.orderId}</Text>{Object.entries(verification.resourceIds).map(([k,v])=><Text key={k} fontFamily="mono">{k}: {v}</Text>)}</Box></CardBody></Card>}
 
       <Heading size="sm" mt="8">
         Audit history
