@@ -43,6 +43,7 @@ builder.Services.AddSingleton(new BlobContainerClient(
 builder.Services.AddSingleton<IOfferStore, BlobOfferStore>();
 builder.Services.AddSingleton<PelckmansAuth>();
 builder.Services.AddSingleton<PelckmansPublisher>();
+builder.Services.AddSingleton<PelckmansCommerce>();
 
 
 builder.Build().Run();
