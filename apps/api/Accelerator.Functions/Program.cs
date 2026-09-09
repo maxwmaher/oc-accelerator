@@ -8,6 +8,8 @@ using OrderCloud.SDK;
 using System.Reflection;
 using Accelerator.MockServices;
 using Flurl.Util;
+using Accelerator.Pelckmans;
+using Azure.Storage.Blobs;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -33,6 +35,13 @@ builder.Services.AddSingleton<IOrderCloudClient>(new OrderCloudClient(new OrderC
     ClientId = config.GetValue<string>("OrderCloudSettings:MiddlewareClientID"),
     ClientSecret = config.GetValue<string>("OrderCloudSettings:MiddlewareClientSecret"),
 }));
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton(new BlobContainerClient(
+    config.GetConnectionString("PelckmansWorkflowStorage") ?? config["AzureWebJobsStorage"] ?? throw new InvalidOperationException("Workflow storage is not configured."),
+    config["Pelckmans:StorageContainer"] ?? "pelckmans-offers"));
+builder.Services.AddSingleton<IOfferStore, BlobOfferStore>();
+builder.Services.AddSingleton<PelckmansAuth>();
+builder.Services.AddSingleton<PelckmansPublisher>();
 
 
 builder.Build().Run();
