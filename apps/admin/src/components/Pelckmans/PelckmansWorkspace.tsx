@@ -63,6 +63,26 @@ const eur = (n: number) =>
     currency: 'EUR',
   }).format(n)
 
+const friendlyFacetLabel = (id: string, name: string, selectorType: string) => {
+  const technicalPattern = /^PEL_(AUTHOR|GENRE)_([A-Z0-9]+(?:[_-][A-Z0-9]+)*)$/i
+  const humanize = (value: string) => {
+    const match = technicalPattern.exec(value.trim())
+    if (!match || match[1].toLowerCase() !== selectorType.toLowerCase()) return
+
+    return match[2]
+      .split(/[_-]/)
+      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`)
+      .join(' ')
+  }
+  const cleanName = name.trim()
+
+  if (cleanName && cleanName.toLowerCase() !== id.trim().toLowerCase()) {
+    return humanize(cleanName) || cleanName
+  }
+
+  return humanize(id)
+}
+
 const offerSummary = (offer: Offer, audienceLabel?: string) => {
   if (offer.type !== 'SegmentDiscount' || !offer.rule) {
     return templates.find((template) => template.type === offer.type)?.description
@@ -99,6 +119,7 @@ export default function PelckmansWorkspace({
     setBusy(true)
     setError('')
     setDetailUnavailable(false)
+    if (offerId) setDetailDoc(undefined)
     const requestedDocument = offerId ? api.get(offerId) : api.list()
 
     Promise.all([api.capabilities(), requestedDocument])
@@ -364,7 +385,8 @@ function OfferDetail({
     let active = true
     api.catalog().then((catalog) => {
       const facets = rule.selectorType === 'author' ? catalog.authors : catalog.genres
-      const label = facets.find((facet) => facet.id === rule.selectorId)?.name
+      const facet = facets.find((candidate) => candidate.id === rule.selectorId)
+      const label = facet && friendlyFacetLabel(facet.id, facet.name, rule.selectorType)
       if (active && label) setAudienceLabel(label)
     }).catch(() => {
       // The offer remains usable with friendly fallback wording when facets are unavailable.
