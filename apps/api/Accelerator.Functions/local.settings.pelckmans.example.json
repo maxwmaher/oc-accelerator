@@ -5,8 +5,16 @@
     "OrderCloudSettings__ApiUrl": "https://westeurope-sandbox.ordercloud.io",
     "OrderCloudSettings__MiddlewareClientID": "D6F22B34-2D87-4B55-98E6-4C45576480FC",
     "OrderCloudSettings__MiddlewareClientSecret": "SET_LOCALLY_OR_IN_AZURE_KEY_VAULT_REFERENCE",
-    "AzureWebJobsStorage": "USE_DEVELOPMENT_STORAGE_OR_A_PRIVATE_AZURE_SETTING",
-    "Pelckmans__StorageContainer": "pelckmans-offers"
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "Pelckmans__StorageContainer": "pelckmans-offers",
+    "Pelckmans__BuyerID": "SET_TO_INDIVIDUAL_CUSTOMERS_BUYER_ID",
+    "Pelckmans__CatalogID": "SET_TO_INDIVIDUAL_CUSTOMERS_CATALOG_ID",
+    "Pelckmans__StorefrontClientID": "SET_TO_EXISTING_STOREFRONT_CLIENT_ID",
+    "Pelckmans__TestShopperUsername": "SET_LOCALLY",
+    "Pelckmans__TestShopperPassword": "SET_LOCALLY_OR_KEY_VAULT_REFERENCE"
   },
-  "Host": { "CORS": "http://localhost:5173", "CORSCredentials": true }
+  "Host": {
+    "CORS": "http://localhost:3000",
+    "CORSCredentials": true
+  }
 }

@@ -42,3 +42,8 @@ public sealed record PelckmansOffer {
 public record StoreDocument(PelckmansOffer Offer, string ETag);
 public record PreviewLine(string ProductId, string Title, int Quantity, decimal UnitPrice, decimal Discount, bool Qualifies);
 public record OfferPreview(IReadOnlyList<PreviewLine> Lines, decimal Subtotal, decimal Discount, decimal Payable, string Label = "Estimated preview");
+public record CatalogItem(string Id, string Name, string EntityType, decimal? UnitPrice, string? ImageUrl, IReadOnlyList<string> AuthorIds, IReadOnlyList<string> GenreIds, string? Availability = null);
+public record CatalogFacet(string Id, string Name, int ProductCount);
+public record CatalogPage(IReadOnlyList<CatalogItem> Items, IReadOnlyList<CatalogFacet> Authors, IReadOnlyList<CatalogFacet> Genres, int Page, int PageSize, int TotalCount, int TotalPages);
+public record VerificationLine(string ProductId, string Title, int Quantity, decimal UnitPrice, decimal LineTotal, bool Qualifies, decimal Discount = 0);
+public record VerificationResult(string OrderId, IReadOnlyList<VerificationLine> Lines, decimal Subtotal, decimal Discount, decimal Total, IReadOnlyList<string> AppliedPromotions, IReadOnlyList<string> Discrepancies, IReadOnlyDictionary<string,string> ResourceIds);

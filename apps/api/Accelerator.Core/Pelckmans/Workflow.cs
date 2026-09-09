@@ -2,9 +2,10 @@ namespace Accelerator.Pelckmans;
 
 public sealed record WorkspaceActor(string Username, bool Editor, bool Approver);
 public static class OfferWorkflow {
-    public static PelckmansOffer Submit(PelckmansOffer o, WorkspaceActor a) { OwnDraft(o,a); return Move(o, OfferStatus.PendingApproval, a, "Submitted"); }
+    public static PelckmansOffer Submit(PelckmansOffer o, WorkspaceActor a) { OwnDraft(o,a); OfferEngine.ValidateComplete(o); return Move(o, OfferStatus.PendingApproval, a, "Submitted"); }
     public static PelckmansOffer Approve(PelckmansOffer o, WorkspaceActor a) {
         if (!a.Approver || o.Status != OfferStatus.PendingApproval) throw new UnauthorizedAccessException();
+        OfferEngine.ValidateComplete(o);
         if (Same(o.Owner,a.Username)) throw new InvalidOperationException("Creators cannot approve their own offer.");
         return Move(o with { Approver=a.Username, ApprovedRevision=o.Revision }, OfferStatus.Approved, a, "Approved");
     }
@@ -15,8 +16,9 @@ public static class OfferWorkflow {
     }
     public static void CanPublish(PelckmansOffer o, WorkspaceActor a) {
         if (!a.Approver || (o.Status != OfferStatus.Approved && o.Status != OfferStatus.PublishFailed) || o.ApprovedRevision != o.Revision) throw new UnauthorizedAccessException("Exact approved revision required.");
+        OfferEngine.ValidateComplete(o);
     }
-    public static PelckmansOffer Edit(PelckmansOffer o, WorkspaceActor a, string name, IReadOnlyList<OfferComponent> components, OfferRule? rule) { OwnDraft(o,a); return o with { Name=name, Components=components, Rule=rule, Revision=o.Revision+1, ApprovedRevision=null, Approver=null, UpdatedAt=DateTimeOffset.UtcNow }; }
+    public static PelckmansOffer Edit(PelckmansOffer o, WorkspaceActor a, string name, IReadOnlyList<OfferComponent> components, OfferRule? rule) { OwnDraft(o,a); return o with { Name=name.Trim(), Components=components, Rule=rule, Revision=o.Revision+1, ApprovedRevision=null, Approver=null, PublicationError=null, UpdatedAt=DateTimeOffset.UtcNow, History=o.History.Append(new(DateTimeOffset.UtcNow,a.Username,"Edited",Revision:o.Revision+1)).ToList() }; }
     static void OwnDraft(PelckmansOffer o, WorkspaceActor a) { if (!a.Editor || o.Status != OfferStatus.Draft || !Same(o.Owner,a.Username)) throw new UnauthorizedAccessException(); }
     static bool Same(string a,string b) => string.Equals(a,b,StringComparison.OrdinalIgnoreCase);
     static PelckmansOffer Move(PelckmansOffer o, OfferStatus s, WorkspaceActor a, string action, string? comment=null) => o with { Status=s, UpdatedAt=DateTimeOffset.UtcNow, History=o.History.Append(new(DateTimeOffset.UtcNow,a.Username,action,comment,o.Revision)).ToList() };
