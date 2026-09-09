@@ -1,9 +1,24 @@
 using System.Text.Json.Serialization;
 
 namespace Accelerator.Pelckmans;
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum OfferType
+{
+    Bundle,
+    BuyThreePayTwo,
+    SegmentDiscount
+}
 
-public enum OfferType { Bundle, BuyThreePayTwo, SegmentDiscount }
-public enum OfferStatus { Draft, PendingApproval, Approved, Publishing, Published, PublishFailed }
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum OfferStatus
+{
+    Draft,
+    PendingApproval,
+    Approved,
+    Publishing,
+    Published,
+    PublishFailed
+}
 public record OfferComponent(string ProductId, int Quantity = 1, bool Required = true, bool IncludedFree = false, decimal UnitPrice = 0, string? Title = null);
 public record OfferRule(string SelectorType, string SelectorId, int MinimumQuantity = 3, decimal DiscountPercent = 0, IReadOnlyList<string>? ProductIds = null);
 public record AuditEntry(DateTimeOffset At, string Actor, string Action, string? Comment = null, int Revision = 1);

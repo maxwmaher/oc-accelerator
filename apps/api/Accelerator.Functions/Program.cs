@@ -10,6 +10,7 @@ using Accelerator.MockServices;
 using Flurl.Util;
 using Accelerator.Pelckmans;
 using Azure.Storage.Blobs;
+using Accelerator.Functions;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
