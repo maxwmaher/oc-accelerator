@@ -1,51 +1,17 @@
-import { Button } from "@chakra-ui/react";
-import { useMemo } from "react";
-import { PAYMENT_PROVIDER, PAYMENT_PROVIDERS } from "../../../constants";
-import { BlueSnap } from "../Payment/BlueSnap";
-import { CardConnect } from "../Payment/CardConnect";
-import { PayPal } from "../Payment/PayPal";
-import { Stripe } from "../Payment/Stripe";
+import { Alert, AlertDescription, AlertIcon, Button, ButtonGroup, Heading, Text, VStack } from "@chakra-ui/react";
+import { PaymentOutcome } from "../../../utils/demoCheckoutApi";
 
-type CartPaymentPanelProps = {
-  submitOrder: () => void;
-  submitting: boolean;
-};
-
-const PaymentMapper = (provider: PAYMENT_PROVIDERS) => {
-  switch (provider) {
-    case PAYMENT_PROVIDERS.STRIPE:
-      return <Stripe />;
-    case PAYMENT_PROVIDERS.CARD_CONNECT:
-      return <CardConnect />;
-    case PAYMENT_PROVIDERS.BLUESNAP:
-      return <BlueSnap />;
-    case PAYMENT_PROVIDERS.PAYPAL:
-      return <PayPal />;
-    default:
-      null;
-  }
-};
-
-export const CartPaymentPanel = ({
-  submitOrder,
-  submitting,
-}: CartPaymentPanelProps) => {
-  const PaymentElement = useMemo(() => {
-    return PaymentMapper(PAYMENT_PROVIDER);
-  }, []);
-
-  return (
-    <>
-      {PaymentElement}
-
-      <Button
-        alignSelf="flex-end"
-        onClick={submitOrder}
-        mt={6}
-        isDisabled={submitting}
-      >
-        {submitting ? "Submitting" : "Submit Order"}
-      </Button>
-    </>
-  );
-};
+type Props = { onPayment: (outcome: PaymentOutcome) => void; submitting: boolean; paymentStatus?: string; };
+export const CartPaymentPanel = ({ onPayment, submitting, paymentStatus }: Props) => (
+  <VStack align="stretch" spacing={5}>
+    <Heading size="md">Payment and review</Heading>
+    <Alert status="info"><AlertIcon /><AlertDescription><strong>Demo payment — no real charge.</strong> No card number or CVV is collected.</AlertDescription></Alert>
+    <Text>Choose an outcome to simulate the hosted card gateway. Only Approve creates and accepts an OrderCloud payment record.</Text>
+    {paymentStatus && <Text fontWeight="semibold">Payment status: {paymentStatus}</Text>}
+    <ButtonGroup justifyContent="flex-end">
+      <Button variant="ghost" onClick={() => onPayment("cancel")} isDisabled={submitting}>Cancel</Button>
+      <Button colorScheme="red" variant="outline" onClick={() => onPayment("decline")} isDisabled={submitting}>Decline</Button>
+      <Button onClick={() => onPayment("approve")} isLoading={submitting}>Approve and submit order</Button>
+    </ButtonGroup>
+  </VStack>
+);

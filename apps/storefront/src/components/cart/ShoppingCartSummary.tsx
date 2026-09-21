@@ -14,9 +14,9 @@ import {
 import { useShopper } from "@ordercloud/react-sdk";
 import { LineItem } from "ordercloud-javascript-sdk";
 import React, { FormEvent, useCallback, useState } from "react";
+import formatPrice from "../../utils/formatPrice";
 import { Link as RouterLink } from "react-router-dom";
 import OcCurrentOrderLineItemList from "./OcCurrentOrderLineItemList";
-import { TABS } from "./ShoppingCart";
 
 interface CartSummaryProps {
   onSubmitOrder: () => void;
@@ -24,8 +24,8 @@ interface CartSummaryProps {
   tabIndex: number;
 }
 
-const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
-  const { addCartPromo, removeCartPromo, orderWorksheet } = useShopper();
+const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder }) => {
+  const { addCartPromo, removeCartPromo, listEligiblePromotions, refreshWorksheet, orderWorksheet } = useShopper();
   const [promoCode, setPromoCode] = useState<string>("");
   const handleLineItemChange = (newLi: LineItem) => {
     // Implement the logic to update the line item
@@ -34,11 +34,13 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
   const toast = useToast();
 
   const handleApplyPromotion = useCallback(
-    (e: FormEvent) => {
+    async (e: FormEvent) => {
       e.preventDefault();
       if (!promoCode) return;
       try {
-        addCartPromo(promoCode);
+        await listEligiblePromotions();
+        await addCartPromo(promoCode.trim());
+        await refreshWorksheet();
         toast({
           title: `Promotion '${promoCode}' applied to cart`,
           status: "success",
@@ -47,10 +49,10 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
         });
         setPromoCode("");
       } catch (error) {
-        console.error(error);
+        toast({ title: `Promotion '${promoCode}' was not applied`, description: error instanceof Error ? error.message : "This promotion is not eligible for this shopper or cart.", status: "error", duration: 6000, isClosable: true });
       }
     },
-    [addCartPromo, promoCode, toast]
+    [addCartPromo, listEligiblePromotions, promoCode, refreshWorksheet, toast]
   );
 
   const handleRemovePromotion = useCallback(
@@ -58,6 +60,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
       if (!promoCode) return;
       try {
         await removeCartPromo(promoCode);
+        await refreshWorksheet();
         toast({
           title: `Promotion '${promoCode}' removed from cart`,
           status: "success",
@@ -69,7 +72,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
         console.error(error);
       }
     },
-    [removeCartPromo, toast]
+    [refreshWorksheet, removeCartPromo, toast]
   );
 
   return (
@@ -114,7 +117,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
         </Flex>
       </form>
       {orderWorksheet?.OrderPromotions?.map((p) => (
-        <Flex justify="space-between">
+        <Flex justify="space-between" key={p.ID || p.Code}>
           <Text alignContent="center">{p.Code?.toLocaleUpperCase()}</Text>
           <Button
             colorScheme="danger"
@@ -128,32 +131,28 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder, tabIndex }) => {
       <Stack spacing={3}>
         <Flex justify="space-between">
           <Text>Subtotal</Text>
-          <Text>${orderWorksheet?.Order?.Subtotal?.toFixed(2)}</Text>
+          <Text>{formatPrice(orderWorksheet?.Order?.Subtotal, orderWorksheet?.Order?.Currency)}</Text>
         </Flex>
         {orderWorksheet?.Order.PromotionDiscount &&
           orderWorksheet?.Order.PromotionDiscount > 0 && (
             <Flex justify="space-between">
               <Text>Promotion Discount</Text>
               <Text>
-                - ${orderWorksheet?.Order?.PromotionDiscount?.toFixed(2)}
+                - {formatPrice(orderWorksheet?.Order?.PromotionDiscount, orderWorksheet?.Order?.Currency)}
               </Text>
             </Flex>
           )}
         <Flex justify="space-between">
           <Text>Shipping</Text>
-          {tabIndex !== TABS.SHIPPING && tabIndex !== TABS.INFORMATION && (
-            <Text>${orderWorksheet?.Order?.ShippingCost?.toFixed(2)}</Text>
-          )}
+          <Text>{formatPrice(0, orderWorksheet?.Order?.Currency)}</Text>
         </Flex>
         <Flex justify="space-between">
-          <Text>Tax</Text>
-          {tabIndex !== TABS.SHIPPING && tabIndex !== TABS.INFORMATION && (
-            <Text>${orderWorksheet?.Order?.TaxCost?.toFixed(2)}</Text>
-          )}
+          <Text>Tax <Text as="span" fontSize="xs" color="gray.600">(not calculated in this demo)</Text></Text>
+          <Text>{formatPrice(0, orderWorksheet?.Order?.Currency)}</Text>
         </Flex>
         <Flex justify="space-between" fontWeight="bold" fontSize="lg">
           <Text>Total</Text>
-          <Text>${orderWorksheet?.Order?.Total?.toFixed(2)}</Text>
+          <Text>{formatPrice(orderWorksheet?.Order?.Total, orderWorksheet?.Order?.Currency)}</Text>
         </Flex>
       </Stack>
     </VStack>

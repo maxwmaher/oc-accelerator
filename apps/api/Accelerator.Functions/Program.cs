@@ -8,6 +8,7 @@ using OrderCloud.SDK;
 using System.Reflection;
 using Accelerator.MockServices;
 using Flurl.Util;
+using Accelerator.Checkout;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -20,6 +21,13 @@ builder.Services.AddSingleton<GreetingCommand>();
 builder.Services.AddSingleton<ShippingCommand>();
 builder.Services.AddSingleton<TaxCommand>();
 builder.Services.AddSingleton<PaymentCommand>();
+builder.Services.Configure<DemoCheckoutOptions>(config.GetSection("DemoCheckout"));
+builder.Services.AddHttpClient<OrderCloudCheckoutService>(client =>
+{
+    var apiUrl = config.GetValue<string>("OrderCloudSettings:ApiUrl")?.TrimEnd('/')
+        ?? throw new InvalidOperationException("OrderCloudSettings:ApiUrl is required.");
+    client.BaseAddress = new Uri($"{apiUrl}/v1/");
+});
 
 builder.Services.AddSingleton<IShippingRatesCalculator>(new ShippingServiceMock());
 builder.Services.AddSingleton<ITaxCalculator>(new TaxServiceMock());
