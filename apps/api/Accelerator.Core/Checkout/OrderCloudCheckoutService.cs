@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -61,9 +63,7 @@ public sealed class OrderCloudCheckoutService(HttpClient httpClient)
                 var product = await SendAsync(token, HttpMethod.Get, $"me/products/{Uri.EscapeDataString(productID)}", null, cancellationToken);
                 var schedule = product["PriceSchedule"] as JsonObject;
                 if (schedule is null) continue;
-                rules[productID] = new(productID,
-                    Decimal(schedule, "MinQuantity"), Decimal(schedule, "MaxQuantity"),
-                    Decimal(schedule, "RestrictedQuantity"), schedule["UseCumulativeQuantity"]?.GetValue<bool>() == true);
+                rules[productID] = QuantityRule.FromPriceSchedule(productID, schedule);
             }
             catch (CheckoutException)
             {
@@ -138,7 +138,4 @@ public sealed class OrderCloudCheckoutService(HttpClient httpClient)
         }
         return JsonNode.Parse(text)?.AsObject() ?? new JsonObject();
     }
-
-    private static decimal? Decimal(JsonObject source, string name) =>
-        source[name] is null ? null : source[name]!.GetValue<decimal>();
 }
