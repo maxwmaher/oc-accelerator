@@ -25,6 +25,9 @@ import CartShippingPanel from "./cart-panels/CartShippingPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
 
+import { assertCartQuantitiesBeforeSubmit } from "../../utils/kfmbCartQuantityChecks";
+import { assertNoPendingQuantityEdits, runCartAction } from "../../utils/kfmbCartEdits";
+
 export const TABS = {
   INFORMATION: 0,
   SHIPPING: 1,
@@ -60,10 +63,16 @@ export const ShoppingCart = (): JSX.Element => {
   const toast = useToast();
 
   const submitOrder = useCallback(async () => {
-    setSubmitting(true);
-    if (!orderWorksheet?.Order?.ID) return;
+    const orderId = orderWorksheet?.Order?.ID;
+    if (!orderId || submitting) return;
     try {
-      await submitCart();
+      assertNoPendingQuantityEdits();
+      setSubmitting(true);
+      await runCartAction(async () => {
+        await assertCartQuantitiesBeforeSubmit(orderId);
+        assertNoPendingQuantityEdits();
+        await submitCart();
+      });
       setSubmitting(false);
       navigate(`/order-confirmation?orderID=${orderWorksheet.Order.ID}`);
     } catch (err) {
@@ -71,14 +80,13 @@ export const ShoppingCart = (): JSX.Element => {
       setSubmitting(false);
       toast({
         title: "Error submitting order",
-        description:
-          "There was an issue submitting your order. Please try again.",
+        description: err instanceof Error ? err.message : "There was an issue submitting your order. Please try again.",
         status: "error",
         duration: 5000,
         isClosable: true,
       });
     }
-  }, [navigate, orderWorksheet?.Order?.ID, submitCart, toast]);
+  }, [navigate, orderWorksheet?.Order?.ID, submitCart, toast, submitting]);
 
   const deleteOrder = useCallback(async () => {
     if (!orderWorksheet?.Order?.ID) return;

@@ -1,0 +1,32 @@
+{
+  "suite": "kfmb-order-checks-v1",
+  "runID": "ec930b9c",
+  "timestamp": "2026-09-20T19:32:10.546Z",
+  "marketplaceID": "_nfhvLBeikC2yF1a6f6v0w",
+  "result": "STOPPED",
+  "drafts": [
+    {
+      "orderID": "kfmb-check-kw-standard-ec930b9c",
+      "user": "kfmb-kw-standard",
+      "result": "STOPPED",
+      "checks": [
+        {
+          "label": "minimum 1 accepted",
+          "result": "PASS"
+        },
+        {
+          "label": "quantity 0 rejected",
+          "result": "PASS",
+          "detail": "blocked at line-item write: ValidationFailure"
+        },
+        {
+          "label": "maximum 10 accepted",
+          "result": "PASS"
+        }
+      ],
+      "createAttempted": true,
+      "created": true
+    }
+  ],
+  "error": "kfmb-kw-standard: quantity 11 rejected was accepted both by the line-item API and order validation. This requirement is NOT proven; stop and inspect this draft."
+}

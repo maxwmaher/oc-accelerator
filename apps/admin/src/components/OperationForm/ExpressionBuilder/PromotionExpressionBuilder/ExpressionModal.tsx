@@ -20,7 +20,7 @@ import { PromotionExpressionBuilder } from './PromotionExpressionBuilder'
 import { RuleExpressionBuilder } from './RuleExpressionBuilder'
 import { formatQuery } from './formatQuery'
 import { isQueryValid } from './isAllValid'
-import { SubmitButton, SwitchControl } from '../../Controls'
+import { SwitchControl } from '../../Controls'
 
 interface ExpressionEditorModalProps {
   disclosure: UseDisclosureProps
@@ -228,13 +228,14 @@ const ExpressionEditorModal: FC<ExpressionEditorModalProps> = ({ disclosure, typ
               >
                 Reset
               </Button>
-              <SubmitButton
-                form="EDIT_EXPRESSION_FORM"
-                control={methods.control}
-                isDisabled={!isValid}
-              >
-                Save
-              </SubmitButton>
+<Button
+  type="submit"
+  form="EDIT_EXPRESSION_FORM"
+  isLoading={methods.formState.isSubmitting}
+  isDisabled={!isValid}
+>
+  Save
+</Button>
             </ButtonGroup>
           </Container>
         </ModalBody>

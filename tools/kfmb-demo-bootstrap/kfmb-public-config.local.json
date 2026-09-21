@@ -1,0 +1,34 @@
+{
+  "marketplaceName": "KFMB Demo",
+  "marketplaceID": "_nfhvLBeikC2yF1a6f6v0w",
+  "apiBaseURL": "https://westeurope-sandbox.ordercloud.io",
+  "storefronts": {
+    "kw": {
+      "clientID": "57D4DE3B-255E-44E2-B9B4-AEBED7DF70A2",
+      "buyerID": "kw-buyers",
+      "catalogID": "kw-catalog",
+      "currency": "KWD",
+      "localeID": "kfmb-en-KW-KWD",
+      "scope": "Shopper",
+      "demoUsernames": [
+        "kfmb-kw-standard",
+        "kfmb-kw-wholesale"
+      ]
+    },
+    "sa": {
+      "clientID": "31FC66C6-15F6-49D4-86AE-B611ED584EB4",
+      "buyerID": "sa-buyers",
+      "catalogID": "sa-catalog",
+      "currency": "SAR",
+      "localeID": "kfmb-en-SA-SAR",
+      "scope": "Shopper",
+      "demoUsernames": [
+        "kfmb-sa-standard",
+        "kfmb-sa-wholesale"
+      ]
+    }
+  },
+  "productID": "kfmb-demo-flour-1kg",
+  "promotionID": "kfmb-wholesale-5pct",
+  "promotionCode": "KFMB5"
+}

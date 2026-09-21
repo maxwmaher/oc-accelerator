@@ -47,7 +47,6 @@ const ForgotUsernameForm: FC<ILoginForm> = ({ onSuccess }) => {
           isRequired={true}
           label="Email"
           inputProps={{ type: 'text', placeholder: 'Email' }}
-          control={methods.control}
         />
         <Button
           alignSelf="flex-end"

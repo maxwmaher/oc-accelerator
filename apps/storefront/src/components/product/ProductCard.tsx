@@ -48,21 +48,22 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
               alignItems="center"
               justifyContent="stretch"
             >
-              <Center
-                bgColor="chakra-subtle-bg"
-                aspectRatio="1 / 1"
-                objectFit="cover"
-                boxSize="100%"
-                maxH="300px"
-                borderTopRadius="md"
-              >
+<Center
+  bgColor="white"
+  w="full"
+  h="240px"
+  p={4}
+  position="relative"
+  overflow="hidden"
+  borderTopRadius="md"
+>
                 {product.xp?.Images &&
                 (product.xp.Images[0]?.ThumbnailUrl ||
                   product.xp.Images[0]?.Url) ? (
                   <Image
                     borderTopRadius="md"
                     boxSize="full"
-                    objectFit="cover"
+                    objectFit="contain"
                     src={
                       product.xp.Images[0]?.ThumbnailUrl ||
                       product.xp.Images[0]?.Url
@@ -89,12 +90,15 @@ const ProductCard: FunctionComponent<ProductCardProps> = ({ product }) => {
                 <Text fontSize="xs" color="chakra-subtle-text">
                   {product.ID}
                 </Text>
-                <Heading size="lg">{product.Name}</Heading>
+<Heading size="md" lineHeight="short">
+  {product.Name}
+</Heading>
                 {product.PriceSchedule?.PriceBreaks && (
                   <Text fontSize="md" fontWeight="normal">
-                    {formatPrice(
-                      product?.PriceSchedule?.PriceBreaks[0].Price ?? 0
-                    )}
+{formatPrice(
+  product.PriceSchedule?.PriceBreaks?.[0]?.Price,
+  product.PriceSchedule?.Currency
+)}
                   </Text>
                 )}
               </VStack>

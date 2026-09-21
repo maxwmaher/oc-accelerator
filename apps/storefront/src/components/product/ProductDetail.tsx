@@ -16,10 +16,9 @@ import {
 import {
   BuyerProduct,
   InventoryRecord,
-  OrderCloudError,
 } from "ordercloud-javascript-sdk";
 import pluralize from "pluralize";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
@@ -30,6 +29,10 @@ import {
   useOcResourceList,
   useShopper,
 } from "@ordercloud/react-sdk";
+
+import { productQuantity, quantityBounds, quantityError } from "../../utils/kfmbQuantityRules";
+import { assertCartQuantityChange } from "../../utils/kfmbCartQuantityChecks";
+import { runCartAction } from "../../utils/kfmbCartEdits";
 
 export interface ProductDetailProps {
   productId: string;
@@ -62,7 +65,18 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable]
   );
-  const { addCartLineItem } = useShopper();
+  const { addCartLineItem, orderWorksheet, worksheetLoading } = useShopper();
+  const addingRef = useRef(false);
+  const alreadyInCart = productQuantity(orderWorksheet?.LineItems, productId);
+  const entryBounds = product?.PriceSchedule
+    ? quantityBounds(product.PriceSchedule, alreadyInCart)
+    : undefined;
+  const inputError = quantityError(product?.PriceSchedule, quantity, alreadyInCart);
+
+  // Product pricing arrives asynchronously; initialize from the loaded shopper rules.
+  useEffect(() => {
+    if (product?.PriceSchedule) setQuantity(entryBounds?.entryMin ?? 1);
+  }, [productId, product?.PriceSchedule?.ID, entryBounds?.entryMin, entryBounds?.entryMax]);
 
   useEffect(() => {
     const availableRecord = inventoryRecords?.Items.find(
@@ -74,60 +88,36 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   }, [inventoryRecords?.Items]);
 
   const handleAddToCart = useCallback(async () => {
-    if (!product) {
-      console.warn("[ProductDetail.tsx] Product not found for ID:", productId);
-      return <div>Product not found for ID: {productId}</div>;
+    if (addingRef.current || worksheetLoading || !product?.PriceSchedule) return;
+    if (inputError) {
+      toast({ title: "Check the quantity", description: inputError, status: "warning" });
+      return;
     }
-
     if (IS_MULTI_LOCATION_INVENTORY && !activeRecordId) {
-      toast({
-        title: "No Inventory Available",
-        description: "Please select a store with available inventory.",
-        status: "warning",
-        duration: 5000,
-        isClosable: true,
-      });
+      toast({ title: "Select an available pickup location", status: "warning" });
+      return;
     }
-
+    addingRef.current = true;
+    setAddingToCart(true);
     try {
-      setAddingToCart(true);
-      await addCartLineItem({
-        ProductID: productId,
-        Quantity: quantity,
-        InventoryRecordID: activeRecordId,
+      await runCartAction(async () => {
+        await assertCartQuantityChange(orderWorksheet?.Order?.ID, productId, quantity);
+        await addCartLineItem({ ProductID: productId, Quantity: quantity, InventoryRecordID: activeRecordId });
       });
-      setAddingToCart(false);
-      toast({
-        title: `${quantity} ${pluralize("item", quantity)} added to cart`,
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-      });
+      toast({ title: `${quantity} ${pluralize("pack", quantity)} added to cart`, status: "success", duration: 4000, isClosable: true });
       navigate("/cart");
     } catch (error) {
+      toast({
+        title: "Unable to add this quantity",
+        description: error instanceof Error ? error.message : "Cart update failed. Please try again.",
+        status: "error", duration: 7000, isClosable: true,
+      });
+    } finally {
+      addingRef.current = false;
       setAddingToCart(false);
-      if (error instanceof OrderCloudError) {
-        toast({
-          title: "Error adding to cart",
-          description:
-            error.message ||
-            "Please ensure all required specifications are filled out.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      } else {
-        console.error("Failed to add item to cart:", error);
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred. Please try again.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
     }
-  }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate]);
+  }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate,
+      inputError, worksheetLoading, orderWorksheet?.Order?.ID]);
 
   return loading ? (
     <Center h="50vh">
@@ -154,14 +144,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           </Text>
           <Text maxW="prose">{product.Description}</Text>
           <Text fontSize="3xl" fontWeight="medium">
-            {formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}
+            {formatPrice(product.PriceSchedule?.PriceBreaks?.[0]?.Price, product.PriceSchedule?.Currency)}
           </Text>
           <HStack alignItems="center" gap={4} my={3}>
             <Button
               colorScheme="primary"
               type="button"
               onClick={handleAddToCart}
-              isDisabled={addingToCart || outOfStock}
+              isLoading={addingToCart}
+              isDisabled={addingToCart || outOfStock || worksheetLoading || !!inputError}
             >
               {outOfStock ? "Out of stock" : "Add To Cart"}
             </Button>
@@ -169,6 +160,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               controlId="addToCart"
               priceSchedule={product.PriceSchedule}
               quantity={quantity}
+              otherQuantity={alreadyInCart}
+              disabled={addingToCart || worksheetLoading || outOfStock}
               onChange={setQuantity}
             />
           </HStack>

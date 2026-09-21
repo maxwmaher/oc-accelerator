@@ -1,0 +1,107 @@
+[
+  {
+    "path": "src/components/product/ProductDetail.tsx",
+    "before": "  OrderCloudError,\n",
+    "after": ""
+  },
+  {
+    "path": "src/components/product/ProductDetail.tsx",
+    "before": "import React, { useCallback, useEffect, useMemo, useState } from \"react\";",
+    "after": "import React, { useCallback, useEffect, useMemo, useRef, useState } from \"react\";"
+  },
+  {
+    "path": "src/components/product/ProductDetail.tsx",
+    "before": "export interface ProductDetailProps {",
+    "after": "import { productQuantity, quantityBounds, quantityError } from \"../../utils/kfmbQuantityRules\";\nimport { assertCartQuantityChange } from \"../../utils/kfmbCartQuantityChecks\";\nimport { runCartAction } from \"../../utils/kfmbCartEdits\";\n\nexport interface ProductDetailProps {"
+  },
+  {
+    "path": "src/components/product/ProductDetail.tsx",
+    "before": "  const { addCartLineItem } = useShopper();",
+    "after": "  const { addCartLineItem, orderWorksheet, worksheetLoading } = useShopper();\n  const addingRef = useRef(false);\n  const alreadyInCart = productQuantity(orderWorksheet?.LineItems, productId);\n  const entryBounds = product?.PriceSchedule\n    ? quantityBounds(product.PriceSchedule, alreadyInCart)\n    : undefined;\n  const inputError = quantityError(product?.PriceSchedule, quantity, alreadyInCart);\n\n  // Product pricing arrives asynchronously; initialize from the loaded shopper rules.\n  useEffect(() => {\n    if (product?.PriceSchedule) setQuantity(entryBounds?.entryMin ?? 1);\n  }, [productId, product?.PriceSchedule?.ID, entryBounds?.entryMin, entryBounds?.entryMax]);"
+  },
+  {
+    "path": "src/components/product/ProductDetail.tsx",
+    "before": "  const handleAddToCart = useCallback(async () => {\n    if (!product) {\n      console.warn(\"[ProductDetail.tsx] Product not found for ID:\", productId);\n      return <div>Product not found for ID: {productId}</div>;\n    }\n\n    if (IS_MULTI_LOCATION_INVENTORY && !activeRecordId) {\n      toast({\n        title: \"No Inventory Available\",\n        description: \"Please select a store with available inventory.\",\n        status: \"warning\",\n        duration: 5000,\n        isClosable: true,\n      });\n    }\n\n    try {\n      setAddingToCart(true);\n      await addCartLineItem({\n        ProductID: productId,\n        Quantity: quantity,\n        InventoryRecordID: activeRecordId,\n      });\n      setAddingToCart(false);\n      toast({\n        title: `${quantity} ${pluralize(\"item\", quantity)} added to cart`,\n        status: \"success\",\n        duration: 5000,\n        isClosable: true,\n      });\n      navigate(\"/cart\");\n    } catch (error) {\n      setAddingToCart(false);\n      if (error instanceof OrderCloudError) {\n        toast({\n          title: \"Error adding to cart\",\n          description:\n            error.message ||\n            \"Please ensure all required specifications are filled out.\",\n          status: \"error\",\n          duration: 5000,\n          isClosable: true,\n        });\n      } else {\n        console.error(\"Failed to add item to cart:\", error);\n        toast({\n          title: \"Error\",\n          description: \"An unexpected error occurred. Please try again.\",\n          status: \"error\",\n          duration: 5000,\n          isClosable: true,\n        });\n      }\n    }\n  }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate]);",
+    "after": "  const handleAddToCart = useCallback(async () => {\n    if (addingRef.current || worksheetLoading || !product?.PriceSchedule) return;\n    if (inputError) {\n      toast({ title: \"Check the quantity\", description: inputError, status: \"warning\" });\n      return;\n    }\n    if (IS_MULTI_LOCATION_INVENTORY && !activeRecordId) {\n      toast({ title: \"Select an available pickup location\", status: \"warning\" });\n      return;\n    }\n    addingRef.current = true;\n    setAddingToCart(true);\n    try {\n      await runCartAction(async () => {\n        await assertCartQuantityChange(orderWorksheet?.Order?.ID, productId, quantity);\n        await addCartLineItem({ ProductID: productId, Quantity: quantity, InventoryRecordID: activeRecordId });\n      });\n      toast({ title: `${quantity} ${pluralize(\"pack\", quantity)} added to cart`, status: \"success\", duration: 4000, isClosable: true });\n      navigate(\"/cart\");\n    } catch (error) {\n      toast({\n        title: \"Unable to add this quantity\",\n        description: error instanceof Error ? error.message : \"Cart update failed. Please try again.\",\n        status: \"error\", duration: 7000, isClosable: true,\n      });\n    } finally {\n      addingRef.current = false;\n      setAddingToCart(false);\n    }\n  }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate,\n      inputError, worksheetLoading, orderWorksheet?.Order?.ID]);"
+  },
+  {
+    "path": "src/components/product/ProductDetail.tsx",
+    "before": "{formatPrice(product?.PriceSchedule?.PriceBreaks?.[0].Price)}",
+    "after": "{formatPrice(product.PriceSchedule?.PriceBreaks?.[0]?.Price, product.PriceSchedule?.Currency)}"
+  },
+  {
+    "path": "src/components/product/ProductDetail.tsx",
+    "before": "isDisabled={addingToCart || outOfStock}",
+    "after": "isLoading={addingToCart}\n              isDisabled={addingToCart || outOfStock || worksheetLoading || !!inputError}"
+  },
+  {
+    "path": "src/components/product/ProductDetail.tsx",
+    "before": "              quantity={quantity}\n              onChange={setQuantity}",
+    "after": "              quantity={quantity}\n              otherQuantity={alreadyInCart}\n              disabled={addingToCart || worksheetLoading || outOfStock}\n              onChange={setQuantity}"
+  },
+  {
+    "path": "src/components/cart/OcLineItemCard.tsx",
+    "before": "  VStack,\n",
+    "after": "  VStack,\n  useToast,\n"
+  },
+  {
+    "path": "src/components/cart/OcLineItemCard.tsx",
+    "before": "import { LineItem } from \"ordercloud-javascript-sdk\";",
+    "after": "import { BuyerProduct, LineItem } from \"ordercloud-javascript-sdk\";"
+  },
+  {
+    "path": "src/components/cart/OcLineItemCard.tsx",
+    "before": "import useDebounce from \"../../hooks/useDebounce\";\n",
+    "after": ""
+  },
+  {
+    "path": "src/components/cart/OcLineItemCard.tsx",
+    "before": "import { useShopper } from \"@ordercloud/react-sdk\";",
+    "after": "import { useOcResourceGet, useShopper } from \"@ordercloud/react-sdk\";\nimport { productQuantity, quantityError } from \"../../utils/kfmbQuantityRules\";\nimport { assertCartQuantityChange } from \"../../utils/kfmbCartQuantityChecks\";\nimport { markQuantityEdit, runCartAction } from \"../../utils/kfmbCartEdits\";"
+  },
+  {
+    "path": "src/components/cart/OcLineItemCard.tsx",
+    "before": "  const [quantity, setQuantity] = useState(lineItem.Quantity);\n  const { patchCartLineItem, deleteCartLineItem } = useShopper();\n  const { pathname } = useLocation();\n\n  const debouncedQuantity: number = useDebounce(quantity, 300);\n\n  const product = useMemo(() => lineItem.Product, [lineItem]);\n  const [isDeliveryInstructionsModalOpen, setIsDeliveryInstructionsModalOpen] =\n    useState(false);\n\n  const updateLineItem = useCallback(\n    async (quantity: number) => {\n      if (lineItem.Quantity === quantity) return;\n      const response = await patchCartLineItem({\n        ID: lineItem.ID!,\n        lineItem: {\n          Quantity: quantity,\n        },\n      });\n      if (onChange) {\n        onChange(response);\n      }\n    },\n    [lineItem.ID, lineItem.Quantity, onChange, patchCartLineItem]\n  );\n\n  useEffect(() => {\n    updateLineItem(debouncedQuantity);\n  }, [debouncedQuantity, updateLineItem]);",
+    "after": "  const [quantity, setQuantity] = useState(Number(lineItem.Quantity ?? 1));\n  const [updating, setUpdating] = useState(false);\n  const [updateError, setUpdateError] = useState<string>();\n  const { patchCartLineItem, deleteCartLineItem, orderWorksheet, worksheetLoading } = useShopper();\n  const { data: buyerProduct, isLoading: priceLoading } = useOcResourceGet<BuyerProduct>(\n    \"Me.Products\", { productID: lineItem.ProductID }, { disabled: !editable }\n  );\n  const { pathname } = useLocation();\n  const toast = useToast();\n  const editKey = `${orderWorksheet?.Order?.ID ?? \"cart\"}:${lineItem.ID}`;\n  const otherQuantity = productQuantity(orderWorksheet?.LineItems, lineItem.ProductID, lineItem.ID);\n  const inputError = editable ? quantityError(buyerProduct?.PriceSchedule, quantity, otherQuantity) : undefined;\n  const dirty = quantity !== lineItem.Quantity;\n  const product = useMemo(() => lineItem.Product, [lineItem]);\n  const [isDeliveryInstructionsModalOpen, setIsDeliveryInstructionsModalOpen] = useState(false);\n\n  useEffect(() => {\n    setQuantity(Number(lineItem.Quantity ?? 1));\n    markQuantityEdit(editKey, false);\n  }, [lineItem.ID, lineItem.Quantity, editKey]);\n  useEffect(() => () => markQuantityEdit(editKey, false), [editKey]);\n\n  const changeQuantity = (next: number) => {\n    setQuantity(next);\n    setUpdateError(undefined);\n    markQuantityEdit(editKey, next !== lineItem.Quantity);\n  };\n\n  const updateLineItem = useCallback(async () => {\n    if (!editable || updating || inputError || quantity === lineItem.Quantity) return;\n    setUpdating(true);\n    setUpdateError(undefined);\n    try {\n      const orderId = orderWorksheet?.Order?.ID;\n      if (!orderId) throw new Error(\"The cart is not ready. Refresh and try again.\");\n      await runCartAction(async () => {\n        await assertCartQuantityChange(orderId, lineItem.ProductID, quantity, lineItem.ID);\n        const response = await patchCartLineItem({ ID: lineItem.ID!, lineItem: { Quantity: quantity } });\n        markQuantityEdit(editKey, false);\n        if (onChange) onChange(response);\n      });\n    } catch (error) {\n      const message = error instanceof Error ? error.message : \"Could not update this cart line.\";\n      setUpdateError(message);\n      toast({ title: \"Quantity was not updated\", description: message, status: \"error\", isClosable: true });\n    } finally {\n      setUpdating(false);\n    }\n  }, [editable, updating, inputError, quantity, lineItem, orderWorksheet?.Order?.ID,\n      patchCartLineItem, editKey, onChange, toast]);\n\n  const removeLineItem = async () => {\n    if (!editable || updating) return;\n    setUpdating(true);\n    try {\n      await runCartAction(async () => {\n        await deleteCartLineItem(lineItem.ID!);\n        markQuantityEdit(editKey, false);\n      });\n    } catch (error) {\n      toast({ title: \"Could not remove this item\", description: error instanceof Error ? error.message : \"Please retry.\", status: \"error\" });\n    } finally { setUpdating(false); }\n  };"
+  },
+  {
+    "path": "src/components/cart/OcLineItemCard.tsx",
+    "before": "{pathname !== \"/order-confirmation\" && (",
+    "after": "{editable && pathname !== \"/order-confirmation\" && ("
+  },
+  {
+    "path": "src/components/cart/OcLineItemCard.tsx",
+    "before": "onClick={() => deleteCartLineItem(lineItem.ID!)}",
+    "after": "isDisabled={updating}\n              onClick={() => void removeLineItem()}"
+  },
+  {
+    "path": "src/components/cart/OcLineItemCard.tsx",
+    "before": "                controlId=\"addToCart\"\n                productId={lineItem.ProductID}\n                quantity={Number(quantity)}\n                onChange={setQuantity}",
+    "after": "                controlId={`quantity-${lineItem.ID}`}\n                productId={lineItem.ProductID}\n                priceSchedule={buyerProduct?.PriceSchedule}\n                otherQuantity={otherQuantity}\n                quantity={quantity}\n                disabled={updating || worksheetLoading || priceLoading}\n                onChange={changeQuantity}"
+  },
+  {
+    "path": "src/components/cart/OcLineItemCard.tsx",
+    "before": "                onChange={changeQuantity}\n              />\n            )}\n          </VStack>",
+    "after": "                onChange={changeQuantity}\n              />\n            )}\n            {dirty && (\n              <HStack>\n                <Button size=\"xs\" isLoading={updating}\n                  isDisabled={updating || worksheetLoading || priceLoading || !!inputError}\n                  onClick={() => void updateLineItem()}>Update</Button>\n                <Button size=\"xs\" variant=\"ghost\" isDisabled={updating}\n                  onClick={() => changeQuantity(Number(lineItem.Quantity ?? 1))}>Cancel</Button>\n              </HStack>\n            )}\n            {dirty && <Text fontSize=\"xs\">Apply or cancel this edit before placing the order.</Text>}\n            {updateError && <Text fontSize=\"xs\" role=\"alert\" color=\"red.600\">{updateError}</Text>}\n          </VStack>"
+  },
+  {
+    "path": "src/components/cart/ShoppingCart.tsx",
+    "before": "export const TABS = {",
+    "after": "import { assertCartQuantitiesBeforeSubmit } from \"../../utils/kfmbCartQuantityChecks\";\nimport { assertNoPendingQuantityEdits, runCartAction } from \"../../utils/kfmbCartEdits\";\n\nexport const TABS = {"
+  },
+  {
+    "path": "src/components/cart/ShoppingCart.tsx",
+    "before": "    setSubmitting(true);\n    if (!orderWorksheet?.Order?.ID) return;\n    try {\n      await submitCart();",
+    "after": "    const orderId = orderWorksheet?.Order?.ID;\n    if (!orderId || submitting) return;\n    try {\n      assertNoPendingQuantityEdits();\n      setSubmitting(true);\n      await runCartAction(async () => {\n        await assertCartQuantitiesBeforeSubmit(orderId);\n        assertNoPendingQuantityEdits();\n        await submitCart();\n      });"
+  },
+  {
+    "path": "src/components/cart/ShoppingCart.tsx",
+    "before": "        description:\n          \"There was an issue submitting your order. Please try again.\",",
+    "after": "        description: err instanceof Error ? err.message : \"There was an issue submitting your order. Please try again.\","
+  },
+  {
+    "path": "src/components/cart/ShoppingCart.tsx",
+    "before": "  }, [navigate, orderWorksheet?.Order?.ID, submitCart, toast]);",
+    "after": "  }, [navigate, orderWorksheet?.Order?.ID, submitCart, toast, submitting]);"
+  }
+]

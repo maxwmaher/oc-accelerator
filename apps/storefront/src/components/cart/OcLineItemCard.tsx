@@ -15,8 +15,9 @@ import {
   Text,
   Textarea,
   VStack,
+  useToast,
 } from "@chakra-ui/react";
-import { LineItem } from "ordercloud-javascript-sdk";
+import { BuyerProduct, LineItem } from "ordercloud-javascript-sdk";
 import React, {
   FunctionComponent,
   useCallback,
@@ -26,10 +27,12 @@ import React, {
 } from "react";
 import { TbPhoto } from "react-icons/tb";
 import { Link as RouterLink, useLocation } from "react-router-dom";
-import useDebounce from "../../hooks/useDebounce";
 import formatPrice from "../../utils/formatPrice";
 import OcQuantityInput from "./OcQuantityInput";
-import { useShopper } from "@ordercloud/react-sdk";
+import { useOcResourceGet, useShopper } from "@ordercloud/react-sdk";
+import { productQuantity, quantityError } from "../../utils/kfmbQuantityRules";
+import { assertCartQuantityChange } from "../../utils/kfmbCartQuantityChecks";
+import { markQuantityEdit, runCartAction } from "../../utils/kfmbCartEdits";
 
 interface OcLineItemCardProps {
   lineItem: LineItem;
@@ -42,35 +45,69 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
   editable,
   onChange,
 }) => {
-  const [quantity, setQuantity] = useState(lineItem.Quantity);
-  const { patchCartLineItem, deleteCartLineItem } = useShopper();
-  const { pathname } = useLocation();
-
-  const debouncedQuantity: number = useDebounce(quantity, 300);
-
-  const product = useMemo(() => lineItem.Product, [lineItem]);
-  const [isDeliveryInstructionsModalOpen, setIsDeliveryInstructionsModalOpen] =
-    useState(false);
-
-  const updateLineItem = useCallback(
-    async (quantity: number) => {
-      if (lineItem.Quantity === quantity) return;
-      const response = await patchCartLineItem({
-        ID: lineItem.ID!,
-        lineItem: {
-          Quantity: quantity,
-        },
-      });
-      if (onChange) {
-        onChange(response);
-      }
-    },
-    [lineItem.ID, lineItem.Quantity, onChange, patchCartLineItem]
+  const [quantity, setQuantity] = useState(Number(lineItem.Quantity ?? 1));
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string>();
+  const { patchCartLineItem, deleteCartLineItem, orderWorksheet, worksheetLoading } = useShopper();
+  const { data: buyerProduct, isLoading: priceLoading } = useOcResourceGet<BuyerProduct>(
+    "Me.Products", { productID: lineItem.ProductID }, { disabled: !editable }
   );
+  const { pathname } = useLocation();
+  const toast = useToast();
+  const editKey = `${orderWorksheet?.Order?.ID ?? "cart"}:${lineItem.ID}`;
+  const otherQuantity = productQuantity(orderWorksheet?.LineItems, lineItem.ProductID, lineItem.ID);
+  const inputError = editable ? quantityError(buyerProduct?.PriceSchedule, quantity, otherQuantity) : undefined;
+  const dirty = quantity !== lineItem.Quantity;
+  const product = useMemo(() => lineItem.Product, [lineItem]);
+  const [isDeliveryInstructionsModalOpen, setIsDeliveryInstructionsModalOpen] = useState(false);
 
   useEffect(() => {
-    updateLineItem(debouncedQuantity);
-  }, [debouncedQuantity, updateLineItem]);
+    setQuantity(Number(lineItem.Quantity ?? 1));
+    markQuantityEdit(editKey, false);
+  }, [lineItem.ID, lineItem.Quantity, editKey]);
+  useEffect(() => () => markQuantityEdit(editKey, false), [editKey]);
+
+  const changeQuantity = (next: number) => {
+    setQuantity(next);
+    setUpdateError(undefined);
+    markQuantityEdit(editKey, next !== lineItem.Quantity);
+  };
+
+  const updateLineItem = useCallback(async () => {
+    if (!editable || updating || inputError || quantity === lineItem.Quantity) return;
+    setUpdating(true);
+    setUpdateError(undefined);
+    try {
+      const orderId = orderWorksheet?.Order?.ID;
+      if (!orderId) throw new Error("The cart is not ready. Refresh and try again.");
+      await runCartAction(async () => {
+        await assertCartQuantityChange(orderId, lineItem.ProductID, quantity, lineItem.ID);
+        const response = await patchCartLineItem({ ID: lineItem.ID!, lineItem: { Quantity: quantity } });
+        markQuantityEdit(editKey, false);
+        if (onChange) onChange(response);
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not update this cart line.";
+      setUpdateError(message);
+      toast({ title: "Quantity was not updated", description: message, status: "error", isClosable: true });
+    } finally {
+      setUpdating(false);
+    }
+  }, [editable, updating, inputError, quantity, lineItem, orderWorksheet?.Order?.ID,
+      patchCartLineItem, editKey, onChange, toast]);
+
+  const removeLineItem = async () => {
+    if (!editable || updating) return;
+    setUpdating(true);
+    try {
+      await runCartAction(async () => {
+        await deleteCartLineItem(lineItem.ID!);
+        markQuantityEdit(editKey, false);
+      });
+    } catch (error) {
+      toast({ title: "Could not remove this item", description: error instanceof Error ? error.message : "Please retry.", status: "error" });
+    } finally { setUpdating(false); }
+  };
 
   const lineSubtotal = useMemo(() => {
     return formatPrice(lineItem.LineSubtotal);
@@ -119,13 +156,14 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
               position="absolute"
             />
           </Center>
-          {pathname !== "/order-confirmation" && (
+          {editable && pathname !== "/order-confirmation" && (
             <Button
               size="xs"
               fontSize=".75rem"
               variant="link"
               colorScheme="accent"
-              onClick={() => deleteCartLineItem(lineItem.ID!)}
+              isDisabled={updating}
+              onClick={() => void removeLineItem()}
             >
               Remove
             </Button>
@@ -160,12 +198,26 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
           <VStack alignItems="flex-start">
             {product && (
               <OcQuantityInput
-                controlId="addToCart"
+                controlId={`quantity-${lineItem.ID}`}
                 productId={lineItem.ProductID}
-                quantity={Number(quantity)}
-                onChange={setQuantity}
+                priceSchedule={buyerProduct?.PriceSchedule}
+                otherQuantity={otherQuantity}
+                quantity={quantity}
+                disabled={updating || worksheetLoading || priceLoading}
+                onChange={changeQuantity}
               />
             )}
+            {dirty && (
+              <HStack>
+                <Button size="xs" isLoading={updating}
+                  isDisabled={updating || worksheetLoading || priceLoading || !!inputError}
+                  onClick={() => void updateLineItem()}>Update</Button>
+                <Button size="xs" variant="ghost" isDisabled={updating}
+                  onClick={() => changeQuantity(Number(lineItem.Quantity ?? 1))}>Cancel</Button>
+              </HStack>
+            )}
+            {dirty && <Text fontSize="xs">Apply or cancel this edit before placing the order.</Text>}
+            {updateError && <Text fontSize="xs" role="alert" color="red.600">{updateError}</Text>}
           </VStack>
         ) : (
           <Text ml="auto" color="chakra-subtle-text">
