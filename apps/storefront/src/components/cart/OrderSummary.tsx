@@ -12,6 +12,7 @@ import React, { useCallback } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import OcCurrentOrderLineItemList from "./OcCurrentOrderLineItemList";
 import { useOrderCloudContext } from "@ordercloud/react-sdk";
+import formatPrice from "../../utils/formatPrice";
 
 interface OrderSummaryProps {
   order: RequiredDeep<Order>;
@@ -70,22 +71,17 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ order, lineItems }) => {
       <Stack spacing={3}>
         <Flex justify="space-between">
           <Text>Subtotal</Text>
-          <Text>${order.Subtotal?.toFixed(2)}</Text>
+          <Text>{formatPrice(order.Subtotal, order.Currency)}</Text>
         </Flex>
         <Flex justify="space-between">
           <Text>Promotion</Text>
-          <Text>${order.PromotionDiscount}</Text>
+          <Text>- {formatPrice(order.PromotionDiscount, order.Currency)}</Text>
         </Flex>
-        <Flex justify="space-between">
-          <Text>
-            {order.ShippingCost === 0
-              ? "FREE SHIPPING"
-              : "$" + order.ShippingCost}
-          </Text>
-        </Flex>
+        <Flex justify="space-between"><Text>Pickup shipping</Text><Text>{formatPrice(0, order.Currency)}</Text></Flex>
+        <Flex justify="space-between"><Text>Tax (not calculated in this demo)</Text><Text>{formatPrice(0, order.Currency)}</Text></Flex>
         <Flex justify="space-between" fontWeight="bold" fontSize="lg">
           <Text>Total</Text>
-          <Text>${order.Total?.toFixed(2)}</Text>
+          <Text>{formatPrice(order.Total, order.Currency)}</Text>
         </Flex>
       </Stack>
     </VStack>
