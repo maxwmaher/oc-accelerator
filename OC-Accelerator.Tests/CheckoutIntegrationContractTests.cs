@@ -171,7 +171,7 @@ public class CheckoutIntegrationContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(results.Select(result => result.PaymentID).Distinct(), Has.Count.EqualTo(1));
+            Assert.That(results.Select(result => result.PaymentID).Distinct(), Has.Exactly(1).Items);
             Assert.That(handler.PersistedPaymentCount, Is.EqualTo(1));
             Assert.That(handler.PersistedAuthorizationCount, Is.EqualTo(1));
         });
