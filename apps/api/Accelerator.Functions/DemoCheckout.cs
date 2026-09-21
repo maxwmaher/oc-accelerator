@@ -80,8 +80,9 @@ public sealed class DemoCheckout(OrderCloudCheckoutService checkout, IOptions<De
                 return new BadRequestObjectResult(RejectWebhook("Webhook did not include shopper context."));
             // Cart submit has no order ID in its route/body. Resolve it from the authenticated
             // shopper's real cart instead of trusting a browser-supplied ownership claim.
-            orderID ??= await checkout.GetCartOrderIDAsync(token, cancellationToken);
-            var result = await checkout.ValidateQuantitiesAsync(token, orderID, cancellationToken);
+            var result = orderID is null
+                ? await checkout.ValidateCartQuantitiesAsync(token, cancellationToken)
+                : await checkout.ValidateQuantitiesAsync(token, orderID, cancellationToken);
             return new OkObjectResult(result.IsValid
                 ? new { proceed = true }
                 : RejectWebhook(string.Join(" ", result.Errors), result.Errors));

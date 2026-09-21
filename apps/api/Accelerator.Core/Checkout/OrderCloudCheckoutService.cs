@@ -26,12 +26,18 @@ public sealed class CheckoutException(string message, int statusCode = 400) : Ex
 /// </summary>
 public sealed class OrderCloudCheckoutService(HttpClient httpClient, IOptions<DemoCheckoutOptions> configuredOptions)
 {
+    private const string VerificationPriceScheduleID = "kfmb-demo-flour-sa-standard";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<JsonObject> GetOwnedOrderAsync(string token, string orderID, CancellationToken cancellationToken)
     {
-        ValidateCaller(token);
-        var me = await SendAsync(token, HttpMethod.Get, "me", null, cancellationToken);
+        var me = await AuthenticateCallerAsync(token, cancellationToken);
+        return await GetOwnedOrderAsync(token, orderID, me, cancellationToken);
+    }
+
+    private async Task<JsonObject> GetOwnedOrderAsync(
+        string token, string orderID, JsonObject me, CancellationToken cancellationToken)
+    {
         var order = await SendAsync(token, HttpMethod.Get, $"orders/Outgoing/{Uri.EscapeDataString(orderID)}", null, cancellationToken);
         var meID = me["ID"]?.GetValue<string>();
         var ownerID = order["FromUser"]?["ID"]?.GetValue<string>();
@@ -44,7 +50,14 @@ public sealed class OrderCloudCheckoutService(HttpClient httpClient, IOptions<De
 
     public async Task<QuantityValidationResult> ValidateQuantitiesAsync(string token, string orderID, CancellationToken cancellationToken)
     {
-        await GetOwnedOrderAsync(token, orderID, cancellationToken);
+        var me = await AuthenticateCallerAsync(token, cancellationToken);
+        await GetOwnedOrderAsync(token, orderID, me, cancellationToken);
+        return await ValidateQuantitiesCoreAsync(token, orderID, cancellationToken);
+    }
+
+    private async Task<QuantityValidationResult> ValidateQuantitiesCoreAsync(
+        string token, string orderID, CancellationToken cancellationToken)
+    {
         var lines = new List<QuantityLine>();
         for (var page = 1; ; page++)
         {
@@ -79,8 +92,9 @@ public sealed class OrderCloudCheckoutService(HttpClient httpClient, IOptions<De
     public async Task<DemoPaymentResponse> ProcessDemoPaymentAsync(
         string token, string orderID, DemoPaymentRequest request, CancellationToken cancellationToken)
     {
-        var order = await GetOwnedOrderAsync(token, orderID, cancellationToken);
-        var validation = await ValidateQuantitiesAsync(token, orderID, cancellationToken);
+        var me = await AuthenticateCallerAsync(token, cancellationToken);
+        var order = await GetOwnedOrderAsync(token, orderID, me, cancellationToken);
+        var validation = await ValidateQuantitiesCoreAsync(token, orderID, cancellationToken);
         var currency = order["Currency"]?.GetValue<string>() ?? string.Empty;
         var total = order["Total"]?.GetValue<decimal>() ?? -1;
         if (!validation.IsValid) return new("rejected", null, total, currency, validation.Errors);
@@ -122,13 +136,26 @@ public sealed class OrderCloudCheckoutService(HttpClient httpClient, IOptions<De
 
     public async Task<string> GetCartOrderIDAsync(string token, CancellationToken cancellationToken)
     {
-        ValidateCaller(token);
+        await AuthenticateCallerAsync(token, cancellationToken);
+        return await GetCartOrderIDCoreAsync(token, cancellationToken);
+    }
+
+    public async Task<QuantityValidationResult> ValidateCartQuantitiesAsync(string token, CancellationToken cancellationToken)
+    {
+        var me = await AuthenticateCallerAsync(token, cancellationToken);
+        var orderID = await GetCartOrderIDCoreAsync(token, cancellationToken);
+        await GetOwnedOrderAsync(token, orderID, me, cancellationToken);
+        return await ValidateQuantitiesCoreAsync(token, orderID, cancellationToken);
+    }
+
+    private async Task<string> GetCartOrderIDCoreAsync(string token, CancellationToken cancellationToken)
+    {
         var worksheet = await SendAsync(token, HttpMethod.Get, "cart/worksheet", null, cancellationToken);
         return worksheet["Order"]?["ID"]?.GetValue<string>()
             ?? throw new CheckoutException("The shopper cart does not contain an order.", 404);
     }
 
-    private void ValidateCaller(string token)
+    private async Task<JsonObject> AuthenticateCallerAsync(string token, CancellationToken cancellationToken)
     {
         var options = configuredOptions.Value;
         try
@@ -136,16 +163,52 @@ public sealed class OrderCloudCheckoutService(HttpClient httpClient, IOptions<De
             var segments = token.Split('.');
             if (segments.Length < 2) throw new FormatException();
             var payload = JsonNode.Parse(Encoding.UTF8.GetString(Convert.FromBase64String(PadBase64(segments[1]))))?.AsObject();
-            var marketplace = payload?["marketplace_id"]?.GetValue<string>() ?? payload?["marketplaceID"]?.GetValue<string>();
-            var client = payload?["client_id"]?.GetValue<string>() ?? payload?["clientID"]?.GetValue<string>();
-            if (!string.Equals(marketplace, options.MarketplaceID, StringComparison.Ordinal) ||
-                !options.StorefrontClientIDs.Contains(client, StringComparer.OrdinalIgnoreCase))
+            var client = payload?["cid"]?.GetValue<string>();
+            var userType = payload?["usrtype"]?.GetValue<string>();
+            var user = payload?["usr"]?.GetValue<string>();
+            var isAnonymous = payload?["orderid"] is not null;
+            if (string.IsNullOrWhiteSpace(client) || !options.StorefrontClientIDs.Contains(client, StringComparer.OrdinalIgnoreCase))
                 throw new CheckoutException("The caller is not an allowed KFMB storefront client.", 403);
+            if (isAnonymous || !string.Equals(userType, "buyer", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(user))
+                throw new CheckoutException("An authenticated buyer token is required.", 403);
         }
         catch (CheckoutException) { throw; }
-        catch (Exception ex) when (ex is FormatException or JsonException)
+        catch (Exception ex) when (ex is FormatException or JsonException or InvalidOperationException)
         {
             throw new CheckoutException("The shopper token is malformed.", 401);
+        }
+
+        // Parsing a JWT does not validate its signature or expiry. OrderCloud authenticates the exact token.
+        var me = await SendAsync(token, HttpMethod.Get, "me", null, cancellationToken);
+        await ValidateMarketplaceConfigurationAsync(cancellationToken);
+        return me;
+    }
+
+    private async Task ValidateMarketplaceConfigurationAsync(CancellationToken cancellationToken)
+    {
+        var options = configuredOptions.Value;
+        if (string.IsNullOrWhiteSpace(options.MarketplaceID) || options.StorefrontClientIDs.Length == 0)
+            throw new CheckoutException("Demo checkout marketplace and storefront clients are not configured.", 503);
+
+        var middlewareToken = await GetMiddlewareTokenAsync(cancellationToken);
+        try
+        {
+            var schedule = await SendAsync(middlewareToken, HttpMethod.Get,
+                $"priceschedules/{Uri.EscapeDataString(VerificationPriceScheduleID)}", null, cancellationToken);
+            if (!string.Equals(schedule["OwnerID"]?.GetValue<string>(), options.MarketplaceID, StringComparison.Ordinal))
+                throw new CheckoutException("Demo checkout marketplace ownership verification failed.", 503);
+
+            foreach (var clientID in options.StorefrontClientIDs.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                var client = await SendAsync(middlewareToken, HttpMethod.Get,
+                    $"apiclients/{Uri.EscapeDataString(clientID)}", null, cancellationToken);
+                if (!string.Equals(client["ID"]?.GetValue<string>(), clientID, StringComparison.OrdinalIgnoreCase))
+                    throw new CheckoutException("Demo checkout storefront client verification failed.", 503);
+            }
+        }
+        catch (CheckoutException ex) when (ex.StatusCode != 503)
+        {
+            throw new CheckoutException("Demo checkout marketplace configuration could not be verified.", 503);
         }
     }
 
