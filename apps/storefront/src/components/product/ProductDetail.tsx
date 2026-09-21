@@ -34,6 +34,7 @@ import { productQuantity, quantityBounds, quantityError } from "../../utils/kfmb
 import { assertCartQuantityChange } from "../../utils/kfmbCartQuantityChecks";
 import { runCartAction } from "../../utils/kfmbCartEdits";
 import { useCurrentUser } from "../../hooks/currentUser";
+import { useCurrentCart } from "../../hooks/currentCart";
 import {
   canAddPdpQuantity,
   editPdpQuantityState,
@@ -66,16 +67,18 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
   const [addingToCart, setAddingToCart] = useState(false);
   const [quantityState, setQuantityState] = useState(emptyPdpQuantityState);
-  const { data: currentUser, isLoading: userLoading } = useCurrentUser();
+  const { data: currentUser, isLoading: userLoading, error: userError, refetch: retryUser } = useCurrentUser();
   const outOfStock = useMemo(
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable]
   );
-  const { addCartLineItem, orderWorksheet, worksheetLoading } = useShopper();
+  const { addCartLineItem } = useShopper();
+  const cart = useCurrentCart(!userLoading && !!currentUser && !userError);
   const addingRef = useRef(false);
-  const cartReady = !worksheetLoading && Array.isArray(orderWorksheet?.LineItems);
+  const cartReady = cart.status === "empty" || cart.status === "ready";
+  const cartLines = cartReady ? cart.lineItems : [];
   const alreadyInCart = cartReady
-    ? productQuantity(orderWorksheet.LineItems, productId)
+    ? productQuantity(cartLines, productId)
     : 0;
   const entryBounds = product?.PriceSchedule
     ? quantityBounds(product.PriceSchedule, alreadyInCart)
@@ -130,7 +133,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     setAddingToCart(true);
     try {
       await runCartAction(async () => {
-        await assertCartQuantityChange(orderWorksheet?.Order?.ID, productId, quantity);
+        await assertCartQuantityChange(cart.status === "ready" ? cart.worksheet.Order?.ID : undefined, productId, quantity);
         await addCartLineItem({ ProductID: productId, Quantity: quantity, InventoryRecordID: activeRecordId });
       });
       toast({ title: `${quantity} ${pluralize("pack", quantity)} added to cart`, status: "success", duration: 4000, isClosable: true });
@@ -146,7 +149,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       setAddingToCart(false);
     }
   }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate,
-      inputError, canAddQuantity, orderWorksheet?.Order?.ID]);
+      inputError, canAddQuantity, cart]);
 
   return loading ? (
     <Center h="50vh">
@@ -185,15 +188,26 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             >
               {outOfStock ? "Out of stock" : "Add To Cart"}
             </Button>
-            <OcQuantityInput
-              controlId="addToCart"
-              priceSchedule={product.PriceSchedule}
-              quantity={quantity}
-              otherQuantity={alreadyInCart}
-              loading={!quantityReady}
-              disabled={addingToCart || !quantityReady || outOfStock}
-              onChange={setQuantity}
-            />
+            {userError || cart.status === "error" ? (
+              <VStack alignItems="flex-start" gap={1}>
+                <Text role="alert" fontSize="xs" color="red.600">
+                  {userError instanceof Error ? userError.message : cart.status === "error" ? cart.message : "Shopper data could not be loaded."}
+                </Text>
+                <Button size="xs" variant="outline" onClick={() => userError ? retryUser() : cart.retry()}>
+                  Retry
+                </Button>
+              </VStack>
+            ) : (
+              <OcQuantityInput
+                controlId="addToCart"
+                priceSchedule={product.PriceSchedule}
+                quantity={quantity}
+                otherQuantity={alreadyInCart}
+                loading={!quantityReady}
+                disabled={addingToCart || !quantityReady || outOfStock}
+                onChange={setQuantity}
+              />
+            )}
           </HStack>
           {!outOfStock && IS_MULTI_LOCATION_INVENTORY && (
             <>
