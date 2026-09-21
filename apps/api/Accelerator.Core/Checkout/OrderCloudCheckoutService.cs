@@ -6,9 +6,11 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
@@ -27,31 +29,41 @@ public sealed class CheckoutException(string message, int statusCode = 400) : Ex
 public sealed class OrderCloudCheckoutService(HttpClient httpClient, IOptions<DemoCheckoutOptions> configuredOptions)
 {
     private const string VerificationPriceScheduleID = "kfmb-demo-flour-sa-standard";
+    private const string FingerprintVersion = "2";
+    private const string ApprovalCode = "KFMB_DEMO_APPROVED";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<JsonObject> GetOwnedOrderAsync(string token, string orderID, CancellationToken cancellationToken)
     {
         var me = await AuthenticateCallerAsync(token, cancellationToken);
-        return await GetOwnedOrderAsync(token, orderID, me, cancellationToken);
+        return await GetOwnedOrderAsync(token, orderID, me, allowSubmitted: false, cancellationToken);
     }
 
     private async Task<JsonObject> GetOwnedOrderAsync(
-        string token, string orderID, JsonObject me, CancellationToken cancellationToken)
+        string token, string orderID, JsonObject me, bool allowSubmitted, CancellationToken cancellationToken)
     {
         var order = await SendAsync(token, HttpMethod.Get, $"orders/Outgoing/{Uri.EscapeDataString(orderID)}", null, cancellationToken);
         var meID = me["ID"]?.GetValue<string>();
         var ownerID = order["FromUser"]?["ID"]?.GetValue<string>();
         if (string.IsNullOrWhiteSpace(meID) || !string.Equals(meID, ownerID, StringComparison.OrdinalIgnoreCase))
             throw new CheckoutException("The authenticated shopper does not own this order.", 403);
-        if (order["IsSubmitted"]?.GetValue<bool>() == true)
+        if (!allowSubmitted && order["IsSubmitted"]?.GetValue<bool>() == true)
             throw new CheckoutException("This order has already been submitted.", 409);
         return order;
+    }
+
+    public async Task<DemoOrderStatusResponse> GetOwnedOrderStatusAsync(
+        string token, string orderID, CancellationToken cancellationToken)
+    {
+        var me = await AuthenticateCallerAsync(token, cancellationToken);
+        var order = await GetOwnedOrderAsync(token, orderID, me, allowSubmitted: true, cancellationToken);
+        return new(order["IsSubmitted"]?.GetValue<bool>() == true ? "submitted" : "unsubmitted", orderID);
     }
 
     public async Task<QuantityValidationResult> ValidateQuantitiesAsync(string token, string orderID, CancellationToken cancellationToken)
     {
         var me = await AuthenticateCallerAsync(token, cancellationToken);
-        await GetOwnedOrderAsync(token, orderID, me, cancellationToken);
+        await GetOwnedOrderAsync(token, orderID, me, allowSubmitted: false, cancellationToken);
         return await ValidateQuantitiesCoreAsync(token, orderID, cancellationToken);
     }
 
@@ -93,7 +105,7 @@ public sealed class OrderCloudCheckoutService(HttpClient httpClient, IOptions<De
         string token, string orderID, DemoPaymentRequest request, CancellationToken cancellationToken)
     {
         var me = await AuthenticateCallerAsync(token, cancellationToken);
-        var order = await GetOwnedOrderAsync(token, orderID, me, cancellationToken);
+        var order = await GetOwnedOrderAsync(token, orderID, me, allowSubmitted: false, cancellationToken);
         var validation = await ValidateQuantitiesCoreAsync(token, orderID, cancellationToken);
         var currency = order["Currency"]?.GetValue<string>() ?? string.Empty;
         var total = order["Total"]?.GetValue<decimal>() ?? -1;
@@ -103,30 +115,75 @@ public sealed class OrderCloudCheckoutService(HttpClient httpClient, IOptions<De
         if (!string.Equals(request.Outcome, "approve", StringComparison.OrdinalIgnoreCase))
             return new(string.Equals(request.Outcome, "decline", StringComparison.OrdinalIgnoreCase) ? "declined" : "cancelled", null, total, currency);
 
-        var snapshot = $"{orderID}|{order["LastUpdated"]}|{total:0.00}|{currency}";
+        // Build this exclusively from authoritative payable fields. Order.LastUpdated changes when
+        // payments are written, and fixed two-decimal formatting loses currencies such as KWD.
+        var payableFingerprint = await GetPayableFingerprintAsync(token, orderID, order, cancellationToken);
         var payments = await SendAsync(token, HttpMethod.Get,
             $"orders/Outgoing/{Uri.EscapeDataString(orderID)}/payments?pageSize=100", null, cancellationToken);
-        var existing = payments["Items"]?.AsArray().OfType<JsonObject>().FirstOrDefault(p =>
-            p["xp"]?["KFMBCheckout"]?["Snapshot"]?.GetValue<string>() == snapshot);
+        var demoPayments = payments["Items"]?.AsArray().OfType<JsonObject>().Where(IsDemoPayment).ToList() ?? [];
+        var matching = demoPayments.Where(p =>
+            p["xp"]?["KFMBCheckout"]?["PayableFingerprint"]?.GetValue<string>() == payableFingerprint).ToList();
+        if (matching.Count > 1)
+            throw RecoverablePaymentConflict("More than one demo payment matches this cart. Contact support before retrying checkout.");
+        if (matching.Count == 0 && demoPayments.Count != 0)
+            throw RecoverablePaymentConflict("The cart changed after demo payment processing. Its existing payment was preserved; review the cart and contact support before retrying.");
+
         var middlewareToken = await GetMiddlewareTokenAsync(cancellationToken);
-        var payment = existing ?? await SendAsync(middlewareToken, HttpMethod.Post,
-            $"orders/Incoming/{Uri.EscapeDataString(orderID)}/payments",
-            new JsonObject {
-                ["Type"] = "CreditCard", ["Description"] = "KFMB demo payment — no real charge",
+        var paymentID = StableResourceID("kfmb-demo-pay", orderID, payableFingerprint);
+        var payment = matching.SingleOrDefault();
+        if (payment is null)
+        {
+            var body = new JsonObject {
+                ["ID"] = paymentID, ["Type"] = "CreditCard", ["Description"] = "KFMB demo payment — no real charge",
                 ["Amount"] = total, ["Accepted"] = false,
-                ["xp"] = new JsonObject { ["KFMBCheckout"] = new JsonObject { ["Mode"] = "Demo", ["Snapshot"] = snapshot } }
-            }, cancellationToken);
-        var paymentID = payment["ID"]?.GetValue<string>() ?? throw new CheckoutException("OrderCloud did not return a payment ID.", 502);
-        var hasAuthorization = payment["Transactions"]?.AsArray().OfType<JsonObject>().Any(t =>
-            t["ResultCode"]?.GetValue<string>() == "KFMB_DEMO_APPROVED" && t["Succeeded"]?.GetValue<bool>() == true) == true;
+                ["xp"] = new JsonObject { ["KFMBCheckout"] = new JsonObject {
+                    ["Mode"] = "Demo", ["FingerprintVersion"] = FingerprintVersion,
+                    ["PayableFingerprint"] = payableFingerprint
+                } }
+            };
+            try
+            {
+                payment = await SendAsync(middlewareToken, HttpMethod.Post,
+                    $"orders/Incoming/{Uri.EscapeDataString(orderID)}/payments", body, cancellationToken);
+            }
+            catch (CheckoutException ex) when (ex.StatusCode == 409)
+            {
+                // The caller that won the race created the deterministic ID. Re-read that durable
+                // resource; the database uniqueness constraint, not this process, provides idempotency.
+                payment = await SendAsync(token, HttpMethod.Get,
+                    $"orders/Outgoing/{Uri.EscapeDataString(orderID)}/payments/{Uri.EscapeDataString(paymentID)}", null, cancellationToken);
+            }
+        }
+        paymentID = payment["ID"]?.GetValue<string>() ?? throw new CheckoutException("OrderCloud did not return a payment ID.", 502);
+        EnsurePaymentMatches(payment, total, currency, payableFingerprint);
+        var transactions = payment["Transactions"]?.AsArray().OfType<JsonObject>().ToList() ?? [];
+        var hasAuthorization = transactions.Any(t => IsSuccessfulAuthorization(t, total, currency));
+        var hasConflictingTransactions = transactions.Any(t => !IsSuccessfulAuthorization(t, total, currency));
+        if (hasConflictingTransactions || (payment["Accepted"]?.GetValue<bool>() == true && !hasAuthorization))
+            throw RecoverablePaymentConflict("The existing demo payment has an incomplete or conflicting authorization. It was preserved; contact support before retrying.");
         if (!hasAuthorization)
-            await SendAsync(middlewareToken, HttpMethod.Post,
-                $"orders/Incoming/{Uri.EscapeDataString(orderID)}/payments/{Uri.EscapeDataString(paymentID)}/transactions",
-                new JsonObject {
+        {
+            var transactionID = StableResourceID("kfmb-demo-auth", orderID, payableFingerprint);
+            try
+            {
+                payment = await SendAsync(middlewareToken, HttpMethod.Post,
+                    $"orders/Incoming/{Uri.EscapeDataString(orderID)}/payments/{Uri.EscapeDataString(paymentID)}/transactions",
+                    new JsonObject {
+                    ["ID"] = transactionID,
                     ["Type"] = "Authorization", ["DateExecuted"] = DateTimeOffset.UtcNow,
                     ["Amount"] = total, ["Currency"] = currency, ["Succeeded"] = true,
-                    ["ResultCode"] = "KFMB_DEMO_APPROVED", ["ResultMessage"] = "Demo payment — no real charge"
-                }, cancellationToken);
+                    ["ResultCode"] = ApprovalCode, ["ResultMessage"] = "Demo payment — no real charge"
+                    }, cancellationToken);
+            }
+            catch (CheckoutException ex) when (ex.StatusCode == 409)
+            {
+                payment = await SendAsync(token, HttpMethod.Get,
+                    $"orders/Outgoing/{Uri.EscapeDataString(orderID)}/payments/{Uri.EscapeDataString(paymentID)}", null, cancellationToken);
+                if (payment["Transactions"]?.AsArray().OfType<JsonObject>().Any(t =>
+                    IsSuccessfulAuthorization(t, total, currency)) != true)
+                    throw RecoverablePaymentConflict("Demo payment authorization is still being processed. Wait briefly, then retry.");
+            }
+        }
         if (payment["Accepted"]?.GetValue<bool>() != true)
             await SendAsync(middlewareToken, HttpMethod.Patch,
                 $"orders/Incoming/{Uri.EscapeDataString(orderID)}/payments/{Uri.EscapeDataString(paymentID)}",
@@ -144,8 +201,62 @@ public sealed class OrderCloudCheckoutService(HttpClient httpClient, IOptions<De
     {
         var me = await AuthenticateCallerAsync(token, cancellationToken);
         var orderID = await GetCartOrderIDCoreAsync(token, cancellationToken);
-        await GetOwnedOrderAsync(token, orderID, me, cancellationToken);
+        await GetOwnedOrderAsync(token, orderID, me, allowSubmitted: false, cancellationToken);
         return await ValidateQuantitiesCoreAsync(token, orderID, cancellationToken);
+    }
+
+    private async Task<string> GetPayableFingerprintAsync(
+        string token, string orderID, JsonObject order, CancellationToken cancellationToken)
+    {
+        var lines = new List<string>();
+        for (var page = 1; ; page++)
+        {
+            var response = await SendAsync(token, HttpMethod.Get,
+                $"orders/Outgoing/{Uri.EscapeDataString(orderID)}/lineitems?page={page}&pageSize=100", null, cancellationToken);
+            foreach (var line in response["Items"]?.AsArray().OfType<JsonObject>() ?? [])
+            {
+                lines.Add(string.Join("|", new[] {
+                    TextValue(line, "ID"), TextValue(line, "ProductID"), TextValue(line, "VariantID"),
+                    DecimalValue(line, "Quantity"), DecimalValue(line, "UnitPrice"), DecimalValue(line, "LineTotal"),
+                    DecimalValue(line, "PromotionDiscount"), DecimalValue(line, "ShippingCost"), DecimalValue(line, "TaxCost")
+                }));
+            }
+            if (page >= (response["Meta"]?["TotalPages"]?.GetValue<int>() ?? 1)) break;
+        }
+        lines.Sort(StringComparer.Ordinal);
+        var components = new List<string> {
+            $"v={FingerprintVersion}", $"order={orderID}", $"currency={TextValue(order, "Currency").ToUpperInvariant()}",
+            $"subtotal={DecimalValue(order, "Subtotal")}", $"promotion={DecimalValue(order, "PromotionDiscount")}",
+            $"shipping={DecimalValue(order, "ShippingCost")}", $"tax={DecimalValue(order, "TaxCost")}",
+            $"total={DecimalValue(order, "Total")}",
+        };
+        components.AddRange(lines.Select(line => $"line={line}"));
+        var canonical = string.Join("\n", components);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
+    }
+
+    private static string TextValue(JsonObject value, string name) => value[name]?.GetValue<string>() ?? string.Empty;
+    private static string DecimalValue(JsonObject value, string name) =>
+        (value[name]?.GetValue<decimal>() ?? 0m).ToString("G29", CultureInfo.InvariantCulture);
+    private static bool IsDemoPayment(JsonObject payment) =>
+        string.Equals(payment["xp"]?["KFMBCheckout"]?["Mode"]?.GetValue<string>(), "Demo", StringComparison.OrdinalIgnoreCase);
+    private static bool IsSuccessfulAuthorization(JsonObject transaction, decimal total, string currency) =>
+        transaction["ResultCode"]?.GetValue<string>() == ApprovalCode &&
+        transaction["Succeeded"]?.GetValue<bool>() == true &&
+        transaction["Amount"]?.GetValue<decimal>() == total &&
+        string.Equals(transaction["Currency"]?.GetValue<string>(), currency, StringComparison.OrdinalIgnoreCase);
+    private static string StableResourceID(string prefix, string orderID, string fingerprint)
+    {
+        var input = SHA256.HashData(Encoding.UTF8.GetBytes($"{orderID}|{fingerprint}"));
+        return $"{prefix}-{Convert.ToHexString(input)[..32].ToLowerInvariant()}";
+    }
+    private static CheckoutException RecoverablePaymentConflict(string message) => new(message, 409);
+    private static void EnsurePaymentMatches(JsonObject payment, decimal total, string currency, string fingerprint)
+    {
+        if (!IsDemoPayment(payment) || payment["Amount"]?.GetValue<decimal>() != total ||
+            !string.Equals(payment["Currency"]?.GetValue<string>(), currency, StringComparison.OrdinalIgnoreCase) ||
+            payment["xp"]?["KFMBCheckout"]?["PayableFingerprint"]?.GetValue<string>() != fingerprint)
+            throw RecoverablePaymentConflict("The existing demo payment conflicts with the current payable state. It was preserved; contact support before retrying.");
     }
 
     private async Task<string> GetCartOrderIDCoreAsync(string token, CancellationToken cancellationToken)

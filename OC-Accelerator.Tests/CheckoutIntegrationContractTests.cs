@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Accelerator.Checkout;
 using Accelerator.Functions;
 using Microsoft.Extensions.Options;
@@ -117,6 +118,84 @@ public class CheckoutIntegrationContractTests
     }
 
     [Test]
+    public async Task ApprovedPaymentIsReusedAfterSubmissionFailureChangesOrderTimestamp()
+    {
+        var handler = new CheckoutHandler();
+        var service = Service(handler);
+        var first = await service.ProcessDemoPaymentAsync(Token(Saudi), "order-1",
+            new DemoPaymentRequest("approve", 10m, "SAR"), CancellationToken.None);
+        handler.OrderLastUpdated = "2026-09-21T22:47:09.55+00:00";
+
+        var retry = await service.ProcessDemoPaymentAsync(Token(Saudi), "order-1",
+            new DemoPaymentRequest("approve", 10.000m, "SAR"), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(retry.PaymentID, Is.EqualTo(first.PaymentID));
+            Assert.That(handler.PersistedPaymentCount, Is.EqualTo(1));
+            Assert.That(handler.PersistedAuthorizationCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task MaterialCartChangeDoesNotReuseOrReplaceApproval()
+    {
+        var handler = new CheckoutHandler();
+        var service = Service(handler);
+        await service.ProcessDemoPaymentAsync(Token(Saudi), "order-1",
+            new DemoPaymentRequest("approve", 10m, "SAR"), CancellationToken.None);
+        handler.LineQuantity = 3m;
+
+        var exception = Assert.ThrowsAsync<CheckoutException>(() => service.ProcessDemoPaymentAsync(Token(Saudi), "order-1",
+            new DemoPaymentRequest("approve", 10m, "SAR"), CancellationToken.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.StatusCode, Is.EqualTo(409));
+            Assert.That(exception.Message, Does.Contain("cart changed"));
+            Assert.That(handler.PaymentCreates, Is.EqualTo(1));
+            Assert.That(handler.AuthorizationCreates, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task ConcurrentApprovalsUseOnePersistedPaymentAndAuthorization()
+    {
+        var handler = new CheckoutHandler { SynchronizeInitialPaymentReads = true };
+        var first = Service(handler).ProcessDemoPaymentAsync(Token(Saudi), "order-1",
+            new DemoPaymentRequest("approve", 10m, "SAR"), CancellationToken.None);
+        var second = Service(handler).ProcessDemoPaymentAsync(Token(Saudi), "order-1",
+            new DemoPaymentRequest("approve", 10m, "SAR"), CancellationToken.None);
+
+        var results = await Task.WhenAll(first, second);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(results.Select(result => result.PaymentID).Distinct(), Has.Count.EqualTo(1));
+            Assert.That(handler.PersistedPaymentCount, Is.EqualTo(1));
+            Assert.That(handler.PersistedAuthorizationCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task SubmittedOrderCanBeRecoveredByReadButRemainsClosedToPaymentMutation()
+    {
+        var handler = new CheckoutHandler { IsSubmitted = true };
+        var service = Service(handler);
+
+        var status = await service.GetOwnedOrderStatusAsync(Token(Saudi), "order-1", CancellationToken.None);
+        var exception = Assert.ThrowsAsync<CheckoutException>(() => service.ProcessDemoPaymentAsync(Token(Saudi), "order-1",
+            new DemoPaymentRequest("approve", 10m, "SAR"), CancellationToken.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status.Status, Is.EqualTo("submitted"));
+            Assert.That(exception!.StatusCode, Is.EqualTo(409));
+            Assert.That(handler.PaymentWrites, Is.Zero);
+        });
+    }
+
+    [Test]
     public async Task CartSubmissionValidationUsesSameAuthenticatedPath()
     {
         var handler = new CheckoutHandler();
@@ -152,33 +231,81 @@ public class CheckoutIntegrationContractTests
         public bool RejectShopperToken { get; init; }
         public string? PriceScheduleOwner { get; init; } = Marketplace;
         public string OrderOwner { get; init; } = "shopper";
-        public int PaymentWrites => Calls.Count(c => c.Method is "POST" or "PATCH" && c.Path.Contains("/payments"));
+        public bool IsSubmitted { get; init; }
+        public string OrderLastUpdated { get; set; } = "2026-09-21T22:37:29.283+00:00";
+        public decimal LineQuantity { get; set; } = 2m;
+        public bool SynchronizeInitialPaymentReads { get; init; }
+        public int PaymentWrites { get { lock (Calls) return Calls.Count(c => c.Method is "POST" or "PATCH" && c.Path.Contains("/payments")); } }
+        public int PaymentCreates { get { lock (Calls) return Calls.Count(c => c.Method == "POST" && c.Path.EndsWith("/payments")); } }
+        public int AuthorizationCreates { get { lock (Calls) return Calls.Count(c => c.Method == "POST" && c.Path.EndsWith("/transactions")); } }
+        public int PersistedPaymentCount { get { lock (this) return payment is null ? 0 : 1; } }
+        public int PersistedAuthorizationCount { get { lock (this) return payment?["Transactions"]?.AsArray().Count ?? 0; } }
+        private JsonObject? payment;
+        private readonly TaskCompletionSource paymentReadsReleased = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int paymentListReads;
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var path = request.RequestUri!.AbsolutePath + request.RequestUri.Query;
             var bearer = request.Headers.Authorization?.Parameter ?? "";
-            Calls.Add((request.Method.Method, path, bearer));
-            if (path == "/oauth/token") return Task.FromResult(Json(HttpStatusCode.OK, new { access_token = "middleware-token" }));
-            if (path == "/v1/me") return Task.FromResult(RejectShopperToken
+            lock (Calls) Calls.Add((request.Method.Method, path, bearer));
+            if (path == "/oauth/token") return Json(HttpStatusCode.OK, new { access_token = "middleware-token" });
+            if (path == "/v1/me") return RejectShopperToken
                 ? Json(HttpStatusCode.Unauthorized, new { Errors = new[] { new { Message = "Invalid or expired token." } } })
-                : Json(HttpStatusCode.OK, new { ID = "shopper" }));
+                : Json(HttpStatusCode.OK, new { ID = "shopper" });
             if (path == "/v1/priceschedules/kfmb-demo-flour-sa-standard")
-                return Task.FromResult(Json(HttpStatusCode.OK, new { OwnerID = PriceScheduleOwner }));
+                return Json(HttpStatusCode.OK, new { OwnerID = PriceScheduleOwner });
             if (path.StartsWith("/v1/apiclients/"))
-                return Task.FromResult(Json(HttpStatusCode.OK, new { ID = Uri.UnescapeDataString(path.Split('/').Last()) }));
-            if (path == "/v1/cart/worksheet") return Task.FromResult(Json(HttpStatusCode.OK, new { Order = new { ID = "order-1" } }));
-            if (path == "/v1/orders/Outgoing/order-1") return Task.FromResult(Json(HttpStatusCode.OK,
-                new { ID = "order-1", FromUser = new { ID = OrderOwner }, IsSubmitted = false, Currency = "SAR", Total = 10m, LastUpdated = "snapshot" }));
-            if (path.Contains("/lineitems")) return Task.FromResult(Json(HttpStatusCode.OK,
-                new { Items = new[] { new { ProductID = "P1", Quantity = 2m } }, Meta = new { TotalPages = 1 } }));
-            if (path == "/v1/me/products/P1") return Task.FromResult(Json(HttpStatusCode.OK,
-                new { PriceSchedule = new { RestrictedQuantity = false, MinQuantity = 1m, MaxQuantity = 10m, PriceBreaks = new[] { new { Quantity = 1m } } } }));
+                return Json(HttpStatusCode.OK, new { ID = Uri.UnescapeDataString(path.Split('/').Last()) });
+            if (path == "/v1/cart/worksheet") return Json(HttpStatusCode.OK, new { Order = new { ID = "order-1" } });
+            if (path == "/v1/orders/Outgoing/order-1") return Json(HttpStatusCode.OK,
+                new { ID = "order-1", FromUser = new { ID = OrderOwner }, IsSubmitted, Currency = "SAR", Subtotal = 10m, PromotionDiscount = 0m, ShippingCost = 0m, TaxCost = 0m, Total = 10m, LastUpdated = OrderLastUpdated });
+            if (path.Contains("/lineitems")) return Json(HttpStatusCode.OK,
+                new { Items = new[] { new { ID = "line-1", ProductID = "P1", VariantID = (string?)null, Quantity = LineQuantity, UnitPrice = 5m, LineTotal = 10m, PromotionDiscount = 0m, ShippingCost = 0m, TaxCost = 0m } }, Meta = new { TotalPages = 1 } });
+            if (path == "/v1/me/products/P1") return Json(HttpStatusCode.OK,
+                new { PriceSchedule = new { RestrictedQuantity = false, MinQuantity = 1m, MaxQuantity = 10m, PriceBreaks = new[] { new { Quantity = 1m } } } });
             if (request.Method == HttpMethod.Get && path.Contains("/payments"))
-                return Task.FromResult(Json(HttpStatusCode.OK, new { Items = Array.Empty<object>() }));
-            if (request.Method == HttpMethod.Post && path.EndsWith("/payments")) return Task.FromResult(Json(HttpStatusCode.OK,
-                new { ID = "payment-1", Accepted = false, Transactions = Array.Empty<object>() }));
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent) { Content = new StringContent("") });
+            {
+                if (path.Contains("?"))
+                {
+                    if (SynchronizeInitialPaymentReads && Volatile.Read(ref payment) is null)
+                    {
+                        if (Interlocked.Increment(ref paymentListReads) == 2) paymentReadsReleased.TrySetResult();
+                        await paymentReadsReleased.Task.WaitAsync(cancellationToken);
+                    }
+                    return Json(HttpStatusCode.OK, new { Items = payment is null ? Array.Empty<JsonObject>() : new[] { payment } });
+                }
+                return payment is null ? Json(HttpStatusCode.NotFound, new { Errors = new[] { new { Message = "Not found" } } }) : Json(HttpStatusCode.OK, payment);
+            }
+            if (request.Method == HttpMethod.Post && path.EndsWith("/payments"))
+            {
+                var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))!.AsObject();
+                lock (this)
+                {
+                    if (payment is not null) return Json(HttpStatusCode.Conflict, new { Errors = new[] { new { Message = "ID already exists" } } });
+                    body["Currency"] = "SAR";
+                    body["Transactions"] = new JsonArray();
+                    payment = body;
+                }
+                return Json(HttpStatusCode.OK, payment);
+            }
+            if (request.Method == HttpMethod.Post && path.EndsWith("/transactions"))
+            {
+                var transaction = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))!.AsObject();
+                lock (this)
+                {
+                    var transactions = payment!["Transactions"]!.AsArray();
+                    if (transactions.Count != 0) return Json(HttpStatusCode.Conflict, new { Errors = new[] { new { Message = "ID already exists" } } });
+                    transactions.Add(transaction);
+                }
+                return Json(HttpStatusCode.OK, payment!);
+            }
+            if (request.Method == HttpMethod.Patch && path.Contains("/payments/"))
+            {
+                lock (this) payment!["Accepted"] = true;
+                return Json(HttpStatusCode.OK, payment!);
+            }
+            return new HttpResponseMessage(HttpStatusCode.NoContent) { Content = new StringContent("") };
         }
 
         private static HttpResponseMessage Json(HttpStatusCode status, object body) => new(status)

@@ -32,6 +32,33 @@ test("forms the exact predefined callback URLs from the integration base", () =>
   });
 });
 
+test("preserves both storefront clients and grants only Shopper elevation to both submit routes", () => {
+  const webhook = configuration(target, "not-printed").webhook;
+  assert.deepEqual(webhook.ElevatedRoles, ["Shopper"]);
+  assert.deepEqual(webhook.ApiClientIDs, target.storefrontClients);
+  assert.equal(webhook.BeforeProcessRequest, true);
+  assert.deepEqual(webhook.WebhookRoutes, [
+    { Route: "v1/orders/{direction}/{orderID}/submit", Verb: "POST" },
+    { Route: "v1/cart/submit", Verb: "POST" },
+  ]);
+});
+
+test("merges unrelated existing webhook properties while enforcing checkout permissions", async () => {
+  const fake = fakeFetch();
+  const baseFetch = fake.fetchImpl;
+  fake.fetchImpl = async (url, init = {}) => {
+    if (init.method === "GET" && url.endsWith("/webhooks/kfmb-validate-submit-quantity"))
+      return response(200, { ID: "kfmb-validate-submit-quantity", UnrelatedSetting: "keep-me", ElevatedRoles: ["FullAccess"] });
+    if (init.method === "GET" && url.endsWith("/integrationevents/kfmb-pickup-checkout")) return response(404, {});
+    return baseFetch(url, init);
+  };
+  await run({ apply: true, secret: "secret", hashKey: "hash", fetchImpl: fake.fetchImpl, log() {} });
+  const put = fake.calls.find(call => call.method === "PUT" && call.url.includes("/webhooks/"));
+  const body = JSON.parse(put.body);
+  assert.equal(body.UnrelatedSetting, "keep-me");
+  assert.deepEqual(body.ElevatedRoles, ["Shopper"]);
+});
+
 test("verifies marketplace ownership when JWT aud is the API URL", async () => {
   const fake = fakeFetch();
   await run({ secret: "secret", hashKey: "hash", fetchImpl: fake.fetchImpl, log() {} });
