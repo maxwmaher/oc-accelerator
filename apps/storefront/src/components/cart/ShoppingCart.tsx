@@ -6,7 +6,7 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { DEFAULT_PICKUP_LOCATION } from "../../config/pickupLocations";
 import { useCurrentUser } from "../../hooks/currentUser";
 import { assertNoPendingQuantityEdits, runCartAction } from "../../utils/kfmbCartEdits";
-import { PaymentOutcome, processDemoPayment } from "../../utils/demoCheckoutApi";
+import { getDemoOrderStatus, PaymentOutcome, processDemoPayment } from "../../utils/demoCheckoutApi";
 import { CartInformationPanel, PickupForm } from "./cart-panels/CartInformationPanel";
 import { CartPaymentPanel } from "./cart-panels/CartPaymentPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
@@ -61,6 +61,12 @@ export const ShoppingCart = (): JSX.Element => {
     try {
       await runCartAction(async () => {
         assertNoPendingQuantityEdits();
+        const initialStatus = await getDemoOrderStatus(orderID);
+        if (initialStatus.status === "submitted") {
+          await refreshWorksheet().catch(() => undefined);
+          navigate(`/order-confirmation?orderID=${encodeURIComponent(orderID)}`);
+          return;
+        }
         await applyPromotions();
         const calculated = await calculateOrder();
         const order = calculated.Order;
@@ -72,7 +78,15 @@ export const ShoppingCart = (): JSX.Element => {
           toast({ title: payment.status === "declined" ? "Demo payment declined" : "Demo payment cancelled", description: "Your cart is unchanged and can be retried.", status: "info" });
           return;
         }
-        await submitCart();
+        try {
+          await submitCart();
+        } catch (submissionError) {
+          // A timeout can hide a successful OrderCloud submission. Only the authoritative,
+          // ownership-checked status endpoint may turn that ambiguous result into confirmation.
+          const status = await getDemoOrderStatus(orderID);
+          if (status.status !== "submitted") throw submissionError;
+        }
+        await refreshWorksheet().catch(() => undefined);
         navigate(`/order-confirmation?orderID=${encodeURIComponent(orderID)}`);
       });
     } catch (error) {

@@ -59,6 +59,25 @@ public sealed class DemoCheckout(OrderCloudCheckoutService checkout, IOptions<De
         }
     }
 
+    [Function("demo-order-status")]
+    public async Task<IActionResult> OrderStatusAsync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "demo-checkout/{orderID}/status")] HttpRequest request,
+        string orderID, CancellationToken cancellationToken)
+    {
+        if (!options.Value.Enabled)
+            return new ObjectResult(new { message = "Demo checkout is disabled." }) { StatusCode = 503 };
+        var token = Bearer(request);
+        if (token is null) return new UnauthorizedObjectResult(new { message = "Sign in before checkout." });
+        try
+        {
+            return new OkObjectResult(await checkout.GetOwnedOrderStatusAsync(token, orderID, cancellationToken));
+        }
+        catch (CheckoutException ex)
+        {
+            return new ObjectResult(new { message = ex.Message }) { StatusCode = ex.StatusCode };
+        }
+    }
+
     [Function("validate-order-submit")]
     public async Task<IActionResult> ValidateSubmitAsync(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "webhooks/validate-order-submit")] HttpRequest request,

@@ -11,6 +11,8 @@ public sealed record DemoPaymentRequest(string Outcome, decimal Amount, string C
 public sealed record DemoPaymentResponse(string Status, string? PaymentID, decimal Amount, string Currency,
     IReadOnlyList<string>? Errors = null);
 
+public sealed record DemoOrderStatusResponse(string Status, string OrderID);
+
 public sealed record PreWebhookBody(
     [property: JsonPropertyName("message")] string Message,
     [property: JsonPropertyName("errors")] IReadOnlyList<string>? Errors = null);

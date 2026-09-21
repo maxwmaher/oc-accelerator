@@ -18,7 +18,7 @@ export function configuration(targetConfig, hashKey) {
       OrderSubmit: `${integrationBase}/OrderSubmit`,
     },
     integration: { ID: "kfmb-pickup-checkout", Name: "KFMB pickup checkout", EventType: "OrderCheckout", CustomImplementationUrl: integrationBase, HashKey: hashKey },
-    webhook: { ID: "kfmb-validate-submit-quantity", Name: "KFMB validate checkout quantities", Description: "Signed before-request validation for explicit and cart submission", Url: `${targetConfig.functionsUrl}/api/webhooks/validate-order-submit`, HashKey: hashKey, BeforeProcessRequest: true, ApiClientIDs: targetConfig.storefrontClients, WebhookRoutes: [{ Route: "v1/orders/{direction}/{orderID}/submit", Verb: "POST" }, { Route: "v1/cart/submit", Verb: "POST" }] },
+    webhook: { ID: "kfmb-validate-submit-quantity", Name: "KFMB validate checkout quantities", Description: "Signed before-request validation for explicit and cart submission", Url: `${targetConfig.functionsUrl}/api/webhooks/validate-order-submit`, HashKey: hashKey, BeforeProcessRequest: true, ElevatedRoles: ["Shopper"], ApiClientIDs: targetConfig.storefrontClients, WebhookRoutes: [{ Route: "v1/orders/{direction}/{orderID}/submit", Verb: "POST" }, { Route: "v1/cart/submit", Verb: "POST" }] },
   };
 }
 
