@@ -7,23 +7,34 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Options;
+using OrderCloud.Catalyst;
+using OrderCloud.SDK;
 
 namespace Accelerator.Functions;
 
 public sealed class DemoCheckout(OrderCloudCheckoutService checkout, IOptions<DemoCheckoutOptions> options)
 {
-    [Function("integrationevent")]
-    public async Task<IActionResult> IntegrationEventAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "integrationevent")] HttpRequest request,
+    internal const string IntegrationBaseRoute = "integrationevent";
+    internal const string OrderCalculateRoute = IntegrationBaseRoute + "/OrderCalculate";
+    internal const string OrderSubmitRoute = IntegrationBaseRoute + "/OrderSubmit";
+
+    [Function("demo-order-calculate")]
+    public async Task<IActionResult> OrderCalculateAsync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = OrderCalculateRoute)] HttpRequest request,
         CancellationToken cancellationToken)
     {
-        using var reader = new StreamReader(request.Body, Encoding.UTF8);
-        var raw = await reader.ReadToEndAsync(cancellationToken);
-        if (!ValidHash(raw, request.Headers["X-oc-hash"].FirstOrDefault(), options.Value.HashKey))
-            return new UnauthorizedObjectResult(new { message = "Missing or invalid OrderCloud integration signature." });
-        // One OrderCheckout URL receives calculate and submit callbacks. Zero shipping/tax is an
-        // intentional pickup-demo response; Succeeded allows native payment validation/submission.
-        return new OkObjectResult(new { ShippingTotal = 0m, TaxTotal = 0m, Succeeded = true });
+        if (!await HasValidHashAsync(request, cancellationToken)) return InvalidIntegrationSignature();
+        return new OkObjectResult(new OrderCalculateResponse { TaxTotal = 0m });
+    }
+
+    [Function("demo-order-submit")]
+    public async Task<IActionResult> OrderSubmitAsync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = OrderSubmitRoute)] HttpRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!await HasValidHashAsync(request, cancellationToken)) return InvalidIntegrationSignature();
+        // Native OrderCloud submission continues after this acknowledgement. Never update or submit here.
+        return new OkObjectResult(new OrderSubmitResponse { Succeeded = true });
     }
 
     [Function("demo-payment")]
@@ -57,7 +68,7 @@ public sealed class DemoCheckout(OrderCloudCheckoutService checkout, IOptions<De
         var raw = await reader.ReadToEndAsync(cancellationToken);
         request.Body.Position = 0;
         if (!ValidHash(raw, request.Headers["X-oc-hash"].FirstOrDefault(), options.Value.HashKey))
-            return new UnauthorizedObjectResult(new { proceed = false, message = "Missing or invalid OrderCloud webhook signature." });
+            return new UnauthorizedObjectResult(RejectWebhook("Missing or invalid OrderCloud webhook signature."));
 
         try
         {
@@ -65,20 +76,30 @@ public sealed class DemoCheckout(OrderCloudCheckoutService checkout, IOptions<De
             var token = FindString(payload, "UserToken") ?? FindString(payload, "Token");
             var orderID = FindString(payload, "OrderID") ?? FindString(payload, "orderID");
             if (string.IsNullOrWhiteSpace(token))
-                return new BadRequestObjectResult(new { proceed = false, message = "Webhook did not include shopper context." });
+                return new BadRequestObjectResult(RejectWebhook("Webhook did not include shopper context."));
             // Cart submit has no order ID in its route/body. Resolve it from the authenticated
             // shopper's real cart instead of trusting a browser-supplied ownership claim.
             orderID ??= await checkout.GetCartOrderIDAsync(token, cancellationToken);
             var result = await checkout.ValidateQuantitiesAsync(token, orderID, cancellationToken);
             return new OkObjectResult(result.IsValid
                 ? new { proceed = true }
-                : new { proceed = false, message = string.Join(" ", result.Errors), errors = result.Errors });
+                : RejectWebhook(string.Join(" ", result.Errors), result.Errors));
         }
         catch (CheckoutException ex)
         {
-            return new OkObjectResult(new { proceed = false, message = ex.Message });
+            return new OkObjectResult(RejectWebhook(ex.Message));
         }
     }
+
+    private async Task<bool> HasValidHashAsync(HttpRequest request, CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(request.Body, Encoding.UTF8);
+        var raw = await reader.ReadToEndAsync(cancellationToken);
+        return ValidHash(raw, request.Headers["X-oc-hash"].FirstOrDefault(), options.Value.HashKey);
+    }
+
+    private static UnauthorizedObjectResult InvalidIntegrationSignature() =>
+        new(new { message = "Missing or invalid OrderCloud integration signature." });
 
     private static string? Bearer(HttpRequest request)
     {
@@ -86,13 +107,16 @@ public sealed class DemoCheckout(OrderCloudCheckoutService checkout, IOptions<De
         return value?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true ? value[7..].Trim() : null;
     }
 
-    internal static bool ValidHash(string body, string? supplied, string key)
+    public static bool ValidHash(string body, string? supplied, string key)
     {
         if (string.IsNullOrWhiteSpace(supplied) || string.IsNullOrWhiteSpace(key)) return false;
         var expected = Convert.ToBase64String(HMACSHA256.HashData(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(body)));
         try { return CryptographicOperations.FixedTimeEquals(Convert.FromBase64String(expected), Convert.FromBase64String(supplied)); }
         catch (FormatException) { return false; }
     }
+
+    public static PreWebhookResponse RejectWebhook(string message, IReadOnlyList<string>? errors = null) =>
+        new(false, new PreWebhookBody(message, errors));
 
     private static string? FindString(JsonNode? node, string name)
     {

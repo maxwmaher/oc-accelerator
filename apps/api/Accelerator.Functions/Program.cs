@@ -22,6 +22,11 @@ builder.Services.AddSingleton<ShippingCommand>();
 builder.Services.AddSingleton<TaxCommand>();
 builder.Services.AddSingleton<PaymentCommand>();
 builder.Services.Configure<DemoCheckoutOptions>(config.GetSection("DemoCheckout"));
+builder.Services.PostConfigure<DemoCheckoutOptions>(options =>
+{
+    options.MiddlewareClientID = config["OrderCloudSettings:MiddlewareClientID"] ?? string.Empty;
+    options.MiddlewareClientSecret = config["OrderCloudSettings:MiddlewareClientSecret"] ?? string.Empty;
+});
 builder.Services.AddHttpClient<OrderCloudCheckoutService>(client =>
 {
     var apiUrl = config.GetValue<string>("OrderCloudSettings:ApiUrl")?.TrimEnd('/')

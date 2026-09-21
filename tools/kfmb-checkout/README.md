@@ -17,12 +17,48 @@ Set these on **gzdear-api-zz2d3twpf7h5c** before deploying Functions:
 
 The Function App CORS allow-list must contain exactly the deployed storefront origin, `https://gzdear-storefront-zz2d3twpf7h5c.azurewebsites.net` (no path and no wildcard). Configure storefront `VITE_APP_CHECKOUT_API_URL=https://gzdear-api-zz2d3twpf7h5c.azurewebsites.net`.
 
+The OrderCheckout integration base is
+`https://gzdear-api-zz2d3twpf7h5c.azurewebsites.net/api/integrationevent`. OrderCloud appends its
+predefined operation names, producing these deployed callbacks:
+
+- `POST /api/integrationevent/OrderCalculate`
+- `POST /api/integrationevent/OrderSubmit`
+
+Both callbacks validate `X-oc-hash` over the unmodified request body. The demo returns zero tax from
+calculation and acknowledges submit so that OrderCloud—not the callback—performs native submission.
+
 ## Sequence and commands
 
 1. Configure the settings above, then deploy Functions using the repository's existing pipeline (local package check: `dotnet build apps/api/Accelerator.Api.sln -c Release`).
-2. Securely export `ORDERCLOUD_MIDDLEWARE_CLIENT_SECRET` and the identical `KFMB_CHECKOUT_HASH_KEY`. Review the default dry run with `node tools/kfmb-checkout/configure-checkout.mjs`, then explicitly apply with `node tools/kfmb-checkout/configure-checkout.mjs --apply`. The script verifies the marketplace/client IDs and changes only the OrderCheckout integration, its two client associations, and the two-route signed pre-webhook.
+2. Securely export `ORDERCLOUD_MIDDLEWARE_CLIENT_SECRET` and the identical `KFMB_CHECKOUT_HASH_KEY`. Review the default dry run with `node tools/kfmb-checkout/configure-checkout.mjs`, then explicitly apply with `node tools/kfmb-checkout/configure-checkout.mjs --apply`. Before any write, the script authenticates, verifies that the existing `kfmb-demo-flour-sa-standard` PriceSchedule is owned by `_nfhvLBeikC2yF1a6f6v0w`, and verifies all three expected API clients. It changes only the OrderCheckout integration, its two storefront-client associations, and the two-route signed pre-webhook. Dry-run output describes intended configuration; it does not invoke or claim to test a live callback.
 3. Build with `npm --prefix apps/storefront run build`, then deploy `apps/storefront/dist` to the existing storefront app. No admin deployment is needed.
 4. Run the smoke test below.
+
+### Windows PowerShell (secure prompts)
+
+Run this from the repository root. The plaintext values exist only in the current process environment
+and are removed in `finally`; PowerShell does not echo either prompt.
+
+```powershell
+$middlewareSecret = Read-Host "OrderCloud middleware client secret" -AsSecureString
+$checkoutHashKey = Read-Host "KFMB checkout hash key" -AsSecureString
+try {
+    $secretPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($middlewareSecret)
+    $hashPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($checkoutHashKey)
+    $env:ORDERCLOUD_MIDDLEWARE_CLIENT_SECRET = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($secretPtr)
+    $env:KFMB_CHECKOUT_HASH_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($hashPtr)
+
+    # Default is read-only. Inspect this output before applying.
+    node tools/kfmb-checkout/configure-checkout.mjs
+    node tools/kfmb-checkout/configure-checkout.mjs --apply
+}
+finally {
+    Remove-Item Env:ORDERCLOUD_MIDDLEWARE_CLIENT_SECRET -ErrorAction SilentlyContinue
+    Remove-Item Env:KFMB_CHECKOUT_HASH_KEY -ErrorAction SilentlyContinue
+    if ($secretPtr) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($secretPtr) }
+    if ($hashPtr) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($hashPtr) }
+}
+```
 
 ## One-order Saudi sandbox smoke test
 

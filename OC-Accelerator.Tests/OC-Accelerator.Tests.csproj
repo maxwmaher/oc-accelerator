@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\infrastructure\OC-Accelerator.csproj" />
     <ProjectReference Include="..\apps\api\Accelerator.Core\Accelerator.Core.csproj" />
+    <ProjectReference Include="..\apps\api\Accelerator.Functions\Accelerator.Functions.csproj" />
   </ItemGroup>
 
 </Project>
