@@ -33,6 +33,13 @@ import {
 import { productQuantity, quantityBounds, quantityError } from "../../utils/kfmbQuantityRules";
 import { assertCartQuantityChange } from "../../utils/kfmbCartQuantityChecks";
 import { runCartAction } from "../../utils/kfmbCartEdits";
+import { useCurrentUser } from "../../hooks/currentUser";
+import {
+  canAddPdpQuantity,
+  editPdpQuantityState,
+  emptyPdpQuantityState,
+  resolvePdpQuantityState,
+} from "../../utils/kfmbPdpQuantityState";
 
 export interface ProductDetailProps {
   productId: string;
@@ -58,25 +65,47 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   );
 
   const [addingToCart, setAddingToCart] = useState(false);
-  const [quantity, setQuantity] = useState(
-    product?.PriceSchedule?.MinQuantity ?? 1
-  );
+  const [quantityState, setQuantityState] = useState(emptyPdpQuantityState);
+  const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const outOfStock = useMemo(
     () => product?.Inventory?.QuantityAvailable === 0,
     [product?.Inventory?.QuantityAvailable]
   );
   const { addCartLineItem, orderWorksheet, worksheetLoading } = useShopper();
   const addingRef = useRef(false);
-  const alreadyInCart = productQuantity(orderWorksheet?.LineItems, productId);
+  const cartReady = !worksheetLoading && Array.isArray(orderWorksheet?.LineItems);
+  const alreadyInCart = cartReady
+    ? productQuantity(orderWorksheet.LineItems, productId)
+    : 0;
   const entryBounds = product?.PriceSchedule
     ? quantityBounds(product.PriceSchedule, alreadyInCart)
     : undefined;
-  const inputError = quantityError(product?.PriceSchedule, quantity, alreadyInCart);
+  const quantityContext = currentUser?.ID && product?.PriceSchedule?.ID
+    ? `${currentUser.ID}:${productId}:${product.PriceSchedule.ID}`
+    : undefined;
+  const quantityReady = !!quantityContext && !userLoading && cartReady && !!entryBounds &&
+    quantityState.contextKey === quantityContext && quantityState.initialized;
+  const quantity = quantityReady ? quantityState.quantity : Number.NaN;
+  const inputError = quantityReady
+    ? quantityError(product?.PriceSchedule, quantity, alreadyInCart)
+    : "Product, pricing, and cart quantities are still loading.";
+  const canAddQuantity = canAddPdpQuantity(quantityReady, inputError);
 
-  // Product pricing arrives asynchronously; initialize from the loaded shopper rules.
+  // Initialize only after pricing, shopper, and cart are known. The keyed state
+  // deliberately survives equivalent refetches, but never crosses contexts.
   useEffect(() => {
-    if (product?.PriceSchedule) setQuantity(entryBounds?.entryMin ?? 1);
-  }, [productId, product?.PriceSchedule?.ID, entryBounds?.entryMin, entryBounds?.entryMax]);
+    setQuantityState(previous => resolvePdpQuantityState(
+      previous,
+      quantityContext,
+      !!quantityContext && !userLoading && cartReady,
+      entryBounds?.entryMin
+    ));
+  }, [quantityContext, userLoading, cartReady, entryBounds?.entryMin]);
+
+  const setQuantity = useCallback((next: number) => {
+    if (!quantityContext || !quantityReady) return;
+    setQuantityState(previous => editPdpQuantityState(previous, quantityContext, next));
+  }, [quantityContext, quantityReady]);
 
   useEffect(() => {
     const availableRecord = inventoryRecords?.Items.find(
@@ -88,7 +117,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   }, [inventoryRecords?.Items]);
 
   const handleAddToCart = useCallback(async () => {
-    if (addingRef.current || worksheetLoading || !product?.PriceSchedule) return;
+    if (addingRef.current || !canAddQuantity || !product?.PriceSchedule) return;
     if (inputError) {
       toast({ title: "Check the quantity", description: inputError, status: "warning" });
       return;
@@ -117,7 +146,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       setAddingToCart(false);
     }
   }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate,
-      inputError, worksheetLoading, orderWorksheet?.Order?.ID]);
+      inputError, canAddQuantity, orderWorksheet?.Order?.ID]);
 
   return loading ? (
     <Center h="50vh">
@@ -152,7 +181,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               type="button"
               onClick={handleAddToCart}
               isLoading={addingToCart}
-              isDisabled={addingToCart || outOfStock || worksheetLoading || !!inputError}
+              isDisabled={addingToCart || outOfStock || !canAddQuantity}
             >
               {outOfStock ? "Out of stock" : "Add To Cart"}
             </Button>
@@ -161,7 +190,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               priceSchedule={product.PriceSchedule}
               quantity={quantity}
               otherQuantity={alreadyInCart}
-              disabled={addingToCart || worksheetLoading || outOfStock}
+              loading={!quantityReady}
+              disabled={addingToCart || !quantityReady || outOfStock}
               onChange={setQuantity}
             />
           </HStack>

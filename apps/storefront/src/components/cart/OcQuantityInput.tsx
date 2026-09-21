@@ -18,6 +18,7 @@ interface OcQuantityInputProps {
   priceSchedule?: PriceSchedule;
   productId?: string;
   label?: string;
+  loading?: boolean;
   disabled?: boolean;
   quantity: number;
   /** Quantity of this ProductID in other cart lines (or already in cart on PDP). */
@@ -26,7 +27,7 @@ interface OcQuantityInputProps {
 }
 
 const OcQuantityInput: FunctionComponent<OcQuantityInputProps> = ({
-  controlId, productId, priceSchedule, label = "Quantity", disabled,
+  controlId, productId, priceSchedule, label = "Quantity", disabled, loading = false,
   quantity, otherQuantity = 0, onChange,
 }) => {
   const { data } = useOcResourceGet<BuyerProduct>(
@@ -43,7 +44,8 @@ const OcQuantityInput: FunctionComponent<OcQuantityInputProps> = ({
       (bounds?.entryMax === undefined || value <= bounds.entryMax)) ?? [];
   const handleSelectChange = (event: ChangeEvent<HTMLSelectElement>) => onChange(Number(event.target.value));
 
-  if (!ps || !bounds) return <Text fontSize="xs">Quantity rules unavailable or loading.</Text>;
+  if (loading) return <Text role="status" fontSize="xs">Loading quantity and cart rules…</Text>;
+  if (!ps || !bounds) return <Text role="alert" fontSize="xs">Quantity rules are unavailable.</Text>;
 
   return (
     <VStack alignItems="flex-start" gap={1} maxW="320px">
@@ -52,7 +54,7 @@ const OcQuantityInput: FunctionComponent<OcQuantityInputProps> = ({
         {quantityRuleLabel(ps)}
         {ps.UseCumulativeQuantity && otherQuantity > 0 ? ` Already in the cart elsewhere: ${otherQuantity}.` : ""}
       </Text>
-      {ps.RestrictedQuantity ? (
+      {noRemaining ? null : ps.RestrictedQuantity ? (
         <Select id={controlId} size="sm" maxW="120px" value={Number.isFinite(quantity) ? quantity : ""}
           isDisabled={disabled || noRemaining || !allowedEntries.length}
           aria-describedby={`${controlId}-rules`} isInvalid={!!error}
