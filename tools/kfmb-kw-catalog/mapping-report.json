@@ -1,0 +1,1265 @@
+{
+  "capturedOn": "2026-10-09",
+  "coverage": {
+    "complete": false,
+    "discoveredFoodCategories": 4,
+    "discoveredFoodFamilies": 35,
+    "reviewedFamilyPages": 35,
+    "successfulFamilyPages": 34,
+    "importableCategories": 2,
+    "pages": [
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 4
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345244",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345245",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345246",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95859",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=2391253",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=286246",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95853",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95854",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 3
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95858",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95855",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95857",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95852",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=358246",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95887",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 5
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 15
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=1849244",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 4
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=760243",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=90&s=95871",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=90&s=95861",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=90&s=95865",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=90&s=95872",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=90&s=95869",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95894",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95892",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=122529",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95896",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=678243",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95890",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95888",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=3539253",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95897",
+        "capturedOn": "2026-10-09",
+        "status": "access-failed",
+        "error": "Web fetch HTTP 403 Forbidden",
+        "productCount": null
+      }
+    ],
+    "exclusions": [
+      "Five oil and eight biscuit family pages exposed no public sellable cards (not proof of no inventory).",
+      "Ice Cream/Chocolate Biscuits family page returned HTTP 403 Forbidden.",
+      "Animal feed Shuar 50 kg bag at 4.750 KWD is outside the food demo scope; separate animal-feed storefront linked.",
+      "No login/CAPTCHA, authenticated inventory, supplier PDFs, or alternate storefronts reviewed."
+    ],
+    "accessFailures": [
+      "Executor curl: (7) Failed to connect to proxy port 8080; used public web connector.",
+      "Transient web HTTP 403/timeouts on some family pages; later public cached reads succeeded except s=95897.",
+      "English ChangeLanguage link redirects to Arabic content in the stateless reader."
+    ]
+  },
+  "counts": {
+    "reused": 0,
+    "new": 53,
+    "ambiguous": 0
+  },
+  "mapping": [
+    {
+      "sourceProductName": "طحين فاخر - 5 كغم * 2",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+      "brand": "KFMB",
+      "identity": "patent flour all purpose",
+      "packSize": "5 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 2,
+      "status": "new",
+      "productId": "kfmb-patent-flour-all-purpose-ecb527530169",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-patent-flour-1kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "1 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        },
+        {
+          "productId": "kfmb-patent-flour-2kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "2 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        },
+        {
+          "productId": "kfmb-patent-flour-5kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "5 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "طحين فاخر - 2 كغم * 4",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+      "brand": "KFMB",
+      "identity": "patent flour all purpose",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "status": "new",
+      "productId": "kfmb-patent-flour-all-purpose-8f3209fee9f4",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-patent-flour-1kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "1 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        },
+        {
+          "productId": "kfmb-patent-flour-2kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "2 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        },
+        {
+          "productId": "kfmb-patent-flour-5kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "5 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "طحين فاخر - 1 كغم * 10",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+      "brand": "KFMB",
+      "identity": "patent flour all purpose",
+      "packSize": "1 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 10,
+      "status": "new",
+      "productId": "kfmb-patent-flour-all-purpose-14fd678622b4",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-patent-flour-1kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "1 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        },
+        {
+          "productId": "kfmb-patent-flour-2kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "2 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        },
+        {
+          "productId": "kfmb-patent-flour-5kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "5 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "طحين فاخر - 50 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+      "brand": "KFMB",
+      "identity": "patent flour all purpose",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-patent-flour-all-purpose-d15448dbb860",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-patent-flour-1kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "1 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        },
+        {
+          "productId": "kfmb-patent-flour-2kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "2 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        },
+        {
+          "productId": "kfmb-patent-flour-5kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/patent-flour-all-purpose?lang=en",
+          "brand": "KFMB",
+          "packSize": "5 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "طحين ابيض - 2 كغم * 4",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345244",
+      "brand": "KFMB",
+      "identity": "white flour",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "status": "new",
+      "productId": "kfmb-white-flour-e9788de70de9",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "طحين 0000 - 50 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345244",
+      "brand": "KFMB",
+      "identity": "flour 0000",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-flour-0000-af578b5f953b",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "طحين أسمر - 2 كغم * 4",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345245",
+      "brand": "KFMB",
+      "identity": "brown flour",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "status": "new",
+      "productId": "kfmb-brown-flour-05ee30a9845d",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-brown-flour-2kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/brown-flour?lang=en",
+          "brand": "KFMB",
+          "packSize": "2 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "طحين 000 - 50 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345245",
+      "brand": "KFMB",
+      "identity": "flour 000",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-flour-000-b9c4e792e3d5",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "طحين كامل - 1 كغم * 10",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345246",
+      "brand": "KFMB",
+      "identity": "whole wheat flour",
+      "packSize": "1 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 10,
+      "status": "new",
+      "productId": "kfmb-whole-wheat-flour-d36217ad6e68",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-whole-wheat-flour-1kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/whole-wheat-flour?lang=en",
+          "brand": "KFMB",
+          "packSize": "1 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "طحين 00 - 50 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345246",
+      "brand": "KFMB",
+      "identity": "flour 00",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-flour-00-3cac9a925e40",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "خليط المعجنات واللقيمات - 1 كغم * 10",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95859",
+      "brand": "KFMB",
+      "identity": "pastries mix flour",
+      "packSize": "1 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 10,
+      "status": "new",
+      "productId": "kfmb-pastries-mix-flour-aeaa6bece66e",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-pastries-mix-1kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/pastries-mix-flour?lang=en",
+          "brand": "KFMB",
+          "packSize": "1 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "خليط البيتزا - 1 كغم * 10",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=2391253",
+      "brand": "KFMB",
+      "identity": "pizza mix flour",
+      "packSize": "1 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 10,
+      "status": "new",
+      "productId": "kfmb-pizza-mix-flour-664248188e61",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-pizza-mix-1kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/pizza-mix-flour?lang=en",
+          "brand": "KFMB",
+          "packSize": "1 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "دقيق الجباتي - 2 كغم *4",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=286246",
+      "brand": "KFMB",
+      "identity": "chapatti flour",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "status": "new",
+      "productId": "kfmb-chapatti-flour-34facddfd871",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-chapatti-flour-2kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/chapatti-flour?lang=en",
+          "brand": "KFMB",
+          "packSize": "2 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "هريس كويتي - 40 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95853",
+      "brand": "KFMB",
+      "identity": "peeled wheat harees",
+      "packSize": "40 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-peeled-wheat-harees-8a71d06dec2d",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-harees-2kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/peeled-wheat-harees?lang=en",
+          "brand": "KFMB",
+          "packSize": "2 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "هريس كويتي - 2 كغم * 4",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95853",
+      "brand": "KFMB",
+      "identity": "peeled wheat harees",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "status": "new",
+      "productId": "kfmb-peeled-wheat-harees-c18c91a2057c",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-harees-2kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/peeled-wheat-harees?lang=en",
+          "brand": "KFMB",
+          "packSize": "2 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "جريش كويتي - 2 كغم * 4",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95854",
+      "brand": "KFMB",
+      "identity": "crushed wheat jareesh",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "status": "new",
+      "productId": "kfmb-crushed-wheat-jareesh-33c6b6df229d",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-jareesh-2kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/wheat-jareesh?lang=en",
+          "brand": "KFMB",
+          "packSize": "2 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "جريش كويتي - 40 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95854",
+      "brand": "KFMB",
+      "identity": "crushed wheat jareesh",
+      "packSize": "40 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-crushed-wheat-jareesh-0a784fce62b4",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-jareesh-2kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/wheat-jareesh?lang=en",
+          "brand": "KFMB",
+          "packSize": "2 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "طحين الخبز الأوروبي - 25 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+      "brand": "KFMB",
+      "identity": "european bread flour",
+      "packSize": "25 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-european-bread-flour-ca458a548058",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "طحين عالى البروتين عالى الجلوتين - 1 كغم * 10",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+      "brand": "KFMB",
+      "identity": "high protein flour",
+      "packSize": "1 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 10,
+      "status": "new",
+      "productId": "kfmb-high-protein-flour-81ca290aaf47",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-high-protein-flour-1kg",
+          "sourceUrl": "https://www.mjcs.com.sa/products/flour/high-protein-flour?lang=en",
+          "brand": "KFMB",
+          "packSize": "1 kg",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "طحين الخبز الأوروبي - 50 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+      "brand": "KFMB",
+      "identity": "european bread flour",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-european-bread-flour-46822887fd11",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "نخالة ناعمة - 25 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95858",
+      "brand": "KFMB",
+      "identity": "fine bran",
+      "packSize": "25 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-fine-bran-4ece50273ee3",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "طحين بسكويت - 50 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95855",
+      "brand": "KFMB",
+      "identity": "biscuit flour",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-biscuit-flour-1d9a1b44ba68",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "A.P.W قمح - 50 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95857",
+      "brand": "KFMB",
+      "identity": "a.p.w wheat",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-a-p-w-wheat-cf798b3c7e29",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "طحين خبز الشعير - 50 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95852",
+      "brand": "KFMB",
+      "identity": "barley bread flour",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-barley-bread-flour-fcbf1f0d6c95",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "سميد - 50 كغم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=358246",
+      "brand": "KFMB",
+      "identity": "semolina",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "status": "new",
+      "productId": "kfmb-semolina-38edb61bd1ff",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "فيتوتشيني المطاحن - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95887",
+      "brand": "KFMB",
+      "identity": "fettuccine",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-fettuccine-eb35157064a6",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "aljoud-fettuccine-400g",
+          "sourceUrl": "https://www.mjcs.com.sa/products/pasta/fettuccine-al-joud-pasta?lang=en",
+          "brand": "Al Joud",
+          "packSize": "400 g",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "brand",
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "معكرونة بدقيق قمح الديوروم الكامل رقم 23 - 20*400غم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+      "brand": "KFMB",
+      "identity": "whole durum wheat macaroni no 23",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-whole-durum-wheat-macaroni-no-23-6b0fc9da6a78",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة بدقيق قمح الديوروم الكامل رقم 20 - 20*400غم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+      "brand": "KFMB",
+      "identity": "whole durum wheat macaroni no 20",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-whole-durum-wheat-macaroni-no-20-4d9d1ee0a00b",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة بدقيق قمح الديوروم الكامل رقم 22 - 20*400غم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+      "brand": "KFMB",
+      "identity": "whole durum wheat macaroni no 22",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-whole-durum-wheat-macaroni-no-22-71dc27f22c1f",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة بدقيق قمح الديوروم إسباغيتي - 20*400غم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+      "brand": "KFMB",
+      "identity": "whole durum wheat spaghetti",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-whole-durum-wheat-spaghetti-2b5bbe225081",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "شعرية رقم 1 بدقيق قمح الديورم الكامل - 20*400غم",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+      "brand": "KFMB",
+      "identity": "whole durum wheat vermicelli nest no.1",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-whole-durum-wheat-vermicelli-nes-350bc6a9240b",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 23 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 23",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-23-d1bc3daddd31",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 24 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 24",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-24-deef574a6b3b",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 27 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 27",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-27-518ead6fa6a7",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 39 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 39",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-39-14f27662baec",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 22 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 22",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-22-94df40e36e35",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 36 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 36",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-36-5ae77986da5f",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 38 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 38",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-38-df9961c63165",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 40 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 40",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-40-8001809e4008",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 28 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 28",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-28-38dc752d951c",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 25 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 25",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-25-bb92ad618a5d",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 26 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 26",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-26-e754c5a51a56",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 20 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 20",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-20-71083f5c620d",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 21 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 21",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-21-82c3494fd437",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 35 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 35",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-35-8fae94516b0e",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "معكرونة المطاحن رقم 41 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "brand": "KFMB",
+      "identity": "macaroni no 41",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-macaroni-no-41-67f5366e1254",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "لازانيا - 450غم*15",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=1849244",
+      "brand": "KFMB",
+      "identity": "lasagna",
+      "packSize": "450 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 15,
+      "status": "new",
+      "productId": "kfmb-lasagna-3a918a366cb4",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "kfmb-lasagna-450g",
+          "sourceUrl": "https://www.mjcs.com.sa/products/pasta/lasagna-almatahen?lang=en",
+          "brand": "Almatahen",
+          "packSize": "450 g",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "brand",
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "شعرية المطاحن رقم 2 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+      "brand": "KFMB",
+      "identity": "vermicelli no 2",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-vermicelli-no-2-86e39aacd5cd",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "aljoud-vermicelli-2-400g",
+          "sourceUrl": "https://www.mjcs.com.sa/products/pasta/vermicelli-no-2-al-joud-pasta?lang=en",
+          "brand": "Al Joud",
+          "packSize": "400 g",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "brand",
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "شعرية المطاحن رقم 1 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+      "brand": "KFMB",
+      "identity": "vermicelli no 1",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-vermicelli-no-1-5b343748839b",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "شعرية المطاحن رقم 3 - 500 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+      "brand": "KFMB",
+      "identity": "vermicelli no 3",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-vermicelli-no-3-80d445fefa79",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "شعرية المطاحن رقم 1 - 250 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+      "brand": "KFMB",
+      "identity": "vermicelli no 1",
+      "packSize": "250 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-vermicelli-no-1-1ee1fdee1104",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    },
+    {
+      "sourceProductName": "سبـاغيـتـي المطــاحن - 400 غم * 20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=760243",
+      "brand": "KFMB",
+      "identity": "spaghetti",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-spaghetti-96eae61eeede",
+      "reason": "No identical Saudi sellable item: see candidate differences.",
+      "candidates": [
+        {
+          "productId": "aljoud-spaghetti-400g",
+          "sourceUrl": "https://www.mjcs.com.sa/products/pasta/spaghetti-al-joud-pasta?lang=en",
+          "brand": "Al Joud",
+          "packSize": "400 g",
+          "sellingUnit": "one labeled pack",
+          "unitsPerMultipack": 1,
+          "differences": [
+            "brand",
+            "pack size / selling unit / multipack count"
+          ]
+        }
+      ]
+    },
+    {
+      "sourceProductName": "كابيليني المطاحن - 400غم *20",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=760243",
+      "brand": "KFMB",
+      "identity": "capellini",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "status": "new",
+      "productId": "kfmb-capellini-6dc9205b79e1",
+      "reason": "No identical Saudi sellable item: no same-identity candidate in the 52-record Saudi manifest.",
+      "candidates": []
+    }
+  ],
+  "unpriced": [],
+  "planned": {
+    "resources": 161,
+    "assignments": 212
+  }
+}
