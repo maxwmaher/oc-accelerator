@@ -1,0 +1,2565 @@
+{
+  "schemaVersion": 1,
+  "source": "https://mills.kfmb.com.kw/",
+  "capturedOn": "2026-10-09",
+  "captureMethod": "Public web reader (including cached pages, crawled between today and last month); producer Arabic names and published KWD prices, English image alt labels. English language link returned Arabic content. Prices are observed public listings, not a live quote.",
+  "coverage": {
+    "complete": false,
+    "discoveredFoodCategories": 4,
+    "discoveredFoodFamilies": 35,
+    "reviewedFamilyPages": 35,
+    "successfulFamilyPages": 34,
+    "importableCategories": 2,
+    "pages": [
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 4
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345244",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345245",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345246",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95859",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=2391253",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=286246",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95853",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95854",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 3
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95858",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95855",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95857",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95852",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=358246",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95887",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 5
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 15
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=1849244",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 1
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 4
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=760243",
+        "capturedOn": "2026-10-09",
+        "language": "ar",
+        "status": "captured",
+        "productCount": 2
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=90&s=95871",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=90&s=95861",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=90&s=95865",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=90&s=95872",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=90&s=95869",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95894",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95892",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=122529",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95896",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=678243",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95890",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95888",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=3539253",
+        "capturedOn": "2026-10-09",
+        "status": "no-public-sellable-items",
+        "productCount": 0
+      },
+      {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=120&s=95897",
+        "capturedOn": "2026-10-09",
+        "status": "access-failed",
+        "error": "Web fetch HTTP 403 Forbidden",
+        "productCount": null
+      }
+    ],
+    "exclusions": [
+      "Five oil and eight biscuit family pages exposed no public sellable cards (not proof of no inventory).",
+      "Ice Cream/Chocolate Biscuits family page returned HTTP 403 Forbidden.",
+      "Animal feed Shuar 50 kg bag at 4.750 KWD is outside the food demo scope; separate animal-feed storefront linked.",
+      "No login/CAPTCHA, authenticated inventory, supplier PDFs, or alternate storefronts reviewed."
+    ],
+    "accessFailures": [
+      "Executor curl: (7) Failed to connect to proxy port 8080; used public web connector.",
+      "Transient web HTTP 403/timeouts on some family pages; later public cached reads succeeded except s=95897.",
+      "English ChangeLanguage link redirects to Arabic content in the stateless reader."
+    ]
+  },
+  "categories": [
+    {
+      "id": "kw-mills",
+      "name": "Flour & Wheat Products",
+      "sourceName": "مطاحن",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/SubCategory/110"
+    },
+    {
+      "id": "kw-pasta",
+      "name": "Pasta",
+      "sourceName": "المعكرونة",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/SubCategory/100"
+    }
+  ],
+  "products": [
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20231206154702840",
+      "sourceProductName": "طحين فاخر - 5 كغم * 2",
+      "sourceEnglishImageAlt": "Patent Flour - 5Kg x 2",
+      "name": "Patent Flour — 2 × 5 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "patent flour all purpose",
+      "productType": "Patent Flour",
+      "categoryId": "kw-mills",
+      "packValue": 5,
+      "packUnit": "kg",
+      "packSize": "5 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 2,
+      "description": "Patent Flour. Sold as one 2 × 5 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20231206154702840.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "1.300",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 2,
+        "packValue": 5,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+        "originalName": "طحين فاخر - 5 كغم * 2",
+        "englishImageAlt": "Patent Flour - 5Kg x 2",
+        "priceText": "/ ربطة دك 1.300"
+      },
+      "id": "kfmb-patent-flour-all-purpose-ecb527530169",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "1.300",
+        "wholesaleKWD": "1.170",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20231206154549302",
+      "sourceProductName": "طحين فاخر - 2 كغم * 4",
+      "sourceEnglishImageAlt": "Patent Flour - 2Kg x 4",
+      "name": "Patent Flour — 4 × 2 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "patent flour all purpose",
+      "productType": "Patent Flour",
+      "categoryId": "kw-mills",
+      "packValue": 2,
+      "packUnit": "kg",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "description": "Patent Flour. Sold as one 4 × 2 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20231206154549302.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "1.040",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 4,
+        "packValue": 2,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+        "originalName": "طحين فاخر - 2 كغم * 4",
+        "englishImageAlt": "Patent Flour - 2Kg x 4",
+        "priceText": "/ ربطة دك 1.040"
+      },
+      "id": "kfmb-patent-flour-all-purpose-8f3209fee9f4",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "1.040",
+        "wholesaleKWD": "0.936",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20231206154007809",
+      "sourceProductName": "طحين فاخر - 1 كغم * 10",
+      "sourceEnglishImageAlt": "Patent Flour 1Kg x 10",
+      "name": "Patent Flour — 10 × 1 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "patent flour all purpose",
+      "productType": "Patent Flour",
+      "categoryId": "kw-mills",
+      "packValue": 1,
+      "packUnit": "kg",
+      "packSize": "1 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 10,
+      "description": "Patent Flour. Sold as one 10 × 1 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20231206154007809.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "1.300",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 10,
+        "packValue": 1,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+        "originalName": "طحين فاخر - 1 كغم * 10",
+        "englishImageAlt": "Patent Flour 1Kg x 10",
+        "priceText": "/ ربطة دك 1.300"
+      },
+      "id": "kfmb-patent-flour-all-purpose-14fd678622b4",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "1.300",
+        "wholesaleKWD": "1.170",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011030007",
+      "sourceProductName": "طحين فاخر - 50 كغم",
+      "sourceEnglishImageAlt": "Patent Flour - 50Kg",
+      "name": "Patent Flour — 50 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "patent flour all purpose",
+      "productType": "Patent Flour",
+      "categoryId": "kw-mills",
+      "packValue": 50,
+      "packUnit": "kg",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "Patent Flour. Sold as one 50 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011030007.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "6.250",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 50,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95849",
+        "originalName": "طحين فاخر - 50 كغم",
+        "englishImageAlt": "Patent Flour - 50Kg",
+        "priceText": "/ كيس دك 6.250"
+      },
+      "id": "kfmb-patent-flour-all-purpose-d15448dbb860",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "6.250",
+        "wholesaleKWD": "5.625",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20231206155137575",
+      "sourceProductName": "طحين ابيض - 2 كغم * 4",
+      "sourceEnglishImageAlt": "White Flour - 2 Kg x 4",
+      "name": "White Flour — 4 × 2 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "white flour",
+      "productType": "White Flour",
+      "categoryId": "kw-mills",
+      "packValue": 2,
+      "packUnit": "kg",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "description": "White Flour. Sold as one 4 × 2 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345244",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20231206155137575.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "0.850",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 4,
+        "packValue": 2,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345244",
+        "originalName": "طحين ابيض - 2 كغم * 4",
+        "englishImageAlt": "White Flour - 2 Kg x 4",
+        "priceText": "/ ربطة دك 0.850"
+      },
+      "id": "kfmb-white-flour-e9788de70de9",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "0.850",
+        "wholesaleKWD": "0.765",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011020003",
+      "sourceProductName": "طحين 0000 - 50 كغم",
+      "sourceEnglishImageAlt": "Flour 0000 - 50 Kg",
+      "name": "Flour 0000 — 50 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "flour 0000",
+      "productType": "Flour 0000",
+      "categoryId": "kw-mills",
+      "packValue": 50,
+      "packUnit": "kg",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "Flour 0000. Sold as one 50 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345244",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011020003.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "4.250",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 50,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345244",
+        "originalName": "طحين 0000 - 50 كغم",
+        "englishImageAlt": "Flour 0000 - 50 Kg",
+        "priceText": "/ كيس دك 4.250"
+      },
+      "id": "kfmb-flour-0000-af578b5f953b",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "4.250",
+        "wholesaleKWD": "3.825",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011020006",
+      "sourceProductName": "طحين أسمر - 2 كغم * 4",
+      "sourceEnglishImageAlt": "Brown Flour - 2Kg x 4",
+      "name": "Brown Flour — 4 × 2 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "brown flour",
+      "productType": "Brown Flour",
+      "categoryId": "kw-mills",
+      "packValue": 2,
+      "packUnit": "kg",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "description": "Brown Flour. Sold as one 4 × 2 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345245",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011020006.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "0.800",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 4,
+        "packValue": 2,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345245",
+        "originalName": "طحين أسمر - 2 كغم * 4",
+        "englishImageAlt": "Brown Flour - 2Kg x 4",
+        "priceText": "/ ربطة دك 0.800"
+      },
+      "id": "kfmb-brown-flour-05ee30a9845d",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "0.800",
+        "wholesaleKWD": "0.720",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011020002",
+      "sourceProductName": "طحين 000 - 50 كغم",
+      "sourceEnglishImageAlt": "Flour 000 - 50 Kg",
+      "name": "Flour 000 — 50 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "flour 000",
+      "productType": "Flour 000",
+      "categoryId": "kw-mills",
+      "packValue": 50,
+      "packUnit": "kg",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "Flour 000. Sold as one 50 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345245",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011020002.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "4.000",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 50,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345245",
+        "originalName": "طحين 000 - 50 كغم",
+        "englishImageAlt": "Flour 000 - 50 Kg",
+        "priceText": "/ كيس دك 4.000"
+      },
+      "id": "kfmb-flour-000-b9c4e792e3d5",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "4.000",
+        "wholesaleKWD": "3.600",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011020004",
+      "sourceProductName": "طحين كامل - 1 كغم * 10",
+      "sourceEnglishImageAlt": "Whole Wheat Flour - 1 Kg x 10",
+      "name": "Whole Wheat Flour — 10 × 1 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "whole wheat flour",
+      "productType": "Whole Wheat Flour",
+      "categoryId": "kw-mills",
+      "packValue": 1,
+      "packUnit": "kg",
+      "packSize": "1 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 10,
+      "description": "Whole Wheat Flour. Sold as one 10 × 1 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345246",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011020004.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "1.230",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 10,
+        "packValue": 1,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345246",
+        "originalName": "طحين كامل - 1 كغم * 10",
+        "englishImageAlt": "Whole Wheat Flour - 1 Kg x 10",
+        "priceText": "/ ربطة دك 1.230"
+      },
+      "id": "kfmb-whole-wheat-flour-d36217ad6e68",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "1.230",
+        "wholesaleKWD": "1.107",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011020001",
+      "sourceProductName": "طحين 00 - 50 كغم",
+      "sourceEnglishImageAlt": "Flour 00 - 50 Kg",
+      "name": "Flour 00 — 50 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "flour 00",
+      "productType": "Flour 00",
+      "categoryId": "kw-mills",
+      "packValue": 50,
+      "packUnit": "kg",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "Flour 00. Sold as one 50 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345246",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011020001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.750",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 50,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=345246",
+        "originalName": "طحين 00 - 50 كغم",
+        "englishImageAlt": "Flour 00 - 50 Kg",
+        "priceText": "/ كيس دك 3.750"
+      },
+      "id": "kfmb-flour-00-3cac9a925e40",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.750",
+        "wholesaleKWD": "3.375",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20231206154854157",
+      "sourceProductName": "خليط المعجنات واللقيمات - 1 كغم * 10",
+      "sourceEnglishImageAlt": "Pastries & Logaimat Mix - 1 Kg x 10",
+      "name": "Pastries & Logaimat Mix — 10 × 1 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "pastries mix flour",
+      "productType": "Pastries & Logaimat Mix",
+      "categoryId": "kw-mills",
+      "packValue": 1,
+      "packUnit": "kg",
+      "packSize": "1 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 10,
+      "description": "Pastries & Logaimat Mix. Sold as one 10 × 1 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95859",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20231206154854157.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.550",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 10,
+        "packValue": 1,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95859",
+        "originalName": "خليط المعجنات واللقيمات - 1 كغم * 10",
+        "englishImageAlt": "Pastries & Logaimat Mix - 1 Kg x 10",
+        "priceText": "/ ربطة دك 3.550"
+      },
+      "id": "kfmb-pastries-mix-flour-aeaa6bece66e",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.550",
+        "wholesaleKWD": "3.195",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20231206154810921",
+      "sourceProductName": "خليط البيتزا - 1 كغم * 10",
+      "sourceEnglishImageAlt": "Pizza Mix - 1kg X 10",
+      "name": "Pizza Mix — 10 × 1 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "pizza mix flour",
+      "productType": "Pizza Mix",
+      "categoryId": "kw-mills",
+      "packValue": 1,
+      "packUnit": "kg",
+      "packSize": "1 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 10,
+      "description": "Pizza Mix. Sold as one 10 × 1 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=2391253",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20231206154810921.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "2.275",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 10,
+        "packValue": 1,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=2391253",
+        "originalName": "خليط البيتزا - 1 كغم * 10",
+        "englishImageAlt": "Pizza Mix - 1kg X 10",
+        "priceText": "/ ربطة دك 2.275"
+      },
+      "id": "kfmb-pizza-mix-flour-664248188e61",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "2.275",
+        "wholesaleKWD": "2.048",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011130001",
+      "sourceProductName": "دقيق الجباتي - 2 كغم *4",
+      "sourceEnglishImageAlt": "Chapatti Flour - 2Kg x 4",
+      "name": "Chapatti Flour — 4 × 2 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "chapatti flour",
+      "productType": "Chapatti Flour",
+      "categoryId": "kw-mills",
+      "packValue": 2,
+      "packUnit": "kg",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "description": "Chapatti Flour. Sold as one 4 × 2 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=286246",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011130001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "1.420",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 4,
+        "packValue": 2,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=286246",
+        "originalName": "دقيق الجباتي - 2 كغم *4",
+        "englishImageAlt": "Chapatti Flour - 2Kg x 4",
+        "priceText": "/ ربطة دك 1.420"
+      },
+      "id": "kfmb-chapatti-flour-34facddfd871",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "1.420",
+        "wholesaleKWD": "1.278",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20210111133008242",
+      "sourceProductName": "هريس كويتي - 40 كغم",
+      "sourceEnglishImageAlt": "Peeled Wheat - 40Kg",
+      "name": "Peeled Wheat — 40 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "peeled wheat harees",
+      "productType": "Peeled Wheat",
+      "categoryId": "kw-mills",
+      "packValue": 40,
+      "packUnit": "kg",
+      "packSize": "40 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "Peeled Wheat. Sold as one 40 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95853",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20210111133008242.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "9.000",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 40,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95853",
+        "originalName": "هريس كويتي - 40 كغم",
+        "englishImageAlt": "Peeled Wheat - 40Kg",
+        "priceText": "/ كيس دك 9.000"
+      },
+      "id": "kfmb-peeled-wheat-harees-8a71d06dec2d",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "9.000",
+        "wholesaleKWD": "8.100",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011070001",
+      "sourceProductName": "هريس كويتي - 2 كغم * 4",
+      "sourceEnglishImageAlt": "Peeled Wheat - 2 Kg x 4",
+      "name": "Peeled Wheat — 4 × 2 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "peeled wheat harees",
+      "productType": "Peeled Wheat",
+      "categoryId": "kw-mills",
+      "packValue": 2,
+      "packUnit": "kg",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "description": "Peeled Wheat. Sold as one 4 × 2 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95853",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011070001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "1.950",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 4,
+        "packValue": 2,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95853",
+        "originalName": "هريس كويتي - 2 كغم * 4",
+        "englishImageAlt": "Peeled Wheat - 2 Kg x 4",
+        "priceText": "/ ربطة دك 1.950"
+      },
+      "id": "kfmb-peeled-wheat-harees-c18c91a2057c",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "1.950",
+        "wholesaleKWD": "1.755",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011080001",
+      "sourceProductName": "جريش كويتي - 2 كغم * 4",
+      "sourceEnglishImageAlt": "Crushed Wheat - 2 Kg x 4",
+      "name": "Crushed Wheat — 4 × 2 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "crushed wheat jareesh",
+      "productType": "Crushed Wheat",
+      "categoryId": "kw-mills",
+      "packValue": 2,
+      "packUnit": "kg",
+      "packSize": "2 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 4,
+      "description": "Crushed Wheat. Sold as one 4 × 2 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95854",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011080001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "2.340",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 4,
+        "packValue": 2,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95854",
+        "originalName": "جريش كويتي - 2 كغم * 4",
+        "englishImageAlt": "Crushed Wheat - 2 Kg x 4",
+        "priceText": "/ ربطة دك 2.340"
+      },
+      "id": "kfmb-crushed-wheat-jareesh-33c6b6df229d",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "2.340",
+        "wholesaleKWD": "2.106",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20210111131752952",
+      "sourceProductName": "جريش كويتي - 40 كغم",
+      "sourceEnglishImageAlt": "Crushed Wheat - 40 Kg",
+      "name": "Crushed Wheat — 40 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "crushed wheat jareesh",
+      "productType": "Crushed Wheat",
+      "categoryId": "kw-mills",
+      "packValue": 40,
+      "packUnit": "kg",
+      "packSize": "40 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "Crushed Wheat. Sold as one 40 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95854",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20210111131752952.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "9.000",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 40,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95854",
+        "originalName": "جريش كويتي - 40 كغم",
+        "englishImageAlt": "Crushed Wheat - 40 Kg",
+        "priceText": "/ كيس دك 9.000"
+      },
+      "id": "kfmb-crushed-wheat-jareesh-0a784fce62b4",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "9.000",
+        "wholesaleKWD": "8.100",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011050001",
+      "sourceProductName": "طحين الخبز الأوروبي - 25 كغم",
+      "sourceEnglishImageAlt": "European Bread Flour - 25Kg",
+      "name": "European Bread Flour — 25 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "european bread flour",
+      "productType": "European Bread Flour",
+      "categoryId": "kw-mills",
+      "packValue": 25,
+      "packUnit": "kg",
+      "packSize": "25 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "European Bread Flour. Sold as one 25 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011050001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.600",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 25,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+        "originalName": "طحين الخبز الأوروبي - 25 كغم",
+        "englishImageAlt": "European Bread Flour - 25Kg",
+        "priceText": "/ كيس دك 3.600"
+      },
+      "id": "kfmb-european-bread-flour-ca458a548058",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.600",
+        "wholesaleKWD": "3.240",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20241223120254366",
+      "sourceProductName": "طحين عالى البروتين عالى الجلوتين - 1 كغم * 10",
+      "sourceEnglishImageAlt": "High Protein and High Gluten Flour - 1 Kg X 10",
+      "name": "High Protein and High Gluten Flour — 10 × 1 kg bundle",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "high protein flour",
+      "productType": "High Protein and High Gluten Flour",
+      "categoryId": "kw-mills",
+      "packValue": 1,
+      "packUnit": "kg",
+      "packSize": "1 kg",
+      "sellingUnit": "bundle",
+      "unitsPerMultipack": 10,
+      "description": "High Protein and High Gluten Flour. Sold as one 10 × 1 kg bundle.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20241223120254366.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "2.300",
+        "sellingUnit": "bundle",
+        "unitsPerMultipack": 10,
+        "packValue": 1,
+        "packUnit": "kg",
+        "sourceLabel": "ربطة"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+        "originalName": "طحين عالى البروتين عالى الجلوتين - 1 كغم * 10",
+        "englishImageAlt": "High Protein and High Gluten Flour - 1 Kg X 10",
+        "priceText": "/ ربطة دك 2.300"
+      },
+      "id": "kfmb-high-protein-flour-81ca290aaf47",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "2.300",
+        "wholesaleKWD": "2.070",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011050002",
+      "sourceProductName": "طحين الخبز الأوروبي - 50 كغم",
+      "sourceEnglishImageAlt": "European Bread Flour - 50Kg",
+      "name": "European Bread Flour — 50 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "european bread flour",
+      "productType": "European Bread Flour",
+      "categoryId": "kw-mills",
+      "packValue": 50,
+      "packUnit": "kg",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "European Bread Flour. Sold as one 50 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011050002.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "7.200",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 50,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95851",
+        "originalName": "طحين الخبز الأوروبي - 50 كغم",
+        "englishImageAlt": "European Bread Flour - 50Kg",
+        "priceText": "/ كيس دك 7.200"
+      },
+      "id": "kfmb-european-bread-flour-46822887fd11",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "7.200",
+        "wholesaleKWD": "6.480",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011120001",
+      "sourceProductName": "نخالة ناعمة - 25 كغم",
+      "sourceEnglishImageAlt": "Fine Bran - 25Kg",
+      "name": "Fine Bran — 25 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "fine bran",
+      "productType": "Fine Bran",
+      "categoryId": "kw-mills",
+      "packValue": 25,
+      "packUnit": "kg",
+      "packSize": "25 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "Fine Bran. Sold as one 25 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95858",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011120001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "2.800",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 25,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95858",
+        "originalName": "نخالة ناعمة - 25 كغم",
+        "englishImageAlt": "Fine Bran - 25Kg",
+        "priceText": "/ كيس دك 2.800"
+      },
+      "id": "kfmb-fine-bran-4ece50273ee3",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "2.800",
+        "wholesaleKWD": "2.520",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20240723134616687",
+      "sourceProductName": "طحين بسكويت - 50 كغم",
+      "sourceEnglishImageAlt": "Biscuit Flour - 50Kg",
+      "name": "Biscuit Flour — 50 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "biscuit flour",
+      "productType": "Biscuit Flour",
+      "categoryId": "kw-mills",
+      "packValue": 50,
+      "packUnit": "kg",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "Biscuit Flour. Sold as one 50 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95855",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20240723134616687.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "5.500",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 50,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95855",
+        "originalName": "طحين بسكويت - 50 كغم",
+        "englishImageAlt": "Biscuit Flour - 50Kg",
+        "priceText": "/ كيس دك 5.500"
+      },
+      "id": "kfmb-biscuit-flour-1d9a1b44ba68",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "5.500",
+        "wholesaleKWD": "4.950",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011110001",
+      "sourceProductName": "A.P.W قمح - 50 كغم",
+      "sourceEnglishImageAlt": "A.P.W Wheat - 50Kg",
+      "name": "A.P.W Wheat — 50 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "a.p.w wheat",
+      "productType": "A.P.W Wheat",
+      "categoryId": "kw-mills",
+      "packValue": 50,
+      "packUnit": "kg",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "A.P.W Wheat. Sold as one 50 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95857",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011110001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "8.500",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 50,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95857",
+        "originalName": "A.P.W قمح - 50 كغم",
+        "englishImageAlt": "A.P.W Wheat - 50Kg",
+        "priceText": "/ كيس دك 8.500"
+      },
+      "id": "kfmb-a-p-w-wheat-cf798b3c7e29",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "8.500",
+        "wholesaleKWD": "7.650",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20260330111456260",
+      "sourceProductName": "طحين خبز الشعير - 50 كغم",
+      "sourceEnglishImageAlt": "Barley Bread Flour - 50Kg",
+      "name": "Barley Bread Flour — 50 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "barley bread flour",
+      "productType": "Barley Bread Flour",
+      "categoryId": "kw-mills",
+      "packValue": 50,
+      "packUnit": "kg",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "Barley Bread Flour. Sold as one 50 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95852",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20260330111456260.png",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "8.750",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 50,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=95852",
+        "originalName": "طحين خبز الشعير - 50 كغم",
+        "englishImageAlt": "Barley Bread Flour - 50Kg",
+        "priceText": "/ كيس دك 8.750"
+      },
+      "id": "kfmb-barley-bread-flour-fcbf1f0d6c95",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "8.750",
+        "wholesaleKWD": "7.875",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900011100001",
+      "sourceProductName": "سميد - 50 كغم",
+      "sourceEnglishImageAlt": "Semolina 50Kg",
+      "name": "Semolina — 50 kg bag",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "semolina",
+      "productType": "Semolina",
+      "categoryId": "kw-mills",
+      "packValue": 50,
+      "packUnit": "kg",
+      "packSize": "50 kg",
+      "sellingUnit": "bag",
+      "unitsPerMultipack": 1,
+      "description": "Semolina. Sold as one 50 kg bag.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=358246",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900011100001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "10.000",
+        "sellingUnit": "bag",
+        "unitsPerMultipack": 1,
+        "packValue": 50,
+        "packUnit": "kg",
+        "sourceLabel": "كيس"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=110&s=358246",
+        "originalName": "سميد - 50 كغم",
+        "englishImageAlt": "Semolina 50Kg",
+        "priceText": "/ كيس دك 10.000"
+      },
+      "id": "kfmb-semolina-38edb61bd1ff",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "10.000",
+        "wholesaleKWD": "9.000",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033140001",
+      "sourceProductName": "فيتوتشيني المطاحن - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Fettuccine - (500gm*20)",
+      "name": "KFMB Fettuccine — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "fettuccine",
+      "productType": "KFMB Fettuccine",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Fettuccine. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95887",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033140001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "5.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95887",
+        "originalName": "فيتوتشيني المطاحن - 500 غم * 20",
+        "englishImageAlt": "KFMB Fettuccine - (500gm*20)",
+        "priceText": "/ كرتون دك 5.500"
+      },
+      "id": "kfmb-fettuccine-eb35157064a6",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "5.500",
+        "wholesaleKWD": "4.950",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033150003",
+      "sourceProductName": "معكرونة بدقيق قمح الديوروم الكامل رقم 23 - 20*400غم",
+      "sourceEnglishImageAlt": "WHDW MACARONI NO.23 ( 400 GM X 20 )",
+      "name": "Whole Durum Wheat MACARONI NO.23 — 20 × 400 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "whole durum wheat macaroni no 23",
+      "productType": "Whole Durum Wheat MACARONI NO.23",
+      "categoryId": "kw-pasta",
+      "packValue": 400,
+      "packUnit": "g",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "Whole Durum Wheat MACARONI NO.23. Sold as one 20 × 400 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033150003.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "6.300",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 400,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+        "originalName": "معكرونة بدقيق قمح الديوروم الكامل رقم 23 - 20*400غم",
+        "englishImageAlt": "WHDW MACARONI NO.23 ( 400 GM X 20 )",
+        "priceText": "/ كرتون دك 6.300"
+      },
+      "id": "kfmb-whole-durum-wheat-macaroni-no-23-6b0fc9da6a78",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "6.300",
+        "wholesaleKWD": "5.670",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033150001",
+      "sourceProductName": "معكرونة بدقيق قمح الديوروم الكامل رقم 20 - 20*400غم",
+      "sourceEnglishImageAlt": "WHDW MACARONI NO.20 ( 400 GM X 20 )",
+      "name": "Whole Durum Wheat MACARONI NO.20 — 20 × 400 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "whole durum wheat macaroni no 20",
+      "productType": "Whole Durum Wheat MACARONI NO.20",
+      "categoryId": "kw-pasta",
+      "packValue": 400,
+      "packUnit": "g",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "Whole Durum Wheat MACARONI NO.20. Sold as one 20 × 400 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033150001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "6.300",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 400,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+        "originalName": "معكرونة بدقيق قمح الديوروم الكامل رقم 20 - 20*400غم",
+        "englishImageAlt": "WHDW MACARONI NO.20 ( 400 GM X 20 )",
+        "priceText": "/ كرتون دك 6.300"
+      },
+      "id": "kfmb-whole-durum-wheat-macaroni-no-20-4d9d1ee0a00b",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "6.300",
+        "wholesaleKWD": "5.670",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033150002",
+      "sourceProductName": "معكرونة بدقيق قمح الديوروم الكامل رقم 22 - 20*400غم",
+      "sourceEnglishImageAlt": "WHDW MACARONI NO.22 ( 400 GM X 20 )",
+      "name": "Whole Durum Wheat MACARONI NO.22 — 20 × 400 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "whole durum wheat macaroni no 22",
+      "productType": "Whole Durum Wheat MACARONI NO.22",
+      "categoryId": "kw-pasta",
+      "packValue": 400,
+      "packUnit": "g",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "Whole Durum Wheat MACARONI NO.22. Sold as one 20 × 400 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033150002.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "6.300",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 400,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+        "originalName": "معكرونة بدقيق قمح الديوروم الكامل رقم 22 - 20*400غم",
+        "englishImageAlt": "WHDW MACARONI NO.22 ( 400 GM X 20 )",
+        "priceText": "/ كرتون دك 6.300"
+      },
+      "id": "kfmb-whole-durum-wheat-macaroni-no-22-71dc27f22c1f",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "6.300",
+        "wholesaleKWD": "5.670",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033150004",
+      "sourceProductName": "معكرونة بدقيق قمح الديوروم إسباغيتي - 20*400غم",
+      "sourceEnglishImageAlt": "WHDW SPAGHETTI ( 400 GM X 20 )",
+      "name": "Whole Durum Wheat SPAGHETTI — 20 × 400 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "whole durum wheat spaghetti",
+      "productType": "Whole Durum Wheat SPAGHETTI",
+      "categoryId": "kw-pasta",
+      "packValue": 400,
+      "packUnit": "g",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "Whole Durum Wheat SPAGHETTI. Sold as one 20 × 400 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033150004.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "6.300",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 400,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+        "originalName": "معكرونة بدقيق قمح الديوروم إسباغيتي - 20*400غم",
+        "englishImageAlt": "WHDW SPAGHETTI ( 400 GM X 20 )",
+        "priceText": "/ كرتون دك 6.300"
+      },
+      "id": "kfmb-whole-durum-wheat-spaghetti-2b5bbe225081",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "6.300",
+        "wholesaleKWD": "5.670",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20260125115021214",
+      "sourceProductName": "شعرية رقم 1 بدقيق قمح الديورم الكامل - 20*400غم",
+      "sourceEnglishImageAlt": "WHDW Vermicelli Nest NO.1 ( 400 GM X 20 )",
+      "name": "Whole Durum Wheat Vermicelli Nest NO.1 — 20 × 400 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "whole durum wheat vermicelli nest no.1",
+      "productType": "Whole Durum Wheat Vermicelli Nest NO.1",
+      "categoryId": "kw-pasta",
+      "packValue": 400,
+      "packUnit": "g",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "Whole Durum Wheat Vermicelli Nest NO.1. Sold as one 20 × 400 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20260125115021214.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "5.800",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 400,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=681243",
+        "originalName": "شعرية رقم 1 بدقيق قمح الديورم الكامل - 20*400غم",
+        "englishImageAlt": "WHDW Vermicelli Nest NO.1 ( 400 GM X 20 )",
+        "priceText": "/ كرتون دك 5.800"
+      },
+      "id": "kfmb-whole-durum-wheat-vermicelli-nes-350bc6a9240b",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "5.800",
+        "wholesaleKWD": "5.220",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060004",
+      "sourceProductName": "معكرونة المطاحن رقم 23 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.23 - (500gm*20)",
+      "name": "KFMB Macaroni No.23 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 23",
+      "productType": "KFMB Macaroni No.23",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.23. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060004.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 23 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.23 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-23-d1bc3daddd31",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060005",
+      "sourceProductName": "معكرونة المطاحن رقم 24 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.24 - (500gm*20)",
+      "name": "KFMB Macaroni No.24 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 24",
+      "productType": "KFMB Macaroni No.24",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.24. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060005.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 24 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.24 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-24-deef574a6b3b",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060008",
+      "sourceProductName": "معكرونة المطاحن رقم 27 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.27 - (500gm*20)",
+      "name": "KFMB Macaroni No.27 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 27",
+      "productType": "KFMB Macaroni No.27",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.27. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060008.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 27 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.27 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-27-518ead6fa6a7",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060013",
+      "sourceProductName": "معكرونة المطاحن رقم 39 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.39 - (500gm*20)",
+      "name": "KFMB Macaroni No.39 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 39",
+      "productType": "KFMB Macaroni No.39",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.39. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060013.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 39 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.39 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-39-14f27662baec",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060003",
+      "sourceProductName": "معكرونة المطاحن رقم 22 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.22 - (500gm*20)",
+      "name": "KFMB Macaroni No.22 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 22",
+      "productType": "KFMB Macaroni No.22",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.22. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060003.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 22 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.22 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-22-94df40e36e35",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060011",
+      "sourceProductName": "معكرونة المطاحن رقم 36 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.36 - (500gm*20)",
+      "name": "KFMB Macaroni No.36 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 36",
+      "productType": "KFMB Macaroni No.36",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.36. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060011.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 36 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.36 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-36-5ae77986da5f",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060012",
+      "sourceProductName": "معكرونة المطاحن رقم 38 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.38 - (500gm*20)",
+      "name": "KFMB Macaroni No.38 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 38",
+      "productType": "KFMB Macaroni No.38",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.38. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060012.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 38 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.38 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-38-df9961c63165",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060014",
+      "sourceProductName": "معكرونة المطاحن رقم 40 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.40 - (500gm*20)",
+      "name": "KFMB Macaroni No.40 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 40",
+      "productType": "KFMB Macaroni No.40",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.40. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060014.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 40 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.40 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-40-8001809e4008",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060009",
+      "sourceProductName": "معكرونة المطاحن رقم 28 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.28 - (500gm*20)",
+      "name": "KFMB Macaroni No.28 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 28",
+      "productType": "KFMB Macaroni No.28",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.28. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060009.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 28 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.28 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-28-38dc752d951c",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060006",
+      "sourceProductName": "معكرونة المطاحن رقم 25 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.25 - (500gm*20)",
+      "name": "KFMB Macaroni No.25 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 25",
+      "productType": "KFMB Macaroni No.25",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.25. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060006.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 25 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.25 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-25-bb92ad618a5d",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060007",
+      "sourceProductName": "معكرونة المطاحن رقم 26 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.26 - (500gm*20)",
+      "name": "KFMB Macaroni No.26 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 26",
+      "productType": "KFMB Macaroni No.26",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.26. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060007.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 26 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.26 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-26-e754c5a51a56",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060001",
+      "sourceProductName": "معكرونة المطاحن رقم 20 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.20 - (500gm*20)",
+      "name": "KFMB Macaroni No.20 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 20",
+      "productType": "KFMB Macaroni No.20",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.20. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 20 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.20 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-20-71083f5c620d",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060002",
+      "sourceProductName": "معكرونة المطاحن رقم 21 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.21 - (500gm*20)",
+      "name": "KFMB Macaroni No.21 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 21",
+      "productType": "KFMB Macaroni No.21",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.21. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060002.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 21 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.21 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-21-82c3494fd437",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060010",
+      "sourceProductName": "معكرونة المطاحن رقم 35 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.35 - (500gm*20)",
+      "name": "KFMB Macaroni No.35 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 35",
+      "productType": "KFMB Macaroni No.35",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.35. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060010.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 35 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.35 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-35-8fae94516b0e",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033060015",
+      "sourceProductName": "معكرونة المطاحن رقم 41 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Macaroni No.41 - (500gm*20)",
+      "name": "KFMB Macaroni No.41 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "macaroni no 41",
+      "productType": "KFMB Macaroni No.41",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Macaroni No.41. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033060015.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95875",
+        "originalName": "معكرونة المطاحن رقم 41 - 500 غم * 20",
+        "englishImageAlt": "KFMB Macaroni No.41 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.500"
+      },
+      "id": "kfmb-macaroni-no-41-67f5366e1254",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.500",
+        "wholesaleKWD": "3.150",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033170002",
+      "sourceProductName": "لازانيا - 450غم*15",
+      "sourceEnglishImageAlt": "KFMB Lasagna (450gm * 15)",
+      "name": "KFMB Lasagna — 15 × 450 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "lasagna",
+      "productType": "KFMB Lasagna",
+      "categoryId": "kw-pasta",
+      "packValue": 450,
+      "packUnit": "g",
+      "packSize": "450 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 15,
+      "description": "KFMB Lasagna. Sold as one 15 × 450 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=1849244",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033170002.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "11.250",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 15,
+        "packValue": 450,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=1849244",
+        "originalName": "لازانيا - 450غم*15",
+        "englishImageAlt": "KFMB Lasagna (450gm * 15)",
+        "priceText": "/ كرتون دك 11.250"
+      },
+      "id": "kfmb-lasagna-3a918a366cb4",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "11.250",
+        "wholesaleKWD": "10.125",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033020002",
+      "sourceProductName": "شعرية المطاحن رقم 2 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Vermicelli No2 - (500gm*20)",
+      "name": "KFMB Vermicelli No2 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "vermicelli no 2",
+      "productType": "KFMB Vermicelli No2",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Vermicelli No2. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033020002.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.700",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+        "originalName": "شعرية المطاحن رقم 2 - 500 غم * 20",
+        "englishImageAlt": "KFMB Vermicelli No2 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.700"
+      },
+      "id": "kfmb-vermicelli-no-2-86e39aacd5cd",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.700",
+        "wholesaleKWD": "3.330",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033020001",
+      "sourceProductName": "شعرية المطاحن رقم 1 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Vermicelli No.1 - (500gm*20)",
+      "name": "KFMB Vermicelli No.1 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "vermicelli no 1",
+      "productType": "KFMB Vermicelli No.1",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Vermicelli No.1. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033020001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.700",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+        "originalName": "شعرية المطاحن رقم 1 - 500 غم * 20",
+        "englishImageAlt": "KFMB Vermicelli No.1 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.700"
+      },
+      "id": "kfmb-vermicelli-no-1-5b343748839b",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.700",
+        "wholesaleKWD": "3.330",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033020003",
+      "sourceProductName": "شعرية المطاحن رقم 3 - 500 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Vermicelli No3 - (500gm*20)",
+      "name": "KFMB Vermicelli No3 — 20 × 500 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "vermicelli no 3",
+      "productType": "KFMB Vermicelli No3",
+      "categoryId": "kw-pasta",
+      "packValue": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Vermicelli No3. Sold as one 20 × 500 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033020003.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "3.700",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 500,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+        "originalName": "شعرية المطاحن رقم 3 - 500 غم * 20",
+        "englishImageAlt": "KFMB Vermicelli No3 - (500gm*20)",
+        "priceText": "/ كرتون دك 3.700"
+      },
+      "id": "kfmb-vermicelli-no-3-80d445fefa79",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "3.700",
+        "wholesaleKWD": "3.330",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033020004",
+      "sourceProductName": "شعرية المطاحن رقم 1 - 250 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Vermicelli NO.1 - (250gm*20)",
+      "name": "KFMB Vermicelli NO.1 — 20 × 250 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "vermicelli no 1",
+      "productType": "KFMB Vermicelli NO.1",
+      "categoryId": "kw-pasta",
+      "packValue": 250,
+      "packUnit": "g",
+      "packSize": "250 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Vermicelli NO.1. Sold as one 20 × 250 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033020004.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "1.790",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 250,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=95879",
+        "originalName": "شعرية المطاحن رقم 1 - 250 غم * 20",
+        "englishImageAlt": "KFMB Vermicelli NO.1 - (250gm*20)",
+        "priceText": "/ كرتون دك 1.790"
+      },
+      "id": "kfmb-vermicelli-no-1-1ee1fdee1104",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "1.790",
+        "wholesaleKWD": "1.611",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "900033100001",
+      "sourceProductName": "سبـاغيـتـي المطــاحن - 400 غم * 20",
+      "sourceEnglishImageAlt": "KFMB Spaghetti - (400gm*20)",
+      "name": "KFMB Spaghetti — 20 × 400 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "spaghetti",
+      "productType": "KFMB Spaghetti",
+      "categoryId": "kw-pasta",
+      "packValue": 400,
+      "packUnit": "g",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Spaghetti. Sold as one 20 × 400 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=760243",
+      "imageUrl": "https://mills.kfmb.com.kw/Content/products/900033100001.jpg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "5.500",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 400,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=760243",
+        "originalName": "سبـاغيـتـي المطــاحن - 400 غم * 20",
+        "englishImageAlt": "KFMB Spaghetti - (400gm*20)",
+        "priceText": "/ كرتون دك 5.500"
+      },
+      "id": "kfmb-spaghetti-96eae61eeede",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "5.500",
+        "wholesaleKWD": "4.950",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    },
+    {
+      "sourceProductId": null,
+      "sourceAssetIdentifier": "20241017150643704",
+      "sourceProductName": "كابيليني المطاحن - 400غم *20",
+      "sourceEnglishImageAlt": "KFMB Capellini - (400gm*20)",
+      "name": "KFMB Capellini — 20 × 400 g carton",
+      "brand": "KFMB",
+      "brandEvidence": "KFMB producer storefront; English image alt where present. No Al Joud/Almatahen brand equivalence assumed.",
+      "identity": "capellini",
+      "productType": "KFMB Capellini",
+      "categoryId": "kw-pasta",
+      "packValue": 400,
+      "packUnit": "g",
+      "packSize": "400 g",
+      "sellingUnit": "carton",
+      "unitsPerMultipack": 20,
+      "description": "KFMB Capellini. Sold as one 20 × 400 g carton.",
+      "sourceUrl": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=760243",
+      "imageUrl": "https://mills.kfmb.com.kw/uploads/20241017150643704.jpeg",
+      "capturedOn": "2026-10-09",
+      "publishedPrice": {
+        "currency": "KWD",
+        "amount": "5.000",
+        "sellingUnit": "carton",
+        "unitsPerMultipack": 20,
+        "packValue": 400,
+        "packUnit": "g",
+        "sourceLabel": "كرتون"
+      },
+      "evidence": {
+        "url": "https://mills.kfmb.com.kw/Portal/ProductList?c=100&s=760243",
+        "originalName": "كابيليني المطاحن - 400غم *20",
+        "englishImageAlt": "KFMB Capellini - (400gm*20)",
+        "priceText": "/ كرتون دك 5.000"
+      },
+      "id": "kfmb-capellini-6dc9205b79e1",
+      "matchStatus": "new",
+      "demoPricing": {
+        "standardKWD": "5.000",
+        "wholesaleKWD": "4.500",
+        "policy": "Standard follows captured whole-selling-unit price; Wholesale is an illustrative 10% discount rounded to nearest fils, not a supplier term."
+      }
+    }
+  ],
+  "pricingPolicy": {
+    "currency": "KWD",
+    "standardMin": 1,
+    "standardMax": 10,
+    "wholesaleMin": 5,
+    "wholesaleMax": 50,
+    "wholesaleDiscountPercent": 10,
+    "demoOnly": true,
+    "applyTax": false,
+    "applyShipping": false
+  }
+}
