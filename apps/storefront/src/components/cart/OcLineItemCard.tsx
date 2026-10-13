@@ -37,12 +37,14 @@ import { markQuantityEdit, runCartAction } from "../../utils/kfmbCartEdits";
 interface OcLineItemCardProps {
   lineItem: LineItem;
   editable?: boolean;
+  currency?: string;
   onChange?: (newLi: LineItem) => void;
 }
 
 const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
   lineItem,
   editable,
+  currency,
   onChange,
 }) => {
   const [quantity, setQuantity] = useState(Number(lineItem.Quantity ?? 1));
@@ -110,12 +112,12 @@ const OcLineItemCard: FunctionComponent<OcLineItemCardProps> = ({
   };
 
   const lineSubtotal = useMemo(() => {
-    return formatPrice(lineItem.LineSubtotal);
-  }, [lineItem]);
+    return formatPrice(lineItem.LineSubtotal, currency || orderWorksheet?.Order?.Currency);
+  }, [lineItem, currency, orderWorksheet?.Order?.Currency]);
 
   const unitPrice = useMemo(() => {
-    return formatPrice(lineItem.UnitPrice);
-  }, [lineItem]);
+    return formatPrice(lineItem.UnitPrice, currency || orderWorksheet?.Order?.Currency);
+  }, [lineItem, currency, orderWorksheet?.Order?.Currency]);
 
   return (
     <>

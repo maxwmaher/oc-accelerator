@@ -34,6 +34,8 @@ import FacetList from "./facets/FacetList";
 import ProductCard from "./ProductCard";
 import { useOcResourceListWithFacets } from "@ordercloud/react-sdk";
 
+import { ACTIVE_COUNTRY, COUNTRY_SELECTION_ENABLED } from "../../config/country";
+
 export interface ProductListProps {
   renderItem?: (product: BuyerProduct) => JSX.Element;
 }
@@ -72,7 +74,7 @@ const ProductList: FunctionComponent<ProductListProps> = ({ renderItem }) => {
     {
       search: searchTerm,
       page: currentPage.toString(),
-      catalogId,
+      catalogId: COUNTRY_SELECTION_ENABLED ? ACTIVE_COUNTRY.catalogID : catalogId,
       categoryId,
       ...filters,
     }

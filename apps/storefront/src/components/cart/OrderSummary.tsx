@@ -62,6 +62,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ order, lineItems }) => {
         )}
       </ButtonGroup>
       <OcCurrentOrderLineItemList
+        currency={order?.Currency}
         lineItems={lineItems}
         emptyMessage=""
         onChange={handleLineItemChange}

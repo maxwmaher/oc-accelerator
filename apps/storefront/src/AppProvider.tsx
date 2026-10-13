@@ -17,7 +17,10 @@ import { useToast } from "@chakra-ui/react";
 import { OrderCloudError } from "ordercloud-javascript-sdk";
 import GlobalLoadingIndicator from "./components/GlobalLoadingIndicator";
 
-const basename = import.meta.env.VITE_APP_CONFIG_BASE;
+import { ACTIVE_COUNTRY, COUNTRY_API_URL, COUNTRY_SELECTION_ENABLED, ROUTER_BASENAME } from "./config/country";
+import CountrySessionGate from "./components/Login/CountrySessionGate";
+
+const basename = ROUTER_BASENAME;
 
 const router = createBrowserRouter(routes, { basename });
 
@@ -36,15 +39,15 @@ const AppProvider: FC = () => {
 
   return (
     <OrderCloudProvider
-      baseApiUrl={BASE_API_URL}
-      clientId={CLIENT_ID}
-      scope={[]}
+      baseApiUrl={COUNTRY_SELECTION_ENABLED ? COUNTRY_API_URL : BASE_API_URL}
+      clientId={COUNTRY_SELECTION_ENABLED ? ACTIVE_COUNTRY.clientID : CLIENT_ID}
+      scope={COUNTRY_SELECTION_ENABLED ? ["Shopper"] : []}
       customScope={[]}
-      allowAnonymous={ALLOW_ANONYMOUS}
+      allowAnonymous={COUNTRY_SELECTION_ENABLED ? false : ALLOW_ANONYMOUS}
       autoApplyPromotions={IS_AUTO_APPLY}
       defaultErrorHandler={defaultErrorHandler}
       openIdConnect={{
-        enabled: OPENID_CONNECT_ENABLED,
+        enabled: !COUNTRY_SELECTION_ENABLED && OPENID_CONNECT_ENABLED,
         autoRedirect: true,
         configs: [{ id: OPENID_CONNECT_CONFIG_ID}],
         accessTokenQueryParamName: OPENIDCONNECT_ACCESS_TOKEN_QUERY_PARAM_NAME,
@@ -52,7 +55,7 @@ const AppProvider: FC = () => {
         idpAccessTokenQueryParamName: OPENIDCONNECT_IDP_ACCESS_TOKEN_QUERY_PARAM_NAME
       }}
     >
-      <RouterProvider router={router} />
+      <CountrySessionGate><RouterProvider router={router} /></CountrySessionGate>
       <GlobalLoadingIndicator/>
     </OrderCloudProvider>
   );

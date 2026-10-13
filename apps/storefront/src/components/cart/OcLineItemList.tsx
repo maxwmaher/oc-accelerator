@@ -6,6 +6,7 @@ import OcLineItemCard from "./OcLineItemCard";
 interface OcLineItemListProps {
   emptyMessage?: string;
   editable?: boolean;
+  currency?: string;
   lineItems?: LineItem[];
   onChange: (newLineItem: LineItem) => void;
 }
@@ -13,6 +14,7 @@ interface OcLineItemListProps {
 const OcLineItemList: FunctionComponent<OcLineItemListProps> = ({
   emptyMessage,
   editable,
+  currency,
   lineItems,
   onChange,
 }) => {
@@ -32,6 +34,7 @@ const OcLineItemList: FunctionComponent<OcLineItemListProps> = ({
               key={idx}
               lineItem={li}
               editable={editable}
+              currency={currency}
               onChange={onChange}
             />
           ))}

@@ -7,6 +7,8 @@ import CategoryList from "./components/category/CategoryList";
 import ProductDetailWrapper from "./components/product/ProductDetailWrapper";
 import ProductList from "./components/product/ProductList";
 
+import CountryCatalogGuard from "./components/CountryCatalogGuard";
+
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -23,23 +25,23 @@ const routes: RouteObject[] = [
 
       {
         path: "/products",
-        element: <ProductList />,
+        element: <CountryCatalogGuard><ProductList /></CountryCatalogGuard>,
       },
       {
         path: "/shop/:catalogId/categories",
-        element: <CategoryList />,
+        element: <CountryCatalogGuard><CategoryList /></CountryCatalogGuard>,
       },
       {
         path: "/shop/:catalogId/categories/:categoryId",
-        element: <CategoryList />,
+        element: <CountryCatalogGuard><CategoryList /></CountryCatalogGuard>,
       },
       {
         path: "/shop/:catalogId/categories/:categoryId/products",
-        element: <ProductList />,
+        element: <CountryCatalogGuard><ProductList /></CountryCatalogGuard>,
       },
       {
         path: "/shop/:catalogId/products",
-        element: <ProductList />,
+        element: <CountryCatalogGuard><ProductList /></CountryCatalogGuard>,
       },
       {
         path: "/products/:productId",

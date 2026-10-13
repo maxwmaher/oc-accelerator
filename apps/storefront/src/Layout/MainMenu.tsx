@@ -29,6 +29,9 @@ import { BRAND_LOGO_DARK, BRAND_LOGO_LIGHT } from "../constants";
 import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "../Layout/MegaMenu";
 
+import CountrySelector from "../components/CountrySelector";
+import { ACTIVE_COUNTRY, COUNTRY_SELECTION_ENABLED } from "../config/country";
+
 interface MainMenuProps {
   loginDisclosure: UseDisclosureProps;
 }
@@ -48,7 +51,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
     { staleTime: 300000 }
   );
 
-  const catalogs = useMemo(() => catalogData?.Items ?? [], [catalogData]);
+  const catalogs = useMemo(() => (catalogData?.Items ?? []).filter((catalog) => !COUNTRY_SELECTION_ENABLED || catalog.ID === ACTIVE_COUNTRY.catalogID), [catalogData]);
 
   const activeCatalogId = catalogs.length > 0 ? catalogs[0]?.ID : undefined;
 
@@ -119,7 +122,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
 
   return (
     <HStack
-      h="12"
+      minH="12"
       as="header"
       position="sticky"
       w="full"
@@ -158,6 +161,7 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
             {renderCatalogMenu()}
           </HStack>
           <HStack>
+            <CountrySelector />
             {isLoggedIn && (
               <Heading size="sm">
                 {`Welcome, ${user?.FirstName} ${user?.LastName}`}

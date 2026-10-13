@@ -5,6 +5,7 @@ import OcLineItemList from './OcLineItemList'
 interface OcCurrentOrderLineItemListProps {
   emptyMessage?: string;
   editable?: boolean;
+  currency?: string;
   productType?: string;
   lineItems?: LineItem[];
   onChange: (newLineItem: LineItem) => void;
@@ -13,6 +14,7 @@ interface OcCurrentOrderLineItemListProps {
 const OcCurrentOrderLineItemList: FunctionComponent<OcCurrentOrderLineItemListProps> = ({
   emptyMessage,
   editable,
+  currency,
   productType,
   lineItems,
   onChange
@@ -28,6 +30,7 @@ const OcCurrentOrderLineItemList: FunctionComponent<OcCurrentOrderLineItemListPr
     <OcLineItemList
       emptyMessage={emptyMessage}
       editable={editable}
+      currency={currency}
       lineItems={productItems}
       onChange={onChange}
     />

@@ -11,8 +11,11 @@ import {
   InputLeftElement,
 } from "@chakra-ui/react";
 import { parseToken, useOrderCloudContext } from "@ordercloud/react-sdk";
-import { AccessToken, OrderCloudError } from "ordercloud-javascript-sdk";
+import { AccessToken, OrderCloudError, Tokens } from "ordercloud-javascript-sdk";
 import { FC, FormEvent, useCallback, useState } from "react";
+
+import { runCartAction } from "../../utils/kfmbCartEdits";
+import { COUNTRY_SELECTION_ENABLED } from "../../config/country";
 
 interface ILoginForm {
   initialFocusRef?: React.RefObject<HTMLInputElement>;
@@ -49,7 +52,10 @@ const LoginForm: FC<ILoginForm> = ({ initialFocusRef, onSuccess }) => {
       setLoading(true);
       let authResponse
       try {
-        authResponse = await login(username, password, rememberMe)
+        if (COUNTRY_SELECTION_ENABLED) Tokens.RemoveRefreshToken();
+        authResponse = COUNTRY_SELECTION_ENABLED
+          ? await runCartAction(() => login(username, password, rememberMe))
+          : await login(username, password, rememberMe)
         setError(undefined);
         if (!isBuyerUser(authResponse)) {
           //The Sitecore Commerce team does not recommend using this application with non-seller users.
@@ -105,7 +111,7 @@ const LoginForm: FC<ILoginForm> = ({ initialFocusRef, onSuccess }) => {
           isChecked={rememberMe}
           onChange={(e) => setRememberMe(e.target.checked)}
         >
-          Keep me logged in
+          {COUNTRY_SELECTION_ENABLED ? "Keep me logged in in this tab" : "Keep me logged in"}
         </Checkbox>
       </FormControl>
       <Button
@@ -121,6 +127,9 @@ const LoginForm: FC<ILoginForm> = ({ initialFocusRef, onSuccess }) => {
       <Button w="full" variant="link" size="xs" mb={6}>
         Forgot username or password?
       </Button>
+      {error instanceof Error && !((error as OrderCloudError).errors?.length) && (
+        <Alert status="error" mb={5}><AlertIcon /><AlertDescription>{error.message}</AlertDescription></Alert>
+      )}
       {error?.errors?.map((e, i) => (
         <Alert status="error" key={i} mb={5}>
           <AlertIcon />
