@@ -1,5 +1,5 @@
 import { Button, FormControl, FormErrorMessage, FormLabel, Heading, Input, Text, Textarea, VStack } from "@chakra-ui/react";
-import { DEFAULT_PICKUP_LOCATION } from "../../../config/pickupLocations";
+import { ACTIVE_PICKUP_LOCATION } from "../../../config/pickupLocations";
 
 export interface PickupForm { contactName: string; contact: string; notes: string; }
 type Props = { pickup: PickupForm; setPickup: (value: PickupForm) => void; handleSavePickup: () => void; saving: boolean; };
@@ -7,7 +7,7 @@ type Props = { pickup: PickupForm; setPickup: (value: PickupForm) => void; handl
 export const CartInformationPanel = ({ pickup, setPickup, handleSavePickup, saving }: Props) => (
   <VStack alignItems="stretch" spacing={5} as="form" onSubmit={(event) => { event.preventDefault(); handleSavePickup(); }}>
     <Heading size="md">Pickup details</Heading>
-    <Text fontWeight="semibold">{DEFAULT_PICKUP_LOCATION.label}</Text>
+    <Text fontWeight="semibold">{ACTIVE_PICKUP_LOCATION.label}</Text>
     <Text color="gray.600">This is a demonstration location. A delivery address and shipping method are not required.</Text>
     <FormControl isRequired isInvalid={!pickup.contactName.trim()}>
       <FormLabel>Pickup contact name</FormLabel>

@@ -3,7 +3,8 @@ import { useOrderCloudContext, useShopper } from "@ordercloud/react-sdk";
 import { Orders } from "ordercloud-javascript-sdk";
 import { useCallback, useEffect, useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { DEFAULT_PICKUP_LOCATION } from "../../config/pickupLocations";
+import { COUNTRY_SELECTION_ENABLED } from "../../config/country";
+import { ACTIVE_PICKUP_LOCATION } from "../../config/pickupLocations";
 import { useCurrentUser } from "../../hooks/currentUser";
 import { assertNoPendingQuantityEdits, runCartAction } from "../../utils/kfmbCartEdits";
 import { getDemoOrderStatus, PaymentOutcome, processDemoPayment } from "../../utils/demoCheckoutApi";
@@ -24,6 +25,9 @@ export const ShoppingCart = (): JSX.Element => {
   const currentUser = useCurrentUser();
   const navigate = useNavigate();
   const toast = useToast();
+  const savedPickup = orderWorksheet?.Order?.xp?.KFMBCheckout?.Pickup;
+  const pickupMatchesCountry = !COUNTRY_SELECTION_ENABLED ||
+    (savedPickup?.LocationID === ACTIVE_PICKUP_LOCATION.id && savedPickup?.Country === ACTIVE_PICKUP_LOCATION.country);
 
   useEffect(() => {
     const user = currentUser.data;
@@ -38,16 +42,18 @@ export const ShoppingCart = (): JSX.Element => {
     }
     setSaving(true);
     try {
-      assertNoPendingQuantityEdits();
-      await Orders.Patch("Outgoing", order.ID, {
-        ShippingCost: 0, TaxCost: 0,
-        xp: { ...(order.xp || {}), KFMBCheckout: { ...((order.xp?.KFMBCheckout as object) || {}), Fulfillment: "Pickup", Pickup: { LocationID: DEFAULT_PICKUP_LOCATION.id, Country: DEFAULT_PICKUP_LOCATION.country, Label: DEFAULT_PICKUP_LOCATION.label, ContactName: pickup.contactName.trim(), Contact: pickup.contact.trim(), Notes: pickup.notes.trim() } } },
+      await runCartAction(async () => {
+        assertNoPendingQuantityEdits();
+        await Orders.Patch("Outgoing", order.ID, {
+          ShippingCost: 0, TaxCost: 0,
+          xp: { ...(order.xp || {}), KFMBCheckout: { ...((order.xp?.KFMBCheckout as object) || {}), Fulfillment: "Pickup", Pickup: { LocationID: ACTIVE_PICKUP_LOCATION.id, Country: ACTIVE_PICKUP_LOCATION.country, Label: ACTIVE_PICKUP_LOCATION.label, ContactName: pickup.contactName.trim(), Contact: pickup.contact.trim(), Notes: pickup.notes.trim() } } },
+        });
+        await applyPromotions();
+        await calculateOrder();
+        await refreshWorksheet();
+        setPaymentStatus(undefined);
+        setTabIndex(TABS.PAYMENT);
       });
-      await applyPromotions();
-      await calculateOrder();
-      await refreshWorksheet();
-      setPaymentStatus(undefined);
-      setTabIndex(TABS.PAYMENT);
     } catch (error) {
       toast({ title: "Could not save pickup details", description: error instanceof Error ? error.message : "Try again.", status: "error" });
     } finally { setSaving(false); }
@@ -57,6 +63,9 @@ export const ShoppingCart = (): JSX.Element => {
     const orderID = orderWorksheet?.Order?.ID;
     if (!orderID || submitting) return;
     if (!isLoggedIn) { toast({ title: "Sign in to submit this order", status: "warning" }); return; }
+    if (!pickupMatchesCountry) {
+      toast({ title: "Save pickup details for this country before payment", status: "warning" }); return;
+    }
     setSubmitting(true);
     try {
       await runCartAction(async () => {
@@ -92,7 +101,7 @@ export const ShoppingCart = (): JSX.Element => {
     } catch (error) {
       toast({ title: "Checkout was not completed", description: error instanceof Error ? error.message : "Your cart remains available. Please try again.", status: "error", duration: 7000, isClosable: true });
     } finally { setSubmitting(false); }
-  }, [applyPromotions, calculateOrder, isLoggedIn, navigate, orderWorksheet?.Order?.ID, refreshWorksheet, submitCart, submitting, toast]);
+  }, [applyPromotions, calculateOrder, isLoggedIn, navigate, orderWorksheet?.Order?.ID, refreshWorksheet, submitCart, submitting, pickupMatchesCountry, toast]);
 
   if (worksheetLoading) return <CartSkeleton />;
   if (!orderWorksheet?.Order || !orderWorksheet.LineItems?.length) return <Center flex="1"><VStack mt={-28}><Heading>Cart is empty</Heading><Button as={RouterLink} size="sm" to="/products">Continue shopping</Button></VStack></Center>;
@@ -101,12 +110,15 @@ export const ShoppingCart = (): JSX.Element => {
     <Grid gridTemplateColumns={{ md: "3fr 2fr" }} w="full" flex="1">
       <GridItem><Container maxW="container.lg" mx="0" ml="auto" p={{ base: 6, lg: 12 }}><Heading mb={6}>Pickup checkout</Heading>
         {!isLoggedIn && <Text color="red.600" mb={4}>Sign in with a shopper account before continuing.</Text>}
-        <Tabs size="sm" index={tabIndex} onChange={setTabIndex} variant="soft-rounded"><TabList><Tab>Pickup details</Tab><Tab isDisabled={!orderWorksheet.Order.xp?.KFMBCheckout?.Pickup}>Payment and review</Tab></TabList><TabPanels>
+        <Tabs size="sm" index={tabIndex} onChange={setTabIndex} variant="soft-rounded"><TabList><Tab>Pickup details</Tab><Tab isDisabled={!savedPickup || !pickupMatchesCountry}>Payment and review</Tab></TabList><TabPanels>
           <TabPanel><CartInformationPanel pickup={pickup} setPickup={setPickup} handleSavePickup={savePickup} saving={saving} /></TabPanel>
           <TabPanel><CartPaymentPanel onPayment={handlePayment} submitting={submitting} paymentStatus={paymentStatus} /></TabPanel>
         </TabPanels></Tabs>
       </Container></GridItem>
-      <GridItem bgColor="blackAlpha.100"><Container maxW="container.sm" mx="0" mr="auto" p={{ base: 6, lg: 12 }}><CartSummary deleteOrder={deleteCart} onSubmitOrder={() => handlePayment("approve")} tabIndex={tabIndex} /></Container></GridItem>
+      <GridItem bgColor="blackAlpha.100"><Container maxW="container.sm" mx="0" mr="auto" p={{ base: 6, lg: 12 }}><CartSummary deleteOrder={async () => {
+        try { await runCartAction(() => deleteCart()); }
+        catch (error) { toast({ title: "Could not clear cart", description: error instanceof Error ? error.message : "Try again.", status: "error" }); }
+      }} onSubmitOrder={() => handlePayment("approve")} tabIndex={tabIndex} /></Container></GridItem>
     </Grid>
   </>;
 };

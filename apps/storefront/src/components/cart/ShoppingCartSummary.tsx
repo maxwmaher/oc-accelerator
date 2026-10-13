@@ -18,6 +18,8 @@ import formatPrice from "../../utils/formatPrice";
 import { Link as RouterLink } from "react-router-dom";
 import OcCurrentOrderLineItemList from "./OcCurrentOrderLineItemList";
 
+import { runCartAction } from "../../utils/kfmbCartEdits";
+
 interface CartSummaryProps {
   onSubmitOrder: () => void;
   deleteOrder: () => void;
@@ -38,9 +40,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder }) => {
       e.preventDefault();
       if (!promoCode) return;
       try {
-        await listEligiblePromotions();
-        await addCartPromo(promoCode.trim());
-        await refreshWorksheet();
+        await runCartAction(async () => {
+          await listEligiblePromotions();
+          await addCartPromo(promoCode.trim());
+          await refreshWorksheet();
+        });
         toast({
           title: `Promotion '${promoCode}' applied to cart`,
           status: "success",
@@ -59,8 +63,10 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder }) => {
     async (promoCode: string | undefined) => {
       if (!promoCode) return;
       try {
-        await removeCartPromo(promoCode);
-        await refreshWorksheet();
+        await runCartAction(async () => {
+          await removeCartPromo(promoCode);
+          await refreshWorksheet();
+        });
         toast({
           title: `Promotion '${promoCode}' removed from cart`,
           status: "success",
@@ -92,6 +98,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ deleteOrder }) => {
         </Button>
       </ButtonGroup>
       <OcCurrentOrderLineItemList
+        currency={orderWorksheet?.Order?.Currency}
         lineItems={orderWorksheet?.LineItems}
         emptyMessage="Your cart is empty"
         onChange={handleLineItemChange}

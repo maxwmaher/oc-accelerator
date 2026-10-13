@@ -1,3 +1,6 @@
+import { ACTIVE_COUNTRY, COUNTRY_SELECTION_ENABLED } from "../config/country";
+import { formatCurrencyAmount } from "./kfmbCurrency";
+
 /**
  * Display an OrderCloud amount without converting its value.
  *
@@ -14,15 +17,11 @@ export default function formatPrice(
   }
 
   const fallbackCurrency =
-    import.meta.env.VITE_APP_ORDERCLOUD_CURRENCY || "SAR";
+    COUNTRY_SELECTION_ENABLED ? ACTIVE_COUNTRY.currency : (import.meta.env.VITE_APP_ORDERCLOUD_CURRENCY || "SAR");
 
   const currencyCode =
     currency?.trim().toUpperCase() ||
     fallbackCurrency.trim().toUpperCase();
 
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currencyCode,
-    currencyDisplay: "code",
-  }).format(amount);
+  return formatCurrencyAmount(amount, currencyCode);
 }

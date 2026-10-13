@@ -1,6 +1,13 @@
 /** Session-local UI state, not a server security boundary. No credentials are stored. */
 const pendingLineEdits = new Set<string>();
 let cartActionInProgress = false;
+const cartActionListeners = new Set<() => void>();
+export const isCartActionInProgress = () => cartActionInProgress;
+export function subscribeCartActions(listener: () => void) {
+  cartActionListeners.add(listener);
+  return () => { cartActionListeners.delete(listener); };
+}
+const notifyCartActions = () => cartActionListeners.forEach((listener) => listener());
 
 export function markQuantityEdit(lineId: string, pending: boolean): void {
   if (pending) pendingLineEdits.add(lineId);
@@ -17,9 +24,11 @@ export function assertNoPendingQuantityEdits(): void {
 export async function runCartAction<T>(action: () => Promise<T>): Promise<T> {
   if (cartActionInProgress) throw new Error("A cart update is still in progress. Please wait and try again.");
   cartActionInProgress = true;
+  notifyCartActions();
   try {
     return await action();
   } finally {
     cartActionInProgress = false;
+    notifyCartActions();
   }
 }
