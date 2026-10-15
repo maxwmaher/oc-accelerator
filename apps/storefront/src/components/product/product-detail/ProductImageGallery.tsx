@@ -1,12 +1,4 @@
-import {
-  Button,
-  Center,
-  Flex,
-  HStack,
-  Icon,
-  Image,
-  VStack,
-} from "@chakra-ui/react";
+import { Button, Center, HStack, Icon, Image, Stack, Text } from "@chakra-ui/react";
 import { useState } from "react";
 import { TbPhoto } from "react-icons/tb";
 
@@ -17,84 +9,25 @@ type ProductImage = {
 
 interface ProductImageGalleryProps {
   images: ProductImage[];
+  productName?: string;
 }
 
-const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
-  images,
-}) => {
+const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({ images, productName = "Product" }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState(false);
-
-  if (!images.length || error) {
-    return (
-      <Center
-        bgColor="chakra-subtle-bg"
-        objectFit="contain"
-        boxSize="100%"
-        maxH="50vh"
-      >
-        <Icon fontSize="5rem" color="gray.300" as={TbPhoto} />
-      </Center>
-    );
-  }
+  const activeImage = images[selectedIndex] || images[0];
 
   return (
-    <HStack
-      bgColor="chakra-subtle-bg"
-      maxH="75vh"
-      alignItems="flex-start"
-      justifyContent="flex-start"
-      gap={3}
-      zIndex={0}
-    >
-      {images.length > 1 && (
-        <VStack
-          maxH="100%"
-          gap={2}
-          overflowY="auto"
-          justifyContent="flex-start"
-          pr="4"
-          zIndex={2}
-        >
-          {images.map((image, idx) => (
-            <Button
-              key={idx}
-              boxSize="full"
-              variant="unstyled"
-              onClick={() => {
-                setSelectedIndex(idx);
-                setError(false);
-              }}
-              _hover={{ transform: "scale(1.025)" }}
-              transition="transform 0.2s ease"
-              isActive={idx === selectedIndex}
-              border="3px solid transparent"
-              _active={{ borderColor: "primary" }}
-            >
-              <Image
-                boxSize="60px"
-                objectFit="cover"
-                src={image.ThumbnailUrl || image.Url}
-              />
-            </Button>
-          ))}
-        </VStack>
-      )}
-      <Flex
-        flex="1"
-        maxH="75vh"
-        alignItems="flex-start"
-        justifyContent="flex-start"
-      >
-        <Image
-          w="full"
-          maxH="75vh"
-          objectFit="contain"
-          src={images[selectedIndex]?.ThumbnailUrl || images[selectedIndex]?.Url}
-          onError={() => setError(true)}
-        />
-      </Flex>
-    </HStack>
+    <Stack spacing={4} minW={0}>
+      <Center bg="white" h={{ base: "320px", md: "420px", lg: "470px" }} p={{ base: 6, md: 9 }} border="1px solid" borderColor="trade.border" borderRadius="lg" overflow="hidden">
+        {!activeImage || error ? <Stack align="center" spacing={3} color="trade.muted"><Icon boxSize={12} as={TbPhoto} aria-hidden /><Text fontSize="sm">Image unavailable</Text></Stack> : <Image w="full" h="full" objectFit="contain" src={activeImage.ThumbnailUrl || activeImage.Url} alt={productName} onError={() => setError(true)} />}
+      </Center>
+      {images.length > 1 && <HStack spacing={3} overflowX="auto" py={1} px={1}>
+        {images.map((image, index) => <Button key={image.Url || index} aria-label={`View ${productName} image ${index + 1}`} aria-pressed={index === selectedIndex} flexShrink={0} w="72px" h="72px" p={2} bg="white" border="2px solid" borderColor={index === selectedIndex ? "trade.ink" : "trade.border"} borderRadius="md" variant="outline" onClick={() => { setSelectedIndex(index); setError(false); }}>
+          <Image w="full" h="full" objectFit="contain" src={image.ThumbnailUrl || image.Url} alt="" />
+        </Button>)}
+      </HStack>}
+    </Stack>
   );
 };
 

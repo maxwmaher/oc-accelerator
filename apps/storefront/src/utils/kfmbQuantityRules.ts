@@ -49,7 +49,7 @@ export function quantityError(
   otherQuantity = 0
 ): string | undefined {
   if (!ps) return "Pricing and quantity rules are not available yet.";
-  if (!Number.isSafeInteger(quantity) || quantity < 1) return "Enter a positive whole number of packs.";
+  if (!Number.isSafeInteger(quantity) || quantity < 1) return "Enter a positive whole number of units.";
   const { minimum, maximum, offset } = quantityBounds(ps, otherQuantity);
   if (!Number.isSafeInteger(minimum) ||
       (maximum !== undefined && (!Number.isSafeInteger(maximum) || maximum < minimum))) {
@@ -57,8 +57,8 @@ export function quantityError(
   }
   const total = quantity + offset;
   if (!Number.isSafeInteger(total)) return "The total quantity is too large.";
-  if (total < minimum) return `Minimum quantity is ${minimum} packs for this product; the proposed total is ${total}.`;
-  if (maximum !== undefined && total > maximum) return `Maximum quantity is ${maximum} packs for this product; the proposed total is ${total}.`;
+  if (total < minimum) return `Minimum quantity is ${minimum} units for this product; the proposed total is ${total}.`;
+  if (maximum !== undefined && total > maximum) return `Maximum quantity is ${maximum} units for this product; the proposed total is ${total}.`;
   if (ps.RestrictedQuantity && !ps.PriceBreaks?.some(breakpoint => breakpoint.Quantity === total)) {
     return "Select one of the quantities allowed by this price schedule.";
   }
@@ -68,5 +68,5 @@ export function quantityError(
 export function quantityRuleLabel(ps: QuantitySchedule): string {
   const { minimum, maximum } = quantityBounds(ps);
   const range = maximum === undefined ? `${minimum}+` : `${minimum}\u2013${maximum}`;
-  return `Allowed: ${range} packs per product, ${ps.UseCumulativeQuantity ? "per order" : "per line"}.`;
+  return `Allowed: ${range} units per product, ${ps.UseCumulativeQuantity ? "per order" : "per line"}.`;
 }

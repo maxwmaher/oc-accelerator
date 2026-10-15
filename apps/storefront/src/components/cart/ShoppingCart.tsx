@@ -1,8 +1,9 @@
-import { Button, Center, Container, Grid, GridItem, Heading, Spinner, Tab, TabList, TabPanel, TabPanels, Tabs, Text, useToast, VStack } from "@chakra-ui/react";
+import { Box, Button, Center, Flex, Grid, Heading, Icon, Link, Spinner, Stack, Tab, TabList, TabPanel, TabPanels, Tabs, Text, useToast, VStack } from "@chakra-ui/react";
 import { useOrderCloudContext, useShopper } from "@ordercloud/react-sdk";
 import { Orders } from "ordercloud-javascript-sdk";
 import { useCallback, useEffect, useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { TbShoppingBag } from "react-icons/tb";
 import { COUNTRY_SELECTION_ENABLED } from "../../config/country";
 import { ACTIVE_PICKUP_LOCATION } from "../../config/pickupLocations";
 import { useCurrentUser } from "../../hooks/currentUser";
@@ -12,6 +13,8 @@ import { CartInformationPanel, PickupForm } from "./cart-panels/CartInformationP
 import { CartPaymentPanel } from "./cart-panels/CartPaymentPanel";
 import CartSkeleton from "./ShoppingCartSkeleton";
 import CartSummary from "./ShoppingCartSummary";
+import OcCurrentOrderLineItemList from "./OcCurrentOrderLineItemList";
+import { PageIntro, Surface } from "../trade/TradePrimitives";
 
 const TABS = { PICKUP: 0, PAYMENT: 1 };
 export const ShoppingCart = (): JSX.Element => {
@@ -104,21 +107,34 @@ export const ShoppingCart = (): JSX.Element => {
   }, [applyPromotions, calculateOrder, isLoggedIn, navigate, orderWorksheet?.Order?.ID, refreshWorksheet, submitCart, submitting, pickupMatchesCountry, toast]);
 
   if (worksheetLoading) return <CartSkeleton />;
-  if (!orderWorksheet?.Order || !orderWorksheet.LineItems?.length) return <Center flex="1"><VStack mt={-28}><Heading>Cart is empty</Heading><Button as={RouterLink} size="sm" to="/products">Continue shopping</Button></VStack></Center>;
+  if (!orderWorksheet?.Order || !orderWorksheet.LineItems?.length) return <Surface maxW="760px" mx="auto" w="full" textAlign="center" py={{ base: 10, md: 16 }}><Stack align="center" spacing={5}><Center boxSize={16} bg="trade.ivory" borderRadius="full"><Icon as={TbShoppingBag} boxSize={8} color="trade.ink" /></Center><Heading as="h1" size="xl">Cart is empty</Heading><Text color="trade.muted" maxW="44ch">Browse your catalog and add the selling units you need to start an order.</Text><Button as={RouterLink} to="/products">Continue shopping</Button></Stack></Surface>;
   return <>
-    {submitting && <Center boxSize="full" h="100vh" position="absolute" zIndex={1234} background="whiteAlpha.400"><VStack><Spinner size="xl" /><Text>Completing demo checkout…</Text></VStack></Center>}
-    <Grid gridTemplateColumns={{ md: "3fr 2fr" }} w="full" flex="1">
-      <GridItem><Container maxW="container.lg" mx="0" ml="auto" p={{ base: 6, lg: 12 }}><Heading mb={6}>Pickup checkout</Heading>
-        {!isLoggedIn && <Text color="red.600" mb={4}>Sign in with a shopper account before continuing.</Text>}
-        <Tabs size="sm" index={tabIndex} onChange={setTabIndex} variant="soft-rounded"><TabList><Tab>Pickup details</Tab><Tab isDisabled={!savedPickup || !pickupMatchesCountry}>Payment and review</Tab></TabList><TabPanels>
-          <TabPanel><CartInformationPanel pickup={pickup} setPickup={setPickup} handleSavePickup={savePickup} saving={saving} /></TabPanel>
-          <TabPanel><CartPaymentPanel onPayment={handlePayment} submitting={submitting} paymentStatus={paymentStatus} /></TabPanel>
-        </TabPanels></Tabs>
-      </Container></GridItem>
-      <GridItem bgColor="blackAlpha.100"><Container maxW="container.sm" mx="0" mr="auto" p={{ base: 6, lg: 12 }}><CartSummary deleteOrder={async () => {
+    {submitting && <Center inset={0} position="fixed" zIndex={1234} bg="whiteAlpha.900" role="status" aria-live="polite"><VStack spacing={5}><Spinner size="xl" color="trade.ink" /><Text fontWeight="semibold">Completing demo checkout…</Text></VStack></Center>}
+    <PageIntro title="Pickup checkout"><Text>Review your items, confirm your pickup contact, then submit your demo order.</Text></PageIntro>
+    <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "minmax(0, 1fr) 360px" }} gap={{ base: 6, xl: 8 }} w="full" alignItems="start">
+      <Stack spacing={6} minW={0}>
+        <Surface>
+          <Flex align="center" justify="space-between" gap={3} mb={3} flexWrap="wrap"><Heading as="h2" size="md">Your items <Text as="span" fontWeight="normal" color="trade.muted">({orderWorksheet.LineItems.length})</Text></Heading><Link as={RouterLink} to="/products" fontSize="sm" fontWeight="semibold">Continue shopping</Link></Flex>
+          <OcCurrentOrderLineItemList currency={orderWorksheet.Order.Currency} lineItems={orderWorksheet.LineItems} emptyMessage="Your cart is empty" onChange={() => undefined} editable />
+        </Surface>
+        <Surface p={0} overflow="hidden">
+          {!isLoggedIn && <Text color="red.700" px={{ base: 5, md: 7 }} pt={5}>Sign in with a shopper account before continuing.</Text>}
+          <Tabs index={tabIndex} onChange={setTabIndex} variant="unstyled">
+            <TabList px={{ base: 3, md: 5 }} pt={4} borderBottom="1px solid" borderColor="trade.border" gap={{ base: 1, md: 4 }}>
+              <Tab gap={2} py={4} px={{ base: 2, md: 3 }} flex={1} minH="56px" fontSize="sm" fontWeight="semibold" borderBottom="3px solid" borderColor="transparent" color="trade.muted" _selected={{ borderColor: "trade.gold", color: "trade.ink" }}><Center aria-hidden="true" boxSize={6} flexShrink={0} border="1px solid" borderColor="currentColor" borderRadius="full" fontSize="xs">1</Center>Pickup details</Tab>
+              <Tab gap={2} py={4} px={{ base: 2, md: 3 }} flex={1} minH="56px" fontSize="sm" fontWeight="semibold" borderBottom="3px solid" borderColor="transparent" color="trade.muted" _selected={{ borderColor: "trade.gold", color: "trade.ink" }} _disabled={{ opacity: .5, cursor: "not-allowed" }} isDisabled={!savedPickup || !pickupMatchesCountry}><Center aria-hidden="true" boxSize={6} flexShrink={0} border="1px solid" borderColor="currentColor" borderRadius="full" fontSize="xs">2</Center>Payment and review</Tab>
+            </TabList>
+            <TabPanels>
+              <TabPanel p={{ base: 5, md: 7 }}><CartInformationPanel pickup={pickup} setPickup={setPickup} handleSavePickup={savePickup} saving={saving} /></TabPanel>
+              <TabPanel p={{ base: 5, md: 7 }}><CartPaymentPanel onPayment={handlePayment} submitting={submitting} paymentStatus={paymentStatus} /></TabPanel>
+            </TabPanels>
+          </Tabs>
+        </Surface>
+      </Stack>
+      <Box minW={0}><CartSummary deleteOrder={async () => {
         try { await runCartAction(() => deleteCart()); }
         catch (error) { toast({ title: "Could not clear cart", description: error instanceof Error ? error.message : "Try again.", status: "error" }); }
-      }} onSubmitOrder={() => handlePayment("approve")} tabIndex={tabIndex} /></Container></GridItem>
+      }} /></Box>
     </Grid>
   </>;
 };

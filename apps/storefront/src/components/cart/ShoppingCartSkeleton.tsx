@@ -1,32 +1,13 @@
-import { Container, Grid, GridItem, Skeleton } from "@chakra-ui/react";
-import React from "react";
+import { Grid, Skeleton, Stack, Text } from "@chakra-ui/react";
+import { Surface } from "../trade/TradePrimitives";
 
-
-const CartSkeleton: React.FC = () => {
-
-  return (
-    <Grid
-      gridTemplateColumns={{ md: "3fr 2fr" }}
-      w="full"
-      justifyItems="stretch"
-      flex="1"
-    >
-      <GridItem alignSelf="flex-end" h="full">
-        <Container maxW="container.lg" mx="0" ml="auto" p={{ base: 6, lg: 12 }}>
-          <Skeleton w="full" h="200px" rounded="none" />
-          <Skeleton w="full" h="400px" rounded="none" my={6} />
-          <Skeleton w="full" h="100px" rounded="none" />
-        </Container>
-      </GridItem>
-
-      <GridItem h="full">
-        <Container maxW="container.sm" mx="0" mr="auto" p={{ base: 6, lg: 12 }}>
-          <Skeleton rounded="none" w="full" h="200px" />
-          <Skeleton rounded="none" w="full" h="525px" mt={6} />
-        </Container>
-      </GridItem>
+export default function CartSkeleton() {
+  return <Stack spacing={6} w="full" aria-busy="true">
+    <Text role="status" color="trade.muted">Loading your cart…</Text>
+    <Skeleton h="42px" maxW="340px" borderRadius="md" />
+    <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "minmax(0, 1fr) 360px" }} gap={{ base: 6, xl: 8 }}>
+      <Stack spacing={6}><Surface><Skeleton h="150px" borderRadius="md" /></Surface><Surface><Stack spacing={5}><Skeleton h="30px" w="60%" borderRadius="md" /><Skeleton h="80px" borderRadius="md" /><Skeleton h="48px" borderRadius="md" /><Skeleton h="48px" borderRadius="md" /></Stack></Surface></Stack>
+      <Surface alignSelf="start"><Stack spacing={5}><Skeleton h="28px" w="70%" borderRadius="md" /><Skeleton h="180px" borderRadius="md" /><Skeleton h="48px" borderRadius="md" /></Stack></Surface>
     </Grid>
-  );
-};
-
-export default CartSkeleton;
+  </Stack>;
+}

@@ -40,12 +40,15 @@ const FacetListValues: FunctionComponent<FacetListValuesProps> = ({
       {facetList?.Values?.map((v: ListFacetValue, idx: number) => (
         <Checkbox
           size="md"
+          minH="44px"
+          colorScheme="primary"
+          alignItems="center"
           fontWeight="normal"
           key={v.Value}
           isChecked={checkedItems[idx]}
           onChange={() => onChange(`xp.${facetList.XpPath}`, true)(v.Value)}
         >
-          {v.Value} <Text as="span" color="chakra-placeholder-color">({v?.Count})</Text>
+          {v.Value} <Text as="span" color="trade.muted">({v?.Count})</Text>
         </Checkbox>
       ))}
     </>

@@ -5,7 +5,7 @@ const GlobalLoadingIndicator = () => {
   const isFetching = useIsFetching()
 
   return isFetching ? (
-    <Spinner position="fixed" bottom={10} right={10}/>
+    <Spinner aria-label="Refreshing order data" position="fixed" bottom={10} right={10}/>
   ) : null
 }
 

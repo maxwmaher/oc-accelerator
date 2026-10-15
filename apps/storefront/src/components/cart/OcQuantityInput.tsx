@@ -44,18 +44,14 @@ const OcQuantityInput: FunctionComponent<OcQuantityInputProps> = ({
       (bounds?.entryMax === undefined || value <= bounds.entryMax)) ?? [];
   const handleSelectChange = (event: ChangeEvent<HTMLSelectElement>) => onChange(Number(event.target.value));
 
-  if (loading) return <Text role="status" fontSize="xs">Loading quantity and cart rules…</Text>;
-  if (!ps || !bounds) return <Text role="alert" fontSize="xs">Quantity rules are unavailable.</Text>;
+  if (loading) return <Text role="status" fontSize="sm" color="trade.muted">Loading quantity and cart rules…</Text>;
+  if (!ps || !bounds) return <Text role="alert" fontSize="sm" color="red.700">Quantity rules are unavailable.</Text>;
 
   return (
-    <VStack alignItems="flex-start" gap={1} maxW="320px">
-      <Text as="label" htmlFor={controlId} fontSize="sm">{label}</Text>
-      <Text id={`${controlId}-rules`} fontSize="xs" color="chakra-subtle-text">
-        {quantityRuleLabel(ps)}
-        {ps.UseCumulativeQuantity && otherQuantity > 0 ? ` Already in the cart elsewhere: ${otherQuantity}.` : ""}
-      </Text>
+    <VStack alignItems="flex-start" spacing={2} maxW="360px" w="full">
+      <Text as="label" htmlFor={controlId} fontSize="sm" fontWeight="semibold" color="trade.ink">{label}</Text>
       {noRemaining ? null : ps.RestrictedQuantity ? (
-        <Select id={controlId} size="sm" maxW="120px" value={Number.isFinite(quantity) ? quantity : ""}
+        <Select id={controlId} size="md" maxW="220px" minH="48px" value={Number.isFinite(quantity) ? quantity : ""}
           isDisabled={disabled || noRemaining || !allowedEntries.length}
           aria-describedby={`${controlId}-rules`} isInvalid={!!error}
           onChange={handleSelectChange}>
@@ -63,21 +59,28 @@ const OcQuantityInput: FunctionComponent<OcQuantityInputProps> = ({
           {allowedEntries.map(value => <option key={value} value={value}>{value}</option>)}
         </Select>
       ) : (
-        <NumberInput id={controlId} size="sm" maxW="120px"
+        <NumberInput id={controlId} size="md" maxW="244px" w="full" display="flex" alignItems="center"
           value={Number.isFinite(quantity) ? quantity : ""}
           min={bounds.entryMin} max={bounds.entryMax === undefined ? undefined : Math.max(bounds.entryMin, bounds.entryMax)}
           step={1} keepWithinRange clampValueOnBlur={false}
           isDisabled={disabled || noRemaining} isInvalid={!!error}
           onChange={(text, value) => onChange(text.trim() === "" ? Number.NaN : value)}>
-          <NumberInputField inputMode="numeric" aria-label={label}
+          <NumberInputField inputMode="numeric" aria-label={label} minH="48px" minW="64px" pr={3} mr={2} flex={1}
             aria-describedby={`${controlId}-rules${error ? ` ${controlId}-error` : ""}`} />
-          <NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
+          <NumberInputStepper position="static" flexDir="row" w="104px" h="48px" m={0} gap={2} flexShrink={0}>
+            <NumberIncrementStepper minW="48px" minH="48px" border="1px solid" borderColor="trade.border" borderRadius="md" bg="trade.ivory" aria-label="Increase quantity" />
+            <NumberDecrementStepper minW="48px" minH="48px" border="1px solid" borderColor="trade.border" borderRadius="md" bg="trade.ivory" aria-label="Decrease quantity" />
+          </NumberInputStepper>
         </NumberInput>
       )}
+      <Text id={`${controlId}-rules`} fontSize="sm" color="trade.muted">
+        {quantityRuleLabel(ps)}
+        {ps.UseCumulativeQuantity && otherQuantity > 0 ? ` Already in the cart elsewhere: ${otherQuantity}.` : ""}
+      </Text>
       {noRemaining ? (
-        <Text fontSize="xs">The order maximum has been reached. Reduce or remove an existing cart line to add more.</Text>
+        <Text fontSize="sm" color="trade.muted">The order maximum has been reached. Reduce or remove an existing cart line to add more.</Text>
       ) : error ? (
-        <Text id={`${controlId}-error`} role="alert" fontSize="xs" color="red.600">{error}</Text>
+        <Text id={`${controlId}-error`} role="alert" fontSize="sm" color="red.700">{error}</Text>
       ) : null}
     </VStack>
   );

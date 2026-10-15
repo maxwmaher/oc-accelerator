@@ -13,7 +13,7 @@ export default defineConfig({
     launchOptions: process.env.KFMB_CHROMIUM_PATH ? { executablePath: process.env.KFMB_CHROMIUM_PATH, args: ['--no-sandbox'] } : {},
   },
   webServer: {
-    command: `npm run preview -- --host 127.0.0.1 --port 4173${process.env.KFMB_COUNTRY_DISABLED === 'true' ? ' --outDir ../../work/single-country-dist' : ''}`,
+    command: 'node tests/helpers/previewMockBuild.mjs',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
   },

@@ -12,9 +12,9 @@ export default function CountrySelector() {
   const cartBusy = useSyncExternalStore(subscribeCartActions, isCartActionInProgress);
   if (!COUNTRY_SELECTION_ENABLED) return null;
   const busy = (authLoading && isAuthenticated) || mutations > 0 || cartBusy;
-  return <FormControl w="auto" minW="190px">
-    <FormLabel htmlFor="kfmb-country" fontSize="xs" mb={0}>Shopping country</FormLabel>
-    <Select id="kfmb-country" size="sm" value={ACTIVE_COUNTRY_CODE} isDisabled={busy} onChange={(event) => {
+  return <FormControl w="full" minW={0}>
+    <FormLabel htmlFor="kfmb-country" fontSize="sm" mb={1}>Shopping country</FormLabel>
+    <Select id="kfmb-country" size="sm" bg="trade.ivory" fontWeight="600" value={ACTIVE_COUNTRY_CODE} isDisabled={busy} onChange={(event) => {
       const country = event.target.value;
       if (!isCountry(country) || country === ACTIVE_COUNTRY_CODE || (authLoading && isAuthenticated) || queryClient.isMutating() || isCartActionInProgress()) return;
       clearCountrySessions(window.sessionStorage);
@@ -22,6 +22,6 @@ export default function CountrySelector() {
     }}>
       <option value="kw">Kuwait</option><option value="sa">Saudi Arabia</option>
     </Select>
-    <Text fontSize="xs" role="status">{busy ? "Please wait for the current action to finish." : "Changing country requires signing in again."}</Text>
+    <Text fontSize="sm" color="trade.muted" mt={1} lineHeight="short" role="status">{busy ? "Please wait for the current action to finish." : "Changing country requires signing in again."}</Text>
   </FormControl>;
 }

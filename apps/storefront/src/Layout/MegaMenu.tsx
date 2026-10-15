@@ -5,7 +5,6 @@ import {
   FormControl,
   FormLabel,
   Select,
-  SlideFade,
   Spinner,
   useOutsideClick,
 } from "@chakra-ui/react";
@@ -90,23 +89,20 @@ const MegaMenu: FC<MegaMenuProps> = ({
 
   return (
     <Container
-      as={SlideFade}
       minH="20vh"
       maxH="45vh"
       display="flex"
       flexDirection="column"
-      offsetY={-12}
-      in={isOpen}
-      position="absolute"
-      top={14}
-      maxW="container.4xl"
+      id="catalog-categories"
+      position="relative"
+      mt={4}
+      maxW="full"
       py={4}
-      bgColor="whiteAlpha.600"
-      borderBottom="1px solid"
-      borderColor="whiteAlpha.400"
-      backdropFilter="auto"
+      bgColor="white"
+      border="1px solid"
+      borderRadius="lg"
+      borderColor="trade.border"
       shadow="sm"
-      backdropBlur="10px"
       mx="auto"
       left="0"
       right="0"
@@ -120,14 +116,14 @@ const MegaMenu: FC<MegaMenuProps> = ({
         ) : (
           <Container
             flex="1"
-            maxW="container.4xl"
+            maxW="full"
             display="grid"
             alignContent="flex-start"
             gap={3}
             maxH="500px"
             overflowY="auto"
             gridTemplateColumns={
-              !loading ? "repeat( auto-fit, minmax(300px, 1fr))" : "1fr"
+              !loading ? "repeat( auto-fit, minmax(min(100%, 240px), 1fr))" : "1fr"
             }
           >
             {categories?.map((category) => (
@@ -146,7 +142,7 @@ const MegaMenu: FC<MegaMenuProps> = ({
       </>
       {!loading && (
         <Container
-          maxW="container.4xl"
+          maxW="full"
           display="flex"
           alignItems="flex-end"
           justifyContent="flex-end"
@@ -155,7 +151,7 @@ const MegaMenu: FC<MegaMenuProps> = ({
         >
           <Button
             onClick={() => handleViewAllCategoryClick(selectedCatalog)}
-            size="xs"
+            size="sm"
             variant="ghost"
             colorScheme="primary"
           >
@@ -163,18 +159,18 @@ const MegaMenu: FC<MegaMenuProps> = ({
           </Button>
           {catalogs?.length && catalogs.length > 1 && (
             <FormControl w="auto">
-              <FormLabel fontSize=".7rem" color="chakra-subtle-text" mb={0}>
+              <FormLabel fontSize="sm" color="chakra-subtle-text" mb={0}>
                 Switch catalogs
               </FormLabel>
               <Select
                 size="sm"
-                h="24px"
+                minH="44px"
                 value={selectedCatalog}
                 onChange={(e) => setSelectedCatalog(e.target.value)}
-                w="fit-content"
+                w="full"
                 variant="outline"
                 bgColor="transparent"
-                fontSize=".7rem"
+                fontSize="sm"
               >
                 {catalogs?.map((catalog) => (
                   <option key={catalog.ID} value={catalog.ID}>

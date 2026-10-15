@@ -32,14 +32,14 @@ const FacetList: FunctionComponent<FacetListProps> = ({ facets, onChange }) => {
           {facets?.map((f: ListFacet) => {
             return (
               <AccordionItem border="none" key={f.Name} w="full">
-                  <AccordionButton>
+                  <AccordionButton minH="44px" px={0} borderRadius="md" _hover={{ bg: "trade.ivory" }}>
                     <Heading as="h3" size="sm" flex="1" textAlign="left"
                     >
                       {f.Name}
                     </Heading>
                     <AccordionIcon />
                   </AccordionButton>
-                <AccordionPanel as={VStack} alignItems="stretch">
+                <AccordionPanel as={VStack} alignItems="stretch" px={0} pb={3} spacing={1}>
                     <FacetListValue facetList={f} onChange={onChange} />
                 </AccordionPanel>
               </AccordionItem>

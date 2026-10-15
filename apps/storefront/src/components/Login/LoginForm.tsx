@@ -6,6 +6,7 @@ import {
   Button,
   Checkbox,
   FormControl,
+  FormLabel,
   Input,
   InputGroup,
   InputLeftElement,
@@ -77,12 +78,15 @@ const LoginForm: FC<ILoginForm> = ({ initialFocusRef, onSuccess }) => {
 
   return (
     <form id="OC_LOGIN_FORM" onSubmit={handleLogin}>
-      <FormControl isDisabled={loading} isRequired mb={3}>
+      <FormControl isDisabled={loading} isRequired mb={5}>
+        <FormLabel htmlFor="shopper-username">Username</FormLabel>
         <InputGroup>
-          <InputLeftElement pointerEvents="none">
+          <InputLeftElement h="48px" pointerEvents="none" color="trade.muted">
             <AtSignIcon />
           </InputLeftElement>
           <Input
+            id="shopper-username"
+            autoComplete="username"
             ref={initialFocusRef}
             aria-label="Username"
             placeholder="Username"
@@ -92,12 +96,15 @@ const LoginForm: FC<ILoginForm> = ({ initialFocusRef, onSuccess }) => {
           />
         </InputGroup>
       </FormControl>
-      <FormControl isDisabled={loading} isRequired mb={3}>
+      <FormControl isDisabled={loading} isRequired mb={5}>
+        <FormLabel htmlFor="shopper-password">Password</FormLabel>
         <InputGroup>
-          <InputLeftElement pointerEvents="none">
+          <InputLeftElement h="48px" pointerEvents="none" color="trade.muted">
             <LockIcon />
           </InputLeftElement>
           <Input
+            id="shopper-password"
+            autoComplete="current-password"
             aria-label="Password"
             placeholder="Password"
             type="password"
@@ -119,13 +126,12 @@ const LoginForm: FC<ILoginForm> = ({ initialFocusRef, onSuccess }) => {
         w="full"
         type="submit"
         variant="solid"
-        colorScheme="blue"
+        colorScheme="primary"
+        isLoading={loading}
+        loadingText="Signing in"
         mb={5}
       >
         Login
-      </Button>
-      <Button w="full" variant="link" size="xs" mb={6}>
-        Forgot username or password?
       </Button>
       {error instanceof Error && !((error as OrderCloudError).errors?.length) && (
         <Alert status="error" mb={5}><AlertIcon /><AlertDescription>{error.message}</AlertDescription></Alert>

@@ -1,27 +1,26 @@
 import {
   Button,
-  Card,
-  CardBody,
-  CardFooter,
   Center,
-  Container,
   Heading,
   HStack,
+  Link,
+  Stack,
+  Box,
   SimpleGrid,
   Spinner,
   Text,
   useToast,
-  VStack,
 } from "@chakra-ui/react";
 import {
   BuyerProduct,
   InventoryRecord,
 } from "ordercloud-javascript-sdk";
-import pluralize from "pluralize";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { IS_MULTI_LOCATION_INVENTORY } from "../../constants";
 import formatPrice from "../../utils/formatPrice";
+import { sellingUnit } from "../../utils/kfmbSellingUnit";
+import { Surface } from "../trade/TradePrimitives";
 import OcQuantityInput from "../cart/OcQuantityInput";
 import ProductImageGallery from "./product-detail/ProductImageGallery";
 import {
@@ -54,7 +53,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const navigate = useNavigate();
   const toast = useToast();
   const [activeRecordId, setActiveRecordId] = useState<string>();
-  const { data: product, isLoading: loading } = useOcResourceGet<BuyerProduct>(
+  const { data: product, isLoading: loading, error: productError, refetch: retryProduct } = useOcResourceGet<BuyerProduct>(
     "Me.Products",
     { productID: productId }
   );
@@ -65,6 +64,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     { disabled: !IS_MULTI_LOCATION_INVENTORY }
   );
 
+  const unit = sellingUnit(product);
   const [addingToCart, setAddingToCart] = useState(false);
   const [quantityState, setQuantityState] = useState(emptyPdpQuantityState);
   const { data: currentUser, isLoading: userLoading, error: userError, refetch: retryUser } = useCurrentUser();
@@ -136,7 +136,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         await assertCartQuantityChange(cart.status === "ready" ? cart.worksheet.Order?.ID : undefined, productId, quantity);
         await addCartLineItem({ ProductID: productId, Quantity: quantity, InventoryRecordID: activeRecordId });
       });
-      toast({ title: `${quantity} ${pluralize("pack", quantity)} added to cart`, status: "success", duration: 4000, isClosable: true });
+      toast({ title: `${quantity} ${quantity === 1 ? unit.singular : unit.plural} added to cart`, status: "success", duration: 4000, isClosable: true });
       navigate("/cart");
     } catch (error) {
       toast({
@@ -149,114 +149,72 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       setAddingToCart(false);
     }
   }, [product, activeRecordId, productId, toast, addCartLineItem, quantity, navigate,
-      inputError, canAddQuantity, cart]);
+      inputError, canAddQuantity, cart, unit.singular, unit.plural]);
 
   return loading ? (
-    <Center h="50vh">
-      <Spinner size="xl" thickness="10px" />
-    </Center>
+    <Surface><Center minH="340px"><Stack align="center" spacing={4}><Spinner size="lg" color="trade.ink" /><Text color="trade.muted">Loading product and pricing…</Text></Stack></Center></Surface>
   ) : product ? (
     renderProductDetail ? (
       renderProductDetail(product)
     ) : (
-      <SimpleGrid
-        as={Container}
-        gridTemplateColumns={{ lg: "1.5fr 2fr" }}
-        gap={12}
-        w="full"
-        maxW="container.4xl"
-      >
-        <ProductImageGallery images={product.xp?.Images || []} />
-        <VStack alignItems="flex-start" maxW="4xl" gap={4}>
-          <Heading maxW="2xl" size="xl">
-            {product.Name}
-          </Heading>
-          <Text color="chakra-subtle-text" fontSize="sm">
-            {product.ID}
-          </Text>
-          <Text maxW="prose">{product.Description}</Text>
-          <Text fontSize="3xl" fontWeight="medium">
-            {formatPrice(product.PriceSchedule?.PriceBreaks?.[0]?.Price, product.PriceSchedule?.Currency)}
-          </Text>
-          <HStack alignItems="center" gap={4} my={3}>
-            <Button
-              colorScheme="primary"
-              type="button"
-              onClick={handleAddToCart}
-              isLoading={addingToCart}
-              isDisabled={addingToCart || outOfStock || !canAddQuantity}
-            >
-              {outOfStock ? "Out of stock" : "Add To Cart"}
-            </Button>
-            {userError || cart.status === "error" ? (
-              <VStack alignItems="flex-start" gap={1}>
-                <Text role="alert" fontSize="xs" color="red.600">
-                  {userError instanceof Error ? userError.message : cart.status === "error" ? cart.message : "Shopper data could not be loaded."}
-                </Text>
-                <Button size="xs" variant="outline" onClick={() => userError ? retryUser() : cart.retry()}>
-                  Retry
+      <Stack spacing={6}>
+        <HStack spacing={2} fontSize="sm" color="trade.muted" as="nav" aria-label="Breadcrumb"><Link as={RouterLink} to="/">Home</Link><Text aria-hidden>/</Text><Link as={RouterLink} to="/products">Products</Link></HStack>
+        <SimpleGrid gridTemplateColumns={{ lg: "minmax(0, 1fr) minmax(0, 1.1fr)" }} gap={{ base: 7, lg: 10 }} alignItems="start" w="full">
+          <ProductImageGallery images={product.xp?.Images || []} productName={product.Name} />
+          <Stack alignItems="stretch" minW={0} spacing={6}>
+            <Stack spacing={3}>
+              <Heading as="h1" size={{ base: "xl", md: "2xl" }} lineHeight="shorter">{product.Name}</Heading>
+              <Text color="trade.muted" fontWeight="500">{unit.detail || `Sold by ${unit.singular}`}</Text>
+              {product.Description && <Text lineHeight="tall" maxW="60ch">{product.Description}</Text>}
+            </Stack>
+            <Surface p={{ base: 5, md: 6 }}>
+              <Stack spacing={5}>
+                <Box borderBottom="1px solid" borderColor="trade.border" pb={5}>
+                  <Text fontSize="sm" color="trade.muted" mb={1}>Price per {unit.singular}</Text>
+                  {product.PriceSchedule?.PriceBreaks?.length ? <Text fontSize={{ base: "3xl", md: "4xl" }} fontWeight="700" sx={{ fontVariantNumeric: "tabular-nums" }} whiteSpace="nowrap" color="trade.ink">{formatPrice(product.PriceSchedule.PriceBreaks[0].Price, product.PriceSchedule.Currency)}</Text> : <Text fontSize="lg" color="trade.muted">Price unavailable</Text>}
+                </Box>
+                {userError || cart.status === "error" ? (
+                  <Stack alignItems="flex-start" spacing={3}>
+                    <Text role="alert" fontSize="sm" color="red.700">{userError instanceof Error ? userError.message : cart.status === "error" ? cart.message : "Shopper data could not be loaded."}</Text>
+                    <Button variant="outline" onClick={() => userError ? retryUser() : cart.retry()}>Retry</Button>
+                  </Stack>
+                ) : (
+                  <OcQuantityInput
+                    controlId="addToCart"
+                    label={`Quantity (${unit.plural})`}
+                    priceSchedule={product.PriceSchedule}
+                    quantity={quantity}
+                    otherQuantity={alreadyInCart}
+                    loading={!quantityReady}
+                    disabled={addingToCart || !quantityReady || outOfStock}
+                    onChange={setQuantity}
+                  />
+                )}
+                <Text color="trade.muted" fontSize="sm">Quantity 1 represents one complete {unit.singular}. Prices apply to the selling unit shown above.</Text>
+                <Button colorScheme="primary" type="button" onClick={handleAddToCart} isLoading={addingToCart} loadingText="Adding to cart" isDisabled={addingToCart || outOfStock || !canAddQuantity} w={{ base: "full", sm: "auto" }} alignSelf={{ sm: "flex-start" }} minW={{ sm: "200px" }}>
+                  {outOfStock ? "Out of stock" : "Add To Cart"}
                 </Button>
-              </VStack>
-            ) : (
-              <OcQuantityInput
-                controlId="addToCart"
-                priceSchedule={product.PriceSchedule}
-                quantity={quantity}
-                otherQuantity={alreadyInCart}
-                loading={!quantityReady}
-                disabled={addingToCart || !quantityReady || outOfStock}
-                onChange={setQuantity}
-              />
-            )}
-          </HStack>
-          {!outOfStock && IS_MULTI_LOCATION_INVENTORY && (
-            <>
-              <Heading size="sm" color="chakra-subtle-text">
-                {`(${inventoryRecords?.Items.length}) locations with inventory`}
-              </Heading>
-              <HStack spacing={4}>
-                {inventoryRecords?.Items.length &&
-                  inventoryRecords?.Items.map((item) => (
-                    <Button
-                      onClick={() => setActiveRecordId(item.ID)}
-                      cursor="pointer"
-                      variant="outline"
-                      as={Card}
-                      h="150px"
-                      aspectRatio="1 / 1"
-                      key={item.ID}
-                      isDisabled={item.QuantityAvailable === 0}
-                    >
-                      <CardBody
-                        fontSize="xs"
-                        p={1}
-                        display="flex"
-                        alignItems="flext-start"
-                        justifyContent="center"
-                        flexFlow="column nowrap"
-                      >
-                        <Text fontSize="sm">{item.Address.AddressName}</Text>
-                        <Text>{item.Address.Street1}</Text>
-                        {item.Address.Street2 && (
-                          <Text>{item.Address.Street2}</Text>
-                        )}
-                        <Text>Stock: {item.QuantityAvailable}</Text>
-                      </CardBody>
-                      <CardFooter py={2} fontSize="xs">
-                        {item.QuantityAvailable === 0
-                          ? "Out of stock"
-                          : "Select This Store"}
-                      </CardFooter>
+              </Stack>
+            </Surface>
+            <Text fontSize="sm" color="trade.muted" overflowWrap="anywhere">Product ID: {product.ID}</Text>
+            {!outOfStock && IS_MULTI_LOCATION_INVENTORY && (
+              <Stack spacing={4}>
+                <Heading as="h2" size="md">Pickup inventory locations ({inventoryRecords?.Items.length || 0})</Heading>
+                <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
+                  {inventoryRecords?.Items.map(item => (
+                    <Button onClick={() => setActiveRecordId(item.ID)} variant="outline" h="auto" whiteSpace="normal" p={4} textAlign="left" justifyContent="flex-start" key={item.ID} isDisabled={item.QuantityAvailable === 0} aria-pressed={activeRecordId === item.ID} borderColor={activeRecordId === item.ID ? "trade.ink" : "trade.border"} borderWidth={activeRecordId === item.ID ? "2px" : "1px"}>
+                      <Stack spacing={1} fontWeight="normal" fontSize="sm"><Text fontWeight="600">{item.Address.AddressName}</Text><Text>{item.Address.Street1}</Text>{item.Address.Street2 && <Text>{item.Address.Street2}</Text>}<Text>Stock: {item.QuantityAvailable}</Text><Text fontWeight="600" mt={2}>{item.QuantityAvailable === 0 ? "Out of stock" : activeRecordId === item.ID ? "Selected location" : "Select this location"}</Text></Stack>
                     </Button>
                   ))}
-              </HStack>
-            </>
-          )}
-        </VStack>
-      </SimpleGrid>
+                </SimpleGrid>
+              </Stack>
+            )}
+          </Stack>
+        </SimpleGrid>
+      </Stack>
     )
   ) : (
-    <div>Product not found for ID: {productId}</div>
+    <Surface><Stack align="flex-start" spacing={4}><Heading as="h1" size="lg">{productError ? "Product could not be loaded" : "Product not found"}</Heading><Text color="trade.muted">{productError ? "Please try again to load product details and pricing." : "This product is not available in the current catalog."}</Text><Text fontSize="sm" color="trade.muted" overflowWrap="anywhere">Product ID: {productId}</Text>{productError ? <Button variant="outline" onClick={() => retryProduct()}>Try again</Button> : <Button as={RouterLink} to="/products">Browse products</Button>}</Stack></Surface>
   );
 };
 
