@@ -1,18 +1,16 @@
 import {
   Container,
-  HStack,
-  Text,
-  VStack,
+  Box,
   useDisclosure,
 } from "@chakra-ui/react";
 import { useOrderCloudContext } from "@ordercloud/react-sdk";
 import { FC, useEffect } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import MainMenu from "../Layout/MainMenu";
 import LoginModal from "../components/Login/LoginModal";
+import { TradeFooter } from "../components/trade/TradePrimitives";
 
 const Layout: FC = () => {
-  const { pathname } = useLocation();
   const { allowAnonymous, isAuthenticated, isLoggedIn } =
     useOrderCloudContext();
   const loginDisclosure = useDisclosure();
@@ -26,44 +24,15 @@ const Layout: FC = () => {
   }, [loginDisclosure, allowAnonymous, isAuthenticated, isLoggedIn]);
 
   return (
-    <>
+    <Box minH="100dvh" display="flex" flexDirection="column" bg="trade.ivory">
+      <Box as="a" href="#outletWrapper" position="absolute" left={4} top="-100px" bg="trade.ink" color="white" p={3} zIndex={100} _focus={{ top: 4 }}>Skip to content</Box>
       <LoginModal disclosure={loginDisclosure} />
       <MainMenu loginDisclosure={loginDisclosure} />
-      <VStack
-        alignItems="flex-start"
-        w="full"
-        minH="100dvh"
-        gap={0}
-        sx={{ "&>*": { width: "full" } }}
-        bgColor="chakra-subtle-bg"
-      >
-        <Container
-          id="outletWrapper"
-          display="flex"
-          flexFlow="column nowrap"
-          maxW={
-            pathname === "/" || pathname === "/cart" ? "full" : "container.4xl"
-          }
-          mx="auto"
-          my={pathname === "/" || pathname === "/cart" ? 0 : 8}
-          flex="1"
-        >
-          <Outlet />
-        </Container>
-        <HStack
-          alignItems="center"
-          justifyContent="center"
-          as="footer"
-          py={3}
-          zIndex="12"
-          bg="gray.400"
-        >
-          <Text fontWeight="normal" fontSize="sm" color="whiteAlpha.800">
-            © Sitcore Inc. 2024
-          </Text>
-        </HStack>
-      </VStack>
-    </>
+      <Container as="main" id="outletWrapper" tabIndex={-1} maxW="1320px" px={{ base: 4, md: 6, xl: 8 }} py={{ base: 6, md: 10 }} flex="1" w="full" minW={0}>
+        <Outlet />
+      </Container>
+      <TradeFooter />
+    </Box>
   );
 };
 

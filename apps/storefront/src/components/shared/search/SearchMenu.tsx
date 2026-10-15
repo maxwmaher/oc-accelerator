@@ -1,62 +1,47 @@
 import {
   Button,
+  FormControl,
+  FormLabel,
   Icon,
   InputGroup,
   InputLeftElement,
   InputRightElement,
-  useColorModeValue,
-} from '@chakra-ui/react'
-import { FC } from 'react'
-import { TbSearch } from 'react-icons/tb'
-import { DebouncedInput } from '../DebouncedInput'
+} from "@chakra-ui/react";
+import { FC, useId } from "react";
+import { TbSearch, TbX } from "react-icons/tb";
+import { DebouncedInput } from "../DebouncedInput";
 
-export type ServiceListOptions = { [key: string]: ServiceListOptions | string }
+export type ServiceListOptions = { [key: string]: ServiceListOptions | string };
 
 interface SearchMenuProps {
-  listOptions: ServiceListOptions
+  listOptions: ServiceListOptions;
   handleRoutingChange: (
     queryKey: string,
     resetPage?: boolean,
     index?: number
-  ) => (value?: string | boolean | number) => void
+  ) => (value?: string | boolean | number) => void;
 }
 
-const SearchMenu: FC<SearchMenuProps> = ({
-  listOptions,
-  handleRoutingChange,
-}) => {
-  const subtleIcon = useColorModeValue('gray.300', 'whiteAlpha.500')
-
+const SearchMenu: FC<SearchMenuProps> = ({ listOptions, handleRoutingChange }) => {
+  const controlId = useId();
   return (
-      <InputGroup w="100%" size="sm">
-        <InputLeftElement pointerEvents="none">
-          <Icon boxSize="60%" as={TbSearch} color={subtleIcon} />
-        </InputLeftElement>
+    <FormControl>
+      <FormLabel htmlFor={controlId}>Search products</FormLabel>
+      <InputGroup w="100%" size="md">
+        <InputLeftElement pointerEvents="none" h="48px"><Icon boxSize={5} as={TbSearch} color="trade.muted" /></InputLeftElement>
         <DebouncedInput
+          id={controlId}
+          h="48px"
           pl={10}
-          placeholder={`Search by keyword`}
-          value={(listOptions["search"] as string) || ""}
-          onChange={(v: string | number) => {
-            handleRoutingChange("search", true)(v);
-          }}
+          pr={(listOptions.search as string)?.length ? 12 : 3}
+          placeholder="Product keyword"
+          value={(listOptions.search as string) || ""}
+          onChange={(value: string | number) => handleRoutingChange("search", true)(value)}
         />
-        {(listOptions["search"] as string)?.length > 0 && (
-          <InputRightElement width="3.75rem">
-            <Button
-              variant="ghost"
-              colorScheme="secondary"
-              h="70%"
-              fontSize="x-small"
-              px="2"
-              size="sm"
-              onClick={() => handleRoutingChange("search", true)("")}
-            >
-              Clear
-            </Button>
-          </InputRightElement>
-        )}
+        {(listOptions.search as string)?.length > 0 && <InputRightElement w="48px" h="48px"><Button aria-label="Clear product search" variant="ghost" w="44px" h="44px" minW="44px" p={0} onClick={() => handleRoutingChange("search", true)("")}><Icon as={TbX} boxSize={5} /></Button></InputRightElement>}
       </InputGroup>
+    </FormControl>
   );
-}
+};
 
-export default SearchMenu
+export default SearchMenu;

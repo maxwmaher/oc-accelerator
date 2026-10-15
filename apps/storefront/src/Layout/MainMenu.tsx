@@ -3,10 +3,10 @@ import {
   Box,
   Button,
   Container,
-  Heading,
+  Flex,
+  Stack,
   HStack,
   Icon,
-  Image,
   Menu,
   MenuButton,
   MenuItem,
@@ -24,8 +24,7 @@ import { Catalog, Category } from "ordercloud-javascript-sdk";
 import { FC, useEffect, useMemo, useState } from "react";
 import { TbShoppingCartFilled } from "react-icons/tb";
 import { Link as RouterLink } from "react-router-dom";
-import { DEFAULT_BRAND } from "../assets/DEFAULT_BRAND";
-import { BRAND_LOGO_DARK, BRAND_LOGO_LIGHT } from "../constants";
+import { TradeBrand } from "../components/trade/TradePrimitives";
 import { useCurrentUser } from "../hooks/currentUser";
 import MegaMenu from "../Layout/MegaMenu";
 
@@ -121,114 +120,28 @@ const MainMenu: FC<MainMenuProps> = ({ loginDisclosure }) => {
   };
 
   return (
-    <HStack
-      minH="12"
-      as="header"
-      position="sticky"
-      w="full"
-      top="0"
-      zIndex={2}
-      bgColor="whiteAlpha.600"
-      borderBottom="1px solid"
-      borderColor="whiteAlpha.900"
-      px="8"
-      backdropFilter="auto"
-      backdropBlur="5px"
-      py={2}
-    >
-      <Container h="100%" maxW="full">
-        <HStack h="100%" justify="flex-start" alignItems="center">
-          <RouterLink to="/">
-            {BRAND_LOGO_LIGHT ? (
-              <Image src={BRAND_LOGO_LIGHT} alt="WildSite Logo" h="10" />
-            ) : BRAND_LOGO_DARK ? (
-              <Image src={BRAND_LOGO_DARK} alt="WildSite Logo (Dark)" h="10" />
-            ) : (
-              <DEFAULT_BRAND h="10" />
-            )}
-          </RouterLink>
-          <HStack as="nav" flexGrow="1" ml={3}>
-            {categories.length > 0 && (
-              <Button
-                isActive={megaMenuDisclosure.isOpen}
-                size="sm"
-                variant="ghost"
-                onClick={megaMenuDisclosure.onToggle}
-              >
-                Categories
-              </Button>
-            )}
+    <Box as="header" bg="white" borderTop="3px solid" borderTopColor="trade.gold" borderBottom="1px solid" borderBottomColor="trade.border" position="relative" zIndex={10}>
+      <Container maxW="1320px" px={{ base: 4, md: 6, xl: 8 }} py={{ base: 4, lg: 5 }}>
+        <Flex align="center" gap={{ base: 4, lg: 6 }} flexWrap="wrap">
+          <Box as={RouterLink} to="/" aria-label="KFMB home" flexShrink={0}><TradeBrand /></Box>
+          <Flex as="nav" aria-label="Catalog navigation" gap={1} flex={{ base: "1 1 100%", lg: "1" }} order={{ base: 3, lg: 0 }} borderTop={{ base: "1px solid", lg: "none" }} borderColor="trade.border" pt={{ base: 3, lg: 0 }} flexWrap="wrap">
+            {categories.length > 0 && <Button isActive={megaMenuDisclosure.isOpen} aria-expanded={megaMenuDisclosure.isOpen} aria-controls="catalog-categories" size="sm" variant="ghost" onClick={megaMenuDisclosure.onToggle} rightIcon={<ChevronDownIcon />}>Categories</Button>}
             {renderCatalogMenu()}
-          </HStack>
-          <HStack>
-            <CountrySelector />
-            {isLoggedIn && (
-              <Heading size="sm">
-                {`Welcome, ${user?.FirstName} ${user?.LastName}`}
-              </Heading>
-            )}
-            <Button
-              as={RouterLink}
-              to="/cart"
-              variant="outline"
-              size="sm"
-              leftIcon={
-                totalQuantity !== 0 ? (
-                  <Box position="relative" mt="2px" mr="2px" lineHeight="1">
-                    <Box
-                      id="cartCountFrame"
-                      top="5px"
-                      left="6px"
-                      position="absolute"
-                      height="9px"
-                      width="15px"
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                    >
-                      <Text
-                        fontSize=".5rem"
-                        color="white"
-                        fontWeight="bold"
-                        letterSpacing="-.5px"
-                      >
-                        {totalQuantity}
-                      </Text>
-                    </Box>
-
-                    <Icon
-                      fontSize="lg"
-                      as={TbShoppingCartFilled}
-                      color="gray.500"
-                    />
-                  </Box>
-                ) : undefined
-              }
-              aria-label={`Link to cart`}
-            >
-              Cart
-            </Button>
-            {isLoggedIn ? (
-              <Button size="sm" onClick={logout}>
-                Logout
+          </Flex>
+          <Box w={{ base: "full", lg: "250px" }} order={{ base: 4, lg: 0 }}><CountrySelector /></Box>
+          <Stack display={{ base: "contents", lg: "flex" }} spacing={2} ml="auto" align="flex-end" maxW={{ base: "none", lg: "240px" }} minW={0}>
+            <HStack spacing={2} ml={{ base: "auto", lg: 0 }} order={{ base: 1, lg: 0 }}>
+              <Button as={RouterLink} to="/cart" variant="outline" size="sm" leftIcon={<Icon as={TbShoppingCartFilled} boxSize={5} />} aria-label="Link to cart">
+                Cart{totalQuantity > 0 && <Text as="span" ml={2} bg="trade.ink" color="white" borderRadius="sm" px={2} fontSize="sm">{totalQuantity}</Text>}
               </Button>
-            ) : (
-              <Button size="sm" onClick={loginDisclosure.onOpen}>
-                Login
-              </Button>
-            )}
-          </HStack>
-        </HStack>
-        {megaMenuDisclosure.isOpen && (
-          <MegaMenu
-            isOpen={megaMenuDisclosure.isOpen}
-            onClose={megaMenuDisclosure.onClose}
-            selectedCatalog={selectedCatalog}
-            setSelectedCatalog={setSelectedCatalog}
-          />
-        )}
+              {isLoggedIn ? <Button size="sm" variant="ghost" onClick={logout}>Logout</Button> : <Button size="sm" onClick={loginDisclosure.onOpen}>Login</Button>}
+            </HStack>
+            {isLoggedIn && user && <Text order={{ base: 2, lg: 0 }} flexBasis={{ base: "100%", lg: "auto" }} fontSize="sm" color="trade.muted" textAlign={{ base: "left", lg: "right" }} overflowWrap="anywhere">{`Welcome, ${[user.FirstName, user.LastName].filter(Boolean).join(" ") || user.Username || "shopper"}`}</Text>}
+          </Stack>
+        </Flex>
+        {megaMenuDisclosure.isOpen && <MegaMenu isOpen={megaMenuDisclosure.isOpen} onClose={megaMenuDisclosure.onClose} selectedCatalog={selectedCatalog} setSelectedCatalog={setSelectedCatalog} />}
       </Container>
-    </HStack>
+    </Box>
   );
 };
 

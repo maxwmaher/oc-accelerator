@@ -1,4 +1,4 @@
-import { Card, CardBody, Text, VStack } from "@chakra-ui/react";
+import { Box, Stack, Text } from "@chakra-ui/react";
 import { LineItem } from "ordercloud-javascript-sdk";
 import { FunctionComponent } from "react";
 import OcLineItemCard from "./OcLineItemCard";
@@ -19,28 +19,17 @@ const OcLineItemList: FunctionComponent<OcLineItemListProps> = ({
   onChange,
 }) => {
   return lineItems && lineItems.length ? (
-    <VStack gap={6} alignItems="flex-start" w="full">
-      <Card
-        variant="outline"
-        w="full"
-        mt={-4}
-        rounded="none"
-        bgColor="blackAlpha.100"
-        borderColor="transparent"
-      >
-        <CardBody display="flex" flexDirection="column" gap={2}>
-          {lineItems.map((li, idx) => (
+    <Stack spacing={0} w="full" divider={<Box borderBottom="1px solid" borderColor="trade.border" />}>
+          {lineItems.map((li) => (
             <OcLineItemCard
-              key={idx}
+              key={li.ID}
               lineItem={li}
               editable={editable}
               currency={currency}
               onChange={onChange}
             />
           ))}
-        </CardBody>
-      </Card>
-    </VStack>
+    </Stack>
   ) : (
     <Text alignSelf="flex-start">{emptyMessage}</Text>
   );

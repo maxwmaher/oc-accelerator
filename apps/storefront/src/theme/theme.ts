@@ -5,8 +5,10 @@ import foundations from "./foundations/index";
 import layerStyles from "./layer-styles";
 import semanticTokens from "./semantic-tokens";
 import styles from "./styles";
+import tradeTheme from "./trade-theme";
 
 const acceleratorTheme = extendTheme(
+  sitecoreTheme,
   {
     config: {
       initialColorMode: "light",
@@ -19,7 +21,7 @@ const acceleratorTheme = extendTheme(
     layerStyles,
     semanticTokens,
   },
-  sitecoreTheme
+  tradeTheme
 );
 
 export default acceleratorTheme;
