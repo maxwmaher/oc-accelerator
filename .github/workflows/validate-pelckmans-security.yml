@@ -1,0 +1,132 @@
+name: Validate Pelckmans security dependencies
+
+on:
+  push:
+    branches: [codex/pelckmans-security-dependencies]
+  pull_request:
+    branches: [pelckmans-demo]
+    paths:
+      - apps/api/**
+      - .github/workflows/validate-pelckmans-security.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Record SDK and baseline dependency paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p validation
+          dotnet --info > validation/dotnet-info.txt
+          baseline=$(git merge-base HEAD origin/pelckmans-demo)
+          printf '%s\n' "$baseline" > validation/base-revision.txt
+          git worktree add "$RUNNER_TEMP/pelckmans-baseline" "$baseline"
+          for project in Accelerator.Core Accelerator.Mocks Accelerator.Functions; do
+            path="$RUNNER_TEMP/pelckmans-baseline/apps/api/$project/$project.csproj"
+            dotnet restore "$path" --force --no-cache -p:NuGetAudit=true -p:NuGetAuditMode=all > "validation/baseline-$project-restore.log" 2>&1
+            for package in System.Drawing.Common System.Security.Cryptography.Xml; do
+              dotnet nuget why "$path" "$package" >> "validation/baseline-$project-paths.txt"
+            done
+          done
+
+      - name: Clean restore with transitive vulnerability auditing
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet restore apps/api/Accelerator.Api.sln --force --no-cache -p:NuGetAudit=true -p:NuGetAuditMode=all 2>&1 | tee validation/restore.log
+          dotnet restore apps/api/Accelerator.Core.Tests/Accelerator.Core.Tests.csproj --force --no-cache -p:NuGetAudit=true -p:NuGetAuditMode=all 2>&1 | tee validation/test-restore.log
+
+      - name: Release build and existing API tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build apps/api/Accelerator.Api.sln -c Release --no-restore 2>&1 | tee validation/build.log
+          dotnet test apps/api/Accelerator.Core.Tests/Accelerator.Core.Tests.csproj -c Release --no-restore --logger trx --results-directory "$GITHUB_WORKSPACE/validation/test-results" 2>&1 | tee validation/tests.log
+
+      - name: Audit and record resolved packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet list apps/api/Accelerator.Api.sln package --include-transitive --vulnerable --format json > validation/vulnerabilities.json
+          dotnet list apps/api/Accelerator.Api.sln package --include-transitive --format json > validation/resolved-packages.json
+          for project in Accelerator.Core Accelerator.Mocks Accelerator.Functions; do
+            for package in System.Drawing.Common System.Security.Cryptography.Xml; do
+              dotnet nuget why "apps/api/$project/$project.csproj" "$package" >> "validation/fixed-$project-paths.txt"
+            done
+          done
+
+      - name: Publish using the repository's portable Release configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet publish apps/api/Accelerator.Functions/Accelerator.Functions.csproj -c Release --no-restore -o "$RUNNER_TEMP/pelckmans-publish" 2>&1 | tee validation/publish.log
+
+      - name: Verify generated manifests and packaged files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' | tee validation/artifact-verification.txt
+          import hashlib, json, os
+          from pathlib import Path
+
+          publish = Path(os.environ["RUNNER_TEMP"]) / "pelckmans-publish"
+          roots = [publish, Path("apps/api/Accelerator.Core/bin/Release"), Path("apps/api/Accelerator.Mocks/bin/Release")]
+          manifests = sorted({p for root in roots for p in root.rglob("*.deps.json")})
+          assert manifests, "No generated dependency manifests found"
+          xml_found = False
+          for manifest in manifests:
+              data = json.loads(manifest.read_text(encoding="utf-8-sig"))
+              packages = set(data.get("libraries", {}))
+              for target in data.get("targets", {}).values():
+                  packages.update(target)
+              selected = sorted(p for p in packages if p.startswith(("System.Drawing.Common/", "System.Security.Cryptography.Xml/")))
+              for package in selected:
+                  name, version = package.split("/", 1)
+                  v = tuple(int(x) for x in version.split("."))
+                  if name == "System.Drawing.Common":
+                      assert not ((4, 0, 0) <= v < (4, 7, 2) or (5, 0, 0) <= v < (5, 0, 3)), package
+                  else:
+                      assert version == "8.0.5", package
+                      xml_found = True
+              print(f"{manifest}: {selected}")
+          assert xml_found, "Patched XML dependency absent"
+          assert (publish / "host.json").is_file(), "Missing host.json"
+          assert (publish / "functions.metadata").is_file(), "Missing function metadata"
+          functions = json.loads((publish / "functions.metadata").read_text())
+          assert functions, "No functions discovered during build"
+          print("Generated functions:", ", ".join(f["name"] for f in functions))
+          assert not list(publish.rglob("local.settings*.json")), "Local settings must never be packaged"
+          hashes = {}
+          for path in sorted(publish.rglob("*")):
+              if path.is_file():
+                  hashes[str(path.relative_to(publish))] = hashlib.sha256(path.read_bytes()).hexdigest()
+          evidence = {"revision": os.environ["GITHUB_SHA"], "configuration": "Release", "targetFramework": "net8.0", "runtimeIdentifier": "portable", "files": hashes}
+          Path("validation/artifact-manifest.json").write_text(json.dumps(evidence, indent=2) + "\n")
+          print("Passed: generated manifests exclude both reported CVE ranges; XML resolves to 8.0.5.")
+          PY
+          (cd "$RUNNER_TEMP/pelckmans-publish" && zip -q -r "$GITHUB_WORKSPACE/pelckmans-functions.zip" .)
+          sha256sum pelckmans-functions.zip > validation/package.sha256
+
+      - name: Retain validation evidence and deployment candidate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pelckmans-security-validation
+          path: |
+            validation/
+            pelckmans-functions.zip
+          if-no-files-found: error
+          retention-days: 14
