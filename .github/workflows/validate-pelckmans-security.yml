@@ -1,8 +1,6 @@
 name: Validate Pelckmans security dependencies
 
 on:
-  push:
-    branches: [codex/pelckmans-security-dependencies]
   pull_request:
     branches: [pelckmans-demo]
     paths:
@@ -21,6 +19,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -40,7 +39,9 @@ jobs:
             for package in System.Drawing.Common System.Security.Cryptography.Xml; do
               dotnet nuget why "$path" "$package" >> "validation/baseline-$project-paths.txt"
             done
+            cat "validation/baseline-$project-paths.txt"
           done
+          dotnet list "$RUNNER_TEMP/pelckmans-baseline/apps/api/Accelerator.Api.sln" package --include-transitive --vulnerable --format json > validation/baseline-vulnerabilities.json
 
       - name: Clean restore with transitive vulnerability auditing
         shell: bash
@@ -66,7 +67,26 @@ jobs:
             for package in System.Drawing.Common System.Security.Cryptography.Xml; do
               dotnet nuget why "apps/api/$project/$project.csproj" "$package" >> "validation/fixed-$project-paths.txt"
             done
+            cat "validation/fixed-$project-paths.txt"
           done
+          python3 - <<'PY' | tee validation/audit-comparison.txt
+          import json
+          from pathlib import Path
+          def findings(path):
+              data = json.loads(Path(path).read_text())
+              return {(p["id"], p["resolvedVersion"], v["advisoryurl"])
+                      for project in data["projects"]
+                      for framework in project.get("frameworks", [])
+                      for key in ("topLevelPackages", "transitivePackages")
+                      for p in framework.get(key, [])
+                      for v in p.get("vulnerabilities", [])}
+          baseline = findings("validation/baseline-vulnerabilities.json")
+          current = findings("validation/vulnerabilities.json")
+          print("Pre-existing findings remaining:", sorted(baseline & current))
+          print("Removed findings:", sorted(baseline - current))
+          print("New findings:", sorted(current - baseline))
+          assert not current - baseline, "Dependency changes introduced known vulnerabilities"
+          PY
 
       - name: Publish using the repository's portable Release configuration
         shell: bash
@@ -79,7 +99,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY' | tee validation/artifact-verification.txt
-          import hashlib, json, os
+          import hashlib, json, os, subprocess
           from pathlib import Path
 
           publish = Path(os.environ["RUNNER_TEMP"]) / "pelckmans-publish"
@@ -113,7 +133,7 @@ jobs:
           for path in sorted(publish.rglob("*")):
               if path.is_file():
                   hashes[str(path.relative_to(publish))] = hashlib.sha256(path.read_bytes()).hexdigest()
-          evidence = {"revision": os.environ["GITHUB_SHA"], "configuration": "Release", "targetFramework": "net8.0", "runtimeIdentifier": "portable", "files": hashes}
+          evidence = {"revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "configuration": "Release", "targetFramework": "net8.0", "runtimeIdentifier": "portable", "files": hashes}
           Path("validation/artifact-manifest.json").write_text(json.dumps(evidence, indent=2) + "\n")
           print("Passed: generated manifests exclude both reported CVE ranges; XML resolves to 8.0.5.")
           PY
