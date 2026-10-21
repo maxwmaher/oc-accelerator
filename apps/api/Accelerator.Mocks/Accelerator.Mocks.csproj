@@ -8,6 +8,8 @@
 
     <ItemGroup>
       <PackageReference Include="ordercloud-dotnet-catalyst" Version="2.8.1" />
+        <!-- Override Catalyst/MVC's legacy XML dependency with the patched .NET 8 package. -->
+        <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.5" />
     </ItemGroup>
 
 </Project>

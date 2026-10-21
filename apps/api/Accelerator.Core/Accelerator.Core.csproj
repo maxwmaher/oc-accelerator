@@ -17,6 +17,8 @@
         <PackageReference Include="OrderCloud.Integrations.Shipping.EasyPost" Version="2.4.0" />
         <PackageReference Include="OrderCloud.Integrations.Tax.Avalara" Version="2.4.0" />
         <PackageReference Include="OrderCloud.SDK" Version="0.17.5" />
+        <!-- Override Catalyst/MVC's legacy XML dependency with the patched .NET 8 package. -->
+        <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.5" />
     </ItemGroup>
 
 </Project>
